@@ -36,5 +36,5 @@ LAMDA Group, Nanjing University
 
 [daiwz@lamda.nju.edu.cn](mailto:daiwz@lamda.nju.edu.cn)
 
-[lamda.nju.edu.cn](lamda.nju.edu.cn)
+[http://lamda.nju.edu.cn/daiwz](http://lamda.nju.edu.cn/daiwz)
 
