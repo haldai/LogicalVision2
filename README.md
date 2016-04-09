@@ -20,9 +20,9 @@ Symbolic computer vision tool with SWI-Prolog and OpenCV.
 
 After compilation you will get `cvio.so`, `cvdraw.so` and `cvsampler.so`. Simply load them in SWI-Prolog with:
 
-> `load_foreign_library(foreign('cvio.so')).
+> `load_foreign_library(foreign('cvio.so')).`
 
-> `load_foreign_library(foreign('cvsampler.so')).
+> `load_foreign_library(foreign('cvsampler.so')).`
 
 > `load_foreign_library(foreign('cvdraw.so')).`
 
