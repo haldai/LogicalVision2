@@ -28,6 +28,14 @@ After compilation you will get `cvio.so`, `cvdraw.so` and `cvsampler.so` in `src
 
 Please see the source codes for detail predicates.
 
+### Example ###
+
+`?-load_foreign_library(foreign('src/prolog2/cvio.so')).`
+
+`?-load_video('../../data/Protist.mp4', A), showvid_win(A, debug).`
+
+During video playing, press `ESC` to quit, any other key to pause.
+
 ## Contact ##
 
 Wang-Zhou Dai
