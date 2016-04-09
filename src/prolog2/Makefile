@@ -22,7 +22,7 @@ LDFLAGS_SWI = `pkg-config --libs swipl`
 CXXFLAGS_CV = `pkg-config --cflags opencv`
 LDFLAGS_CV = `pkg-config --libs opencv`
 
-# Qt5
+# Armadillo
 LDFLAGS_ARMA = -larmadillo
 
 # Qt5

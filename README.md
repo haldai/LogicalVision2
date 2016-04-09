@@ -30,9 +30,9 @@ Please see the source codes for detail predicates.
 
 ### Example ###
 
-`?-load_foreign_library(foreign('src/prolog2/cvio.so')).`
+`?- load_foreign_library(foreign('src/prolog2/cvio.so')).`
 
-`?-load_video('../../data/Protist.mp4', A), showvid_win(A, debug).`
+`?- load_video('../../data/Protist.mp4', A), showvid_win(A, debug).`
 
 During video playing, press `ESC` to quit, any other key to pause.
 
