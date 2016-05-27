@@ -15,10 +15,10 @@
 #include <SWI-cpp.h>
 #include <SWI-Prolog.h>
 
-/* sample_point(IMGSEQ, [X, Y, Z], VAR)
+/* sample_point_var(IMGSEQ, [X, Y, Z], VAR)
  * get variation of local area of point [X, Y, Z] in image sequence IMGSEQ
  */
-PREDICATE(sample_point, 3) {
+PREDICATE(sample_point_var, 3) {
     char *p1 = (char*) A1;
     vector<int> vec = list2vec<int>(A2, 3);
     Scalar point(vec[0], vec[1], vec[2]); // coordinates scalar
@@ -26,17 +26,17 @@ PREDICATE(sample_point, 3) {
     // get image sequence and compute variance
     const string add_seq(p1);
     vector<Mat> *seq = str2ptr<vector<Mat>>(add_seq);
-    double var = cv_img_var_loc(seq, point);
+    double var = cv_imgs_point_var_loc(seq, point);
 
     // return variance
     return A3 = PlTerm(var);
 }
 
-/* sample_point(IMGSEQ, [X, Y, Z], [RX, RY, RZ], VAR)
+/* sample_point_var(IMGSEQ, [X, Y, Z], [RX, RY, RZ], VAR)
  * get variation of radius [RX, RY, RZ] local area
  * of point [X, Y, Z] in image sequence IMGSEQ
  */
-PREDICATE(sample_point, 4) {
+PREDICATE(sample_point_var, 4) {
     char *p1 = (char*) A1;
     vector<int> vec = list2vec<int>(A2, 3);
     Scalar point(vec[0], vec[1], vec[2]); // coordinates scalar
@@ -47,11 +47,52 @@ PREDICATE(sample_point, 4) {
     // get image sequence and compute variance
     const string add_seq(p1);
     vector<Mat> *seq = str2ptr<vector<Mat>>(add_seq);
-    double var = cv_img_var_loc(seq, point, rad);
+    double var = cv_imgs_point_var_loc(seq, point, rad);
 
     // return variance
     return A4 = PlTerm(var);
 }
+
+/* sample_point_color(IMGSEQ, [X, Y, Z], COLOR)
+ * get LAB color of local area of point [X, Y, Z] in image sequence IMGSEQ
+ */
+PREDICATE(sample_point_color, 3) {
+    char *p1 = (char*) A1;
+    vector<int> vec = list2vec<int>(A2, 3);
+    Scalar point(vec[0], vec[1], vec[2]); // coordinates scalar
+
+    // get image sequence and compute variance
+    const string add_seq(p1);
+    vector<Mat> *seq = str2ptr<vector<Mat>>(add_seq);
+    Scalar col = cv_imgs_point_color_loc(seq, point);
+    vector<double> col_vec = {col[0], col[1], col[2]};
+
+    // return variance
+    return A3 = vec2list<double>(col_vec);
+}
+
+/* sample_point_color(IMGSEQ, [X, Y, Z], [RX, RY, RZ], COLOR)
+ * get average LAB color of point's neigborhood with radius [RX, RY, RZ]
+ * local area
+ */
+PREDICATE(sample_point_color, 4) {
+    char *p1 = (char*) A1;
+    vector<int> vec = list2vec<int>(A2, 3);
+    Scalar point(vec[0], vec[1], vec[2]); // coordinates scalar
+    
+    vector<int> r_vec = list2vec<int>(A3, 3);
+    Scalar rad(r_vec[0], r_vec[1], r_vec[2]); // radius of local area
+
+    // get image sequence and compute variance
+    const string add_seq(p1);
+    vector<Mat> *seq = str2ptr<vector<Mat>>(add_seq);
+    Scalar col = cv_imgs_point_color_loc(seq, point, rad);
+    vector<double> col_vec = {col[0], col[1], col[2]};
+
+    // return variance
+    return A4 = vec2list<double>(col_vec);
+}
+
 
 /* line_points(POINT, DIR, PTS)
  * get a list of points that on line

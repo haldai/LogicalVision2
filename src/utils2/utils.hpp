@@ -42,6 +42,17 @@ std::vector<T> &operator+=(std::vector<T> &A, const std::vector<T> &B);
  */
 template <class Type>
 vector<Type> list2vec(PlTerm term, int size = -1);
+template <class Type>
+PlTerm vec2list(vector<Type> list, int size = -1);
+template <class Type>
+vector<vector<Type>> list2vecvec(PlTerm term, int size_outer = -1,
+                                 int size_inner = -1);
+template <class Type>
+PlTerm vecvec2list(vector<vector<Type>> vec, int size_outer = -1,
+                   int size_inner = -1);
+
+/* Return an empty list */
+PlTerm empty_list();
 
 /* translation between vector of point coordinates and prolog list
  * @term: prolog term of list, [[x1, y1, z1], [x2, y2, z2], ...]
@@ -49,6 +60,10 @@ vector<Type> list2vec(PlTerm term, int size = -1);
  */
 vector<Scalar> point_list2vec(PlTerm term);
 PlTerm point_vec2list(vector<Scalar> list);
+
+/* Assert and retract a fact (PlCompoud as a PlTerm) in Prolog Engine */
+void pl_assert(string type, PlTerm A);
+void pl_retract(string type, PlTerm A);
 
 /********* implementation ********/
 template <class Type>
@@ -85,6 +100,107 @@ vector<Type> list2vec(PlTerm term, int size) {
     } catch (...) {
         return re;
     }
+}
+template <class Type>
+PlTerm vec2list(vector<Type> list, int size) {
+    static_assert((is_same<Type, long>::value)
+                  || (is_same<Type, double>::value)
+                  || (is_same<Type, wchar_t*>::value)
+                  || (is_same<Type, char*>::value)
+                  || (is_same<Type, PlTerm>::value),
+                  "Wrong template type for list2vec!");
+        
+    term_t term_ref = PL_new_term_ref();
+    PlTerm term(term_ref);
+    PlTail tail(term);
+
+    try {
+        if (size == -1) {
+            for (auto it = list.begin(); it != list.end(); ++it)
+                tail.append((Type) *it);
+            tail.close();
+        } else {
+            for (int i = 0; i < size; i++)
+                tail.append((Type) list[i]);
+            tail.close();
+        }
+        return term;
+    } catch (...) {
+        cerr << "Saving list error!" << endl;
+        return term;
+    }
+}
+
+template <class Type>
+vector<vector<Type>> list2vecvec(PlTerm term, int size_outer, int size_inner) {
+    static_assert((is_same<Type, int>::value)
+                  || (is_same<Type, long>::value)
+                  || (is_same<Type, double>::value)
+                  || (is_same<Type, wchar_t*>::value)
+                  || (is_same<Type, char*>::value),
+                  "Wrong template type for list2vec!");
+    assert(term.type() != PL_VARIABLE);
+
+    vector<vector<Type>> re;
+    try {
+        PlTail tail(term);
+        PlTerm e;
+        if (size_outer == -1) {
+            while(tail.next(e)) {
+                vector<Type> p = list2vec<Type>(e, size_inner);
+                re.push_back(p);
+            }
+        } else {
+            for (int i = 0; i < size_outer; i++) {
+                tail.next(e);
+                vector<Type> p = list2vec<Type>(e, size_inner);
+                re.push_back(p);
+            }
+        }
+    } catch (...) {
+        cerr << "Parsing list error!" << endl;
+    }
+    return re;
+}
+
+template <class Type>
+PlTerm vecvec2list(vector<vector<Type>> vec, int size_outer, int size_inner) {
+    static_assert((is_same<Type, long>::value)
+                  || (is_same<Type, double>::value)
+                  || (is_same<Type, wchar_t*>::value)
+                  || (is_same<Type, char*>::value)
+                  || (is_same<Type, PlTerm>::value),
+                  "Wrong template type for list2vecvec!");
+    term_t re_ref = PL_new_term_ref();
+    PlTerm re_term(re_ref);
+    PlTail re_tail(re_term);
+
+    try {
+        size_outer = (size_outer < 0) ? vec.size() : size_outer;
+        for (int o_idx = 0; o_idx < size_outer; o_idx++) {
+            size_inner = (size_inner < 0) ? vec[o_idx].size() : size_inner;
+            term_t points_ref = PL_new_term_ref();
+            PlTerm points_term(points_ref);
+            PlTail points_tail(points_term);
+            for (int i_idx = 0; i_idx < size_inner; i_idx++) {
+                PlTerm point((Type) (vec[o_idx][i_idx]));
+                points_tail.append(point);
+            }
+            points_tail.close();
+            re_tail.append(points_term);
+        }
+        re_tail.close();
+    } catch (...) {
+        cerr << "Parsing list error!" << endl;
+    }
+    return re_term;
+}
+
+PlTerm empty_list() {
+    PlTerm re;
+    PlTail t(re);
+    t.close();
+    return re;
 }
 
 PlTerm point_vec2list(vector<Scalar> list) {
@@ -148,6 +264,20 @@ std::vector<T> &operator+=(std::vector<T> &A, const std::vector<T> &B) {
     A.reserve(A.size() + B.size());
     A.insert(A.end(), B.begin(), B.end()); // add B;
     return A;
+}
+
+void pl_assert(string type, PlTerm A) {
+    PlTermv pl_args(1);
+    pl_args[0] = PlCompound(type.c_str(), A);
+    PlQuery q("assert", pl_args);
+    q.next_solution();
+}
+
+void pl_retract(string type, PlTerm A) {
+    PlTermv pl_args(1);
+    pl_args[0] = PlCompound(type.c_str(), A);
+    PlQuery q("retract", pl_args);
+    q.next_solution();
 }
 
 #endif

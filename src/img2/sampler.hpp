@@ -40,6 +40,16 @@ enum { XY_SHIFT = 16, XY_ONE = 1 << XY_SHIFT, DRAWING_STORAGE_BLOCK = (1 << 12) 
  */
 vector<Scalar> bound_scalar_3d(Scalar point, Scalar radius, Scalar bound);
 
+/* get LAB color of a point (or average color in its neighborhood)
+ * @images: image sequence
+ * @point: position of the interest point
+ * @radius: radius of the ellipsoid of the local area
+ * @return: color in current location
+ * REMARK: the 3 dimensions are width, height, duration
+ */
+Scalar cv_imgs_point_color_loc(vector<Mat> *images, Scalar point,
+                               Scalar radius = Scalar(0, 0, 0));
+
 /* calculate image local variance
  * @images: image sequence
  * @point: position of the interest point
@@ -47,8 +57,8 @@ vector<Scalar> bound_scalar_3d(Scalar point, Scalar radius, Scalar bound);
  * @return: variation of all the points
  * REMARK: the 3 dimensions are width, height, duration
  */
-double cv_img_var_loc(vector<Mat> *images, Scalar point,
-                   Scalar radius = Scalar(3, 3, 0));
+double cv_imgs_point_var_loc(vector<Mat> *images, Scalar point,
+                             Scalar radius = Scalar(3, 3, 0));
 
 /* get all points on a line
  * @point: position of a point on the line
@@ -137,7 +147,8 @@ bool out_of_canvas(Scalar point, Scalar bound) {
 
 
 /********* implementations *********/
-double cv_img_var_loc(vector<Mat> *images, Scalar point, Scalar radius) {
+double cv_imgs_point_var_loc(vector<Mat> *images, Scalar point,
+                             Scalar radius) {
     // get left_up_most and right_down_most and enumerate all pixels
     int w = (*images)[0].cols;
     int h = (*images)[0].rows;
@@ -150,7 +161,7 @@ double cv_img_var_loc(vector<Mat> *images, Scalar point, Scalar radius) {
     // the ellipsoid is:
     //  ((X - P1)/W)^2 + ((Y - P2)/H)^2 + ((Z - P3)/D )^2 = 1
     
-    // collect pixels 
+    // collect pixels
     vector<Scalar> point_set;
     for (auto i = left_up_most[2]; i <= right_down_most[2]; i++)
         for (auto r = left_up_most[1]; r <= right_down_most[1]; r++)
@@ -208,6 +219,59 @@ double cv_img_var_loc(vector<Mat> *images, Scalar point, Scalar radius) {
     return std;
 }
 
+Scalar cv_imgs_point_color_loc(vector<Mat> *images, Scalar point,
+                               Scalar radius) {
+    // canvas size
+    int w = (*images)[0].cols;
+    int h = (*images)[0].rows;
+    int d = images->size();
+    // bounded neighborhood
+    vector<Scalar> bounds = bound_scalar_3d(point, radius, Scalar(w, h, d));
+    Scalar left_up_most = bounds[0];
+    Scalar right_down_most = bounds[1];
+    
+    // collect pixels 
+    vector<Scalar> point_set;
+    for (auto i = left_up_most[2]; i <= right_down_most[2]; i++)
+        for (auto r = left_up_most[1]; r <= right_down_most[1]; r++)
+            for (auto c = left_up_most[0]; c <= right_down_most[0]; c++) {
+                double p1, p2, p3;
+                p1 = radius[0] > 0 ?
+                    pow(((double) c - point[0])/radius[0], 2) : 0;
+                p2 = radius[1] > 0 ?
+                    pow(((double) r - point[1])/radius[1], 2) : 0;
+                p3 = radius[2] > 0 ?
+                    pow(((double) i - point[2])/radius[2], 2) : 0;
+                /* debug
+                cout << c << "-" << point[0] << ","
+                     << r << "-" << point[1] << ","
+                     << i << "-" << point[2] << "," << "\n\t";
+                cout << p1 << ","
+                     << p2 << ","
+                     << p3 << endl;
+                */
+                if (p1 + p2 + p3 <= 1.0) {
+                    point_set.push_back(Scalar(c, r, i));
+                }
+            }
+
+    int count = point_set.size();
+    Scalar avg = Scalar(.0, .0, .0);
+    // compute average
+    for (auto it = point_set.begin(); it != point_set.end(); ++it) {
+        Scalar pos = *it; // position of the pixel
+        Mat img = (*images)[pos[2]];
+        Vec3b pixel = img.at<Vec3b>(pos[1], pos[0]);
+        for (int channel = 0; channel < 3; channel++)
+            avg[channel] += pixel[channel];
+
+    }
+    
+    avg = avg/(double) count;
+    return avg;
+}
+
+
 vector<Scalar> bound_scalar_3d(Scalar point, Scalar radius, Scalar bound) {
     Scalar left_up_most(10000, 10000, 10000);
     Scalar right_down_most(-10000, -10000, -10000);
@@ -233,7 +297,7 @@ vector<Scalar> cv_sample_line(vector<Mat> *images, Scalar point,
     // evaluate local variance of all points
     for (auto it = line_points.begin(); it != line_points.end(); ++it) {
         Scalar pt = *it;
-        double var =  cv_img_var_loc(images, pt, loc_radius);
+        double var =  cv_imgs_point_var_loc(images, pt, loc_radius);
         // debug
         cout << (*it)[0] << ","
              << (*it)[1] << ","
@@ -257,7 +321,7 @@ vector<Scalar> cv_sample_line_seg(vector<Mat> *images, Scalar start,
     // evaluate local variance of all points
     for (auto it = line_points.begin(); it != line_points.end(); ++it) {
         Scalar pt = *it;
-        double var =  cv_img_var_loc(images, pt, loc_radius);
+        double var =  cv_imgs_point_var_loc(images, pt, loc_radius);
         // debug
         cout << (*it)[0] << ","
              << (*it)[1] << ","
