@@ -111,8 +111,33 @@ PREDICATE(video2imgseq, 2) {
         vector<Mat> *imgseq = cv_video2imgseq(vid);
         string add_i = ptr2str(imgseq);
         term_t t2 = PL_new_term_ref();
-        if (PL_put_atom_chars(t2, add_i.c_str()))
-            return A2 = PlTerm(t2);
+
+        // assert size_3d and size_2d
+        if (PL_put_atom_chars(t2, add_i.c_str())) {
+            A2 = PlTerm(t2);
+            int wid = vid->get(CAP_PROP_FRAME_WIDTH);
+            int hei = vid->get(CAP_PROP_FRAME_HEIGHT);
+            int dur = vid->get(CAP_PROP_FRAME_COUNT); // duration
+            // 2d
+            PlTermv size_2d_args(3);
+            size_2d_args[0] = A2;
+            size_2d_args[1] = wid;
+            size_2d_args[2] = hei;
+            PlTermv size_2d_atom(1);
+            size_2d_atom[0] = PlCompound("size_2d", size_2d_args);
+            // 3d
+            PlTermv size_3d_args(4);
+            size_3d_args[0] = A2;
+            size_3d_args[1] = wid;
+            size_3d_args[2] = hei;
+            size_3d_args[3] = dur;
+            PlTermv size_3d_atom(1);
+            size_3d_atom[0] = PlCompound("size_3d", size_3d_args);
+            // assertion
+            PlCall("assertz", size_2d_atom);
+            PlCall("assertz", size_3d_atom);
+            return TRUE;
+        }
         else
             return PUT_ERROR("video2imgseq/2", 2, "ADD_I", "STRING");
     } else

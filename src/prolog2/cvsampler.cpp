@@ -117,7 +117,7 @@ PREDICATE(line_points, 4) {
     return A4 = point_vec2list(pts);
 }
 
-/* line_seg_points(START, END, PTS)
+/* line_seg_points(START, END, BOUND, PTS)
  * get a list of points that on line segment [START, END]
  * @START = [X1, Y1, Z1]: start point of the line segment
  * @END = [X2, Y2, Z2]: end point of the line segment
@@ -139,14 +139,16 @@ PREDICATE(line_seg_points, 4) {
     vector<Scalar> pts = get_line_seg_points(start, end, bound);
     return A4 = point_vec2list(pts);
 }
+
 /* ellipse_points(CENTRE, PARAM, BOUND, PTS)
  * get a list of points lie on a ellipse on a plane (the 3rd dimenstion
  * is fixed)
  * @CENTRE = [X, Y, _]: centre point of the ellipse
  * @PARAM = [A, B, ALPHA]: axis length (A >= B) and tilt angle (ALPHA)
- *                         of the ellipse
+ *      of the ellipse.
+ * !!The unit of angle is DEG, not RAD; smaller than 1 then random angle!!
  * @BOUND = [W, H, D]: size limit of the video (width, height and duration),
- *                     usually obained from 'size_3d(VID, W, H, D)'
+ *      usually obained from 'size_3d(VID, W, H, D)'
  * @PTS: returned point list
  */
 PREDICATE(ellipse_points, 4) {

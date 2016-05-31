@@ -79,7 +79,8 @@ vector<Scalar> get_line_seg_points(Scalar start, Scalar end, Scalar bound);
 /* get all points on an ellipse (ONLY FOR 2D IMAGE, SO z ALWAYS EQUALS TO 0)
  *    When sampling a specific frame, remember to change z value of all points
  * @centre: centre point of the circle
- * @param: parameters of an ellipse (long/short axis length and axis angle)
+ * @param: parameters of an ellipse (long/short axis length and
+ *     axis angle (DEG, not RAD!!!))
  * @bound: size of the 3d-space
  * @return: all points on the circle
  */
@@ -133,18 +134,22 @@ void bresenham(Scalar current, Scalar direction, Scalar inc,
  */
 void fit_ellipse(vector<Scalar> points, Scalar& centre, Scalar& param);
 
-/* determine whether a 3-d point is out of a 3d-space (positive)
+/* determine whether a 3D point is out of a 3D space (positive)
  * @point: input point
- * @bound: boundary of the poistive space
+ * @bound: boundary of the 3D space (>= 0)
  */
 bool out_of_canvas(Scalar point, Scalar bound) {
-    if (point[0] < 0 || point[1] < 0 || point[2] < 0)
+    int x = point[0];
+    int y = point[1];
+    int z = point[2];
+    
+    if (x >= 0 && x <= bound[0] - 1 &&
+        y >= 0 && y <= bound[1] - 1 &&
+        z >= 0 && z <= bound[2] - 1) 
         return false;
-    if (point[0] >= bound[0] || point[1] >= bound[1] || point[2] >= bound[2])
-        return false;
-    return true;
+    else
+        return true;
 }
-
 
 /********* implementations *********/
 double cv_imgs_point_var_loc(vector<Mat> *images, Scalar point,
@@ -360,6 +365,7 @@ vector<Scalar> get_line_points(Scalar point, Scalar direction,
     inc[1] = r_inc;
     inc[2] = d_inc;
     bresenham(point, direction, inc, bound, &re);
+    reverse(re.begin(), re.end());
 
     return re;
 }
@@ -404,7 +410,8 @@ vector<Scalar> get_line_seg_points(Scalar start, Scalar end, Scalar bound) {
 
     int err_1, err_2;
 
-    while (!out_of_canvas(Scalar(x, y, z), bound)) {
+    while (!out_of_canvas(Scalar(x, y, z), bound) &&
+           x != x2 && y != y2 && z != z2) {
         if (Adx >= Ady && Adx >= Adz) {
             err_1 = dy2 - Adx;
             err_2 = dz2 - Adx;
@@ -421,7 +428,8 @@ vector<Scalar> get_line_seg_points(Scalar start, Scalar end, Scalar bound) {
                 err_2 += dz2;
                 x += x_inc;
                 Scalar point(x, y, z);
-                if (!out_of_canvas(point, bound))
+                if (!out_of_canvas(point, bound) &&
+                    x != x2 && y != y2 && z != z2)
                     re.push_back(point);
             }
         }
@@ -442,7 +450,8 @@ vector<Scalar> get_line_seg_points(Scalar start, Scalar end, Scalar bound) {
                 err_2 += dz2;
                 y += y_inc;
                 Scalar point(x, y, z);
-                if (!out_of_canvas(point, bound))
+                if (!out_of_canvas(point, bound) &&
+                    x != x2 && y != y2 && z != z2)
                     re.push_back(point);
             }
         }
@@ -463,12 +472,13 @@ vector<Scalar> get_line_seg_points(Scalar start, Scalar end, Scalar bound) {
                 err_2 += dx2;
                 z += z_inc;
                 Scalar point(x, y, z);
-                if (!out_of_canvas(point, bound))
+                if (!out_of_canvas(point, bound) &&
+                    x != x2 && y != y2 && z != z2)
                     re.push_back(point);
             }
         }
     }
-    
+    re.push_back(Scalar(x2, y2, z2));
     return re;
 }
 /* bresenham for line, NOT segment */
@@ -512,6 +522,9 @@ void bresenham(Scalar current, Scalar direction, Scalar inc,
             err_1 += dy2;
             err_2 += dz2;
             x += x_inc;
+            Scalar point(x, y, z);
+            if (!out_of_canvas(point, bound))
+                points->push_back(point);
         }
     }
     
@@ -530,6 +543,9 @@ void bresenham(Scalar current, Scalar direction, Scalar inc,
             err_1 += dx2;
             err_2 += dz2;
             y += y_inc;
+            Scalar point(x, y, z);
+            if (!out_of_canvas(point, bound))
+                points->push_back(point);
         }
     }
    
@@ -548,13 +564,14 @@ void bresenham(Scalar current, Scalar direction, Scalar inc,
             err_1 += dy2;
             err_2 += dx2;
             z += z_inc;
+            Scalar point(x, y, z);
+            if (!out_of_canvas(point, bound))
+                points->push_back(point);
         }
     }
-    if (x >= 0 && x <= bound[0] - 1 && y >= 0 && y <= bound[1] - 1 &&
-        z >= 0 && z <= bound[2] - 1) {
-        points->push_back(Scalar(x, y, z));
-        bresenham(Scalar(x, y, z), direction, inc, bound, points);
-    }
+    Scalar point(x, y, z);
+    if (!out_of_canvas(point, bound))
+        bresenham(point, direction, inc, bound, points);
 }
 
 void fit_ellipse(vector<Scalar> points, Scalar& centre, Scalar& param) {
@@ -621,6 +638,7 @@ void fit_ellipse(vector<Scalar> points, Scalar& centre, Scalar& param) {
         else
             angle = arma::datum::pi/2 + atan(2 * b / (a - c)) / 2;
     // save parameters
+    // TODO: angle rad2deg
     if (res1 >= res2)
         param = Scalar(res1, res2, angle);
     else
@@ -630,23 +648,35 @@ void fit_ellipse(vector<Scalar> points, Scalar& centre, Scalar& param) {
 vector<Scalar> get_ellipse_points(Scalar centre, Scalar param, Scalar bound) {
     vector<Scalar> re;
     // detailness of using polylines to approximate ellipse
-    int delta = (std::max((int) param[0], (int) param[1]) + (XY_ONE >> 1)) >> XY_SHIFT;
+    int width = std::abs((int) param[0]);
+    int height = std::abs((int) param[1]);
+    if (width > height)
+        SWAP(width, height);
+
     std::vector<Point> v; // vertices
+    //cout << "Starting OpenCV ellipse2Poly.\n";
     ellipse2Poly(Point(centre[0], centre[1]),
-                 Size(param[0], param[1]),
-                 param[2], 0, 360, delta, v);
+                 Size(width, height),
+                 param[2], 0, 360, 3, v); // the "3" before "v" is a parameter to control the accuracy of the polygon-approximation to ellipse
     if((int) v.size() <= 0)
         return re;
+    //cout << "OpenCV ellipse2Poly done.\n";
+    //cout << "Totally " << v.size() << " vertices.\n";
 
     Point p0;
-
     p0 = v[0];
-    for(int i = 0; i < (int) v.size(); i++) {
+    //cout << "Starting polygon to line segment points.\n";
+    for(int i = 1; i < (int) v.size(); i++) {
+        //cout << "converting point #" << i;
         Point p = v[i];
-        // points on plane of one frame
-        re += get_line_seg_points(Scalar(p0.x, p0.y, centre[2]), Scalar(p.x, p.y, 0), bound);
+        //cout << " (" << p.x << ", " << p.y << ")";
+        // points on line segment
+        vector<Scalar> temp_pts = get_line_seg_points(Scalar(p0.x, p0.y, centre[2]), Scalar(p.x, p.y, centre[2]), bound);
+        re += temp_pts;
+        //cout << ". Points num: " << temp_pts.size() << endl;;
         p0 = p;
     }
+    //cout << "polygon to line segment points done.\n";
     return re;
 }
 
