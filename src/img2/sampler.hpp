@@ -576,6 +576,7 @@ void bresenham(Scalar current, Scalar direction, Scalar inc,
 
 void fit_ellipse(vector<Scalar> points, Scalar& centre, Scalar& param) {
     assert(points.size() >= 5); // must use more than 5 points
+    int frame = points[0][2];
     arma::mat pts(points.size(), 2);
     for (arma::uword i = 0; i < points.size(); i++) {
         arma::rowvec p = {(double) points[i][0], (double) points[i][1]};
@@ -617,7 +618,7 @@ void fit_ellipse(vector<Scalar> points, Scalar& centre, Scalar& param) {
     double num = b * b - a * c;
     int x0 = int((c * d - b * f) / num);
     int y0 = int((a * f - b * d) / num);
-    centre = Scalar(x0, y0, -1); // centre of ellipse
+    centre = Scalar(x0, y0, frame); // centre of ellipse
     double up = 2*(a * f * f + c * d * d + g * b * b
                    - 2 * b * d * f - a * c * g);
     double down1 = (b * b - a * c) *
@@ -638,11 +639,11 @@ void fit_ellipse(vector<Scalar> points, Scalar& centre, Scalar& param) {
         else
             angle = arma::datum::pi/2 + atan(2 * b / (a - c)) / 2;
     // save parameters
-    // TODO: angle rad2deg
+    angle = 90 + (angle * 180/arma::datum::pi); // readjust "angle" to OpenCV radius axis
     if (res1 >= res2)
-        param = Scalar(res1, res2, angle);
+        param = Scalar(round(res1), round(res2), round(angle));
     else
-        param = Scalar(res2, res1, angle);
+        param = Scalar(round(res2), round(res1), round(angle));
 }
 
 vector<Scalar> get_ellipse_points(Scalar centre, Scalar param, Scalar bound) {

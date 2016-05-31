@@ -141,7 +141,7 @@ PREDICATE(line_seg_points, 4) {
 }
 
 /* ellipse_points(CENTRE, PARAM, BOUND, PTS)
- * get a list of points lie on a ellipse on a plane (the 3rd dimenstion
+ * get a list of points lie on an ellipse on a plane (the 3rd dimenstion
  * is fixed)
  * @CENTRE = [X, Y, _]: centre point of the ellipse
  * @PARAM = [A, B, ALPHA]: axis length (A >= B) and tilt angle (ALPHA)
@@ -194,7 +194,7 @@ PREDICATE(sample_line, 5) {
     return A5 = point_vec2list(points);
 }
 
-/* sample_line(IMGSEQ, [PX, PY, PZ], [A, B, C], T_VAR, P_LIST)
+/* sample_line_seg(IMGSEQ, [SX, SY, SZ], [EX, EY, EZ], T_VAR, P_LIST)
  *     equation of the line to be sampled:
  *         (X-PX)/A=(Y-PY)/B=(Z-PZ)/C
  * @[SX, SY, SZ] is starting point of the line segment
@@ -282,4 +282,40 @@ PREDICATE(sample_line_seg, 6) {
     // sample a line and get all points that have high variance
     vector<Scalar> points = cv_sample_line_seg(seq, pt, dir, thresh, rad);
     return A6 = point_vec2list(points);
+}
+
+/* fit_elps(PTS, CENTRE, PARAM)
+ * given a list (>=5) of points, fit an ellipse on a plane (the 3rd dimenstion
+ * is fixed)
+ * @PTS: points list 
+ * @CENTRE = [X, Y, _]: centre point of the ellipse
+ * @PARAM = [A, B, ALPHA]: axis length (A >= B) and tilt angle (ALPHA)
+ *      of the ellipse.
+ * !!The unit of angle is DEG, not RAD; smaller than 1 then random angle!!
+ */
+PREDICATE(fit_elps, 3) {
+    vector<Scalar> pts = point_list2vec(A1);
+    // check if all points are on the same frame
+    int frame = pts[0][2];
+    for (auto it = pts.begin(); it != pts.end(); ++it) {
+        Scalar pt = *it;
+        if (frame != pt[2]) {
+            cout << "[ERROR] Points are not on the same frame!" << endl;
+            return FALSE;
+        }
+    }
+    // fit ellipse
+    Scalar cen;
+    Scalar param;
+    fit_ellipse(pts, cen, param);
+    // bind variables
+    vector<long> cen_vec = {(long) cen[0],
+                            (long) cen[1],
+                            (long) cen[2]};
+    vector<long> param_vec = {(long) param[0],
+                              (long) param[1],
+                              (long) param[2]};
+    A2 = vec2list<long>(cen_vec);
+    A3 = vec2list<long>(param_vec);
+    return TRUE;
 }
