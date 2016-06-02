@@ -1,7 +1,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Learn statistical classifiers by abduction
-%      AUTHOR: WANG-ZHOU DAI
-% ========== Utility functions
+% My Prolog utility functions
+% ===========================
+% AUTHOR: WANG-ZHOU DAI
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % generate temporary variables
@@ -26,17 +26,6 @@ append_lists([], []).
 append_lists([L | Ls], As):-
 	append(L, Ws, As),
 	append_lists(Ls, Ws).
-
-% assert predicates 
-asserta_pred([]).
-asserta_pred([P | Ps]):- 
-    asserta(pred(P)),
-    asserta_pred(Ps).
-% assert statistical classifiers
-asserta_stat([]).
-asserta_stat([P | Ps]):- 
-    asserta(stat(P)),
-    asserta_stat(Ps).
 
 % difference between two vector, C = A - B
 vec_diff([], [], []).
@@ -65,96 +54,6 @@ vec_thresh_idx([V | Vs], [_ | Is], T, [R | Rs]):-
     V < T,
     vec_thresh_idx(Vs, Is, T, [R | Rs]), !.
 
-%=================
-% Object ordering
-%=================
-% Final Input and Output must be suffixes of initial Input and Output
-obj_gt(atom_gt).
-obj_gte(atom_gte).
-
-atom_gt(X,Y,_):-
-    X \== Y.   %X @< Y. 
-
-atom_gte(_, _, _):-
-	true. 
-
-suffix(X, Y):-
-    X == Y.			% Nonground suffix test
-suffix(L, X):-
-	nonvar(L), L=[_ | T],
-	suffix(T, X).
-
-%===========================
-% Print predicates & clauses
-%===========================
-% print Program list to screen
-printprogs([]).
-printprogs([P | Ps]):-
-    %write('DEBUG: printprogs/2'), nl,
-    P = ps(Hyp, _, _, _),
-    printprog(Hyp),
-    printprogs(Ps).
-
-% get Program as a list of metasubs
-get_clause_meta_subs(Ps, Ms):-
-    get_clause_meta_subs(Ps, Ms, []).
-
-get_clause_meta_subs([], Ms, Ms).
-get_clause_meta_subs([P | Ps], Ms, Temp):-
-    P = ps(Hyp, _, _, _),
-    append(Temp, Hyp, Temp1),
-    get_clause_meta_subs(Ps, Ms, Temp1).
-
-% print program to screen
-printprog(MetaSub):-
-    %write('DEBUG: printprog/1'), nl,
-    copy_term(MetaSub, MetaSub1),
-    reverse(MetaSub1, MetaSub2),
-    converts(MetaSub2, Cs), nl, sort(Cs, Cs1),
-    printclauses(Cs1), !.
-
-converts([],[]):-
-    !.
-converts([metasub(RuleName, MetaSub) | MIs], [Clause | Cs]):-
-    %write('DEBUG: converts/2'), nl,
-    metarule(RuleName, MetaSub, Clause, _, _),
-    numbervars(Clause, 0, _),
-    converts(MIs, Cs), 
-    !.
-
-printclauses([]):-
-    nl, !.
-printclauses([C | Cs]):-
-    %write('DEBUG: printclauses/1'), nl,
-    printclause(C), nl,
-    printclauses(Cs).
-
-printclause((Head:-[])):-
-    printatom(Head), write('.').
-printclause((Head:-Body)) :-
-    %write('DEBUG: printclause/1'), nl,
-    printatom(Head), write(' :- '),
-    printatoms(Body).
-
-printatom_cond(List-_):-
-    printatom(List).
-printatom_cond(List):-
-    %write('DEBUG: printatom_cond/1'), nl,
-    printatom(List).
-
-printatom(List):-
-    %write('DEBUG: printatom/1'), nl,
-    Atom =.. List, write(Atom).
-
-printatoms([A]):-
-    printatom_cond(A),
-    write('.'), !.
-printatoms([A | As]):-
-    %write('DEBUG: printatoms/1'), nl,
-    printatom_cond(A),
-    write(', '),
-    printatoms(As), !.
-
 %============
 % primitives
 %============
@@ -175,85 +74,16 @@ peano(N, s(M)):-
     peano(N1, M),
     N is N1+1, !.
 
-reverse(L1, L2):-
-    reverse_(L1, [], L2).
-reverse_([], L, L):-
-    !.
-reverse_([H | T], R, L):-
-    reverse_(T, [H | R], L).
-
 % Construct an ordered list of naturals in the interval [Lo,Hi]
-
 interval(Lo, Hi, [Lo | T]) :-
     Lo =< Hi, Lo1 is Lo + 1,
     interval(Lo1, Hi, T), !.
 interval(_, _, []).
 
-%===================
-% meta substitution
-%===================
-metasub(instance, Args):-
-    Args = [P/_ | Args1],
-    callatom([P | Args1]).
-
-% predicates above: FOR PREDICATE VAR BINDING
-% find the "Rest" and judge whether Q is in the "Rest"
-pred_above(P, Q, Prog):-
-        Prog = ps(_, sig(Ps, _), _, _),
-        append(_, [P | Rest], Ps), element(Q, Rest).
-
-
-%=====================================
-% call an atom in [pred, args] format
-%=====================================
-callatom(Args):-
-    Goal =.. Args,
-    %write('CALLATOM PROVING '), write(Goal), nl,
-    !, call(Goal).
-  	%write('SUCCEEDED '), write(Goal), nl.
-
-% my call atom all, find all possible bindings of var
-callatom_binds(Args, Vars, New_binds):-
-    not(ground(Args)),
-    !,
-    Goal =.. Args,
-    %write('CALLATOM PROVING '), write(Goal), nl,
-    !,
-    findall(Vars, call(Goal), New_binds), !.
-% call lists of pretests
-callpre(Pres, FPre):-
-    callseq(Pres, FPre).
-% call a list of atoms and return which one has failed
-callseq([], []).
-callseq([A | As], R):-
-    call(A) ->
-        (callseq(As, R), !);
-    (R = A, !).
-
-%====================
-% new predicate name
-%====================
-addnewpreds(_, N, N, Ps1, Ps1):-
-    !.
-addnewpreds(Name , N, M, Ps1, [P/_ | Ps2]) :-
-    N1 is N + 1,
-    newpred(Name, P, N1),
-    N2 is N + 1,
-    addnewpreds(Name, N2, M, Ps1, Ps2).
-
-newpred(Name, P, N):-
-    name(N, NC), % number to number characters
-    append(Name, [95, 95 | NC], PC),
-    name(P, PC), !.
-
-newconst(X, N1, N2):-
-    N is N1 + 48,
-    name(X, [99, N]),
-    N2 is N1 + 1, !.
-
 %================
 % list operators
 %================
+
 % list members
 element(H, [H | _]).
 element(H, [_ | T]):-
@@ -264,7 +94,6 @@ print_list_ln(L):-
     forall(element(X, L),
 	   writeln(X)
 	  ).
-
 print_list(L):-
     L == [] ->
 	(writeln(""), !);
@@ -279,6 +108,7 @@ print_list(L):-
      writeln("]")
     ).
 
+% print list without new line
 print_list_noln(L):-
     L == [] ->
 	(write(""), !);
@@ -335,11 +165,12 @@ list_complement(List_1, List_2, Return, Temp):-
      ),
      !
     ).
-
 list_complement(List_1, List_2, Return):-
     list_complement(List_1, List_2, Return, []).
 
 % get a list of set of elements according to a list of indices
+index_select(Index_list, List, Return):-
+    index_select(Index_list, List, Return, []).
 index_select(Index_list, List, Return, Temp_list):-
     Index_list == [] ->
 	(Return = Temp_list, !);
@@ -349,8 +180,13 @@ index_select(Index_list, List, Return, Temp_list):-
      index_select(Tail, List, Return, Temp_list_)
     ).
 
-index_select(Index_list, List, Return):-
-    index_select(Index_list, List, Return, []).
+% column(Idx, Vectors, Col)
+% get a column from a list of vector
+column(_, [], []):-
+    !.
+column(Idx, [V | Vs], [C | Cs]):-
+    nth1(Idx, V, C),
+    column(Idx, Vs, Cs).
 
 % get the middle point of a list
 middle_element([], []).
@@ -363,6 +199,15 @@ middle_element(List, Element):-
 reverse([H | T], A, R):-
     reverse(T, [H | A], R). 
 reverse([], A, A).
+
+/* reverse a list
+reverse(L1, L2):-
+    reverse_(L1, [], L2).
+reverse_([], L, L):-
+    !.
+reverse_([H | T], R, L):-
+    reverse_(T, [H | R], L).
+*/
 
 % indices combinations: comb_idx/3.
 % unordered combinations for natural number (N >= 0)
@@ -387,6 +232,11 @@ combination(N, List, Combs):-
 	     index_select(Comb_idx, List, Comb_element)),
 	    Combs).
 
+% index of element in list
+indexof(Index, Item, List):-
+    nth1(Index, List, Item).
+indexof(-1, _, _).
+
 %=============
 % my find all
 %=============
@@ -404,6 +254,7 @@ my_collect(L):-
 
 
 %==========================================================================
+% varnumbers is a partial inverse to numbervars/3
 % Modefied from Richard A. O'Keefe's code by daiwz
 % http://swi-prolog.996271.n3.nabble.com/SWIPL-Undo-numbervars-3-td210.html
 %==========================================================================

@@ -13,7 +13,7 @@
  *     ALPHA: tilt angle
  */
 sample_ellipse(Img, Elps):-
-    % TODO
+    % 
     Elps = [Center, [A, B, ALPHA]],
     fail.
 
