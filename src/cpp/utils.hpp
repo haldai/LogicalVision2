@@ -68,8 +68,8 @@ vector<Scalar> point_list2vec(PlTerm term);
 PlTerm point_vec2list(vector<Scalar> list);
 
 /* Assert and retract a fact (PlCompoud as a PlTerm) in Prolog Engine */
-void pl_assert(string type, PlTerm A);
-void pl_retract(string type, PlTerm A);
+void pl_assert(string pred, PlTerm args);
+void pl_retract(string pred, PlTerm args);
 
 /********* implementation ********/
 template <class Type>
@@ -307,16 +307,16 @@ std::vector<T> &operator+=(std::vector<T> &A, const std::vector<T> &B) {
     return A;
 }
 
-void pl_assert(string type, PlTerm A) {
+void pl_assert(string pred, PlTerm args) {
     PlTermv pl_args(1);
-    pl_args[0] = PlCompound(type.c_str(), A);
-    PlQuery q("assert", pl_args);
+    pl_args[0] = PlCompound(pred.c_str(), args);
+    PlQuery q("assertz", pl_args);
     q.next_solution();
 }
 
-void pl_retract(string type, PlTerm A) {
+void pl_retract(string pred, PlTerm args) {
     PlTermv pl_args(1);
-    pl_args[0] = PlCompound(type.c_str(), A);
+    pl_args[0] = PlCompound(pred.c_str(), args);
     PlQuery q("retract", pl_args);
     q.next_solution();
 }

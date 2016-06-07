@@ -180,6 +180,7 @@ PREDICATE(release_video, 1) {
         size_2d_args[0] = A1;
         PlTermv size_2d_atom(1);
         size_2d_atom[0] = PlCompound("size_2d", size_2d_args);
+        PlCall("retractall", size_2d_atom);
         // retract size_3d
         PlTermv size_3d_args(4);
         size_3d_args[0] = A1;
@@ -203,6 +204,18 @@ PREDICATE(release_imgseq, 1) {
     if (PL_get_atom_chars(t1, &p1)) {
         const string add(p1);
         vector<Mat> *imgseq = str2ptr<vector<Mat>>(add);
+        // retract size_2d
+        PlTermv size_2d_args(3);
+        size_2d_args[0] = A1;
+        PlTermv size_2d_atom(1);
+        size_2d_atom[0] = PlCompound("size_2d", size_2d_args);
+        PlCall("retractall", size_2d_atom);
+        // retract size_3d
+        PlTermv size_3d_args(4);
+        size_3d_args[0] = A1;
+        PlTermv size_3d_atom(1);
+        size_3d_atom[0] = PlCompound("size_3d", size_3d_args);
+        PlCall("retractall", size_3d_atom);
         // remove image sequence from memory
         delete imgseq;
         return TRUE;
@@ -332,18 +345,36 @@ PREDICATE(seq_img, 3) {
     char *p1;
     if (PL_get_atom_chars(t1, &p1)) {
         string add(p1);
-        vector<Mat> *seq = str2ptr<vector<Mat>>(add);        
+        vector<Mat> *seq = str2ptr<vector<Mat>>(add);
         
         term_t t2 = A2.ref;
         int p2;
         if (PL_get_integer(t2, &p2)) {
             if (p2 < 0 || p2 >= (int) seq->size())
-                return LOAD_ERROR("seq_img/3", 2, "IDX", " 0 < NUMBER < size");
+                return LOAD_ERROR("seq_img/3", 2, "IDX",
+                                  " 0 < NUMBER < size");
             Mat *img = element_ptr_in_vector<Mat>(seq, p2);
             string add2 = ptr2str(img);
             term_t t3 = PL_new_term_ref();
+           
             if (PL_put_atom_chars(t3, add2.c_str())) {
-                return A3 = PlTerm(t3);
+                A3 = PlTerm(t3);
+                // if no size_2d(A3, _, _) fact, assert it
+                PlTermv av_size(3);
+                av_size[0] = A3;
+                PlQuery q("size_2d", av_size);
+                if (q.next_solution())
+                    return TRUE;
+                int col = img->cols;
+                int row = img->rows;
+                PlTermv size_2d_args(3);
+                size_2d_args[0] = A3;
+                size_2d_args[1] = col;
+                size_2d_args[2] = row;
+                PlTermv size_2d_atom(1);
+                size_2d_atom[0] = PlCompound("size_2d", size_2d_args);
+                PlCall("assertz", size_2d_atom);
+                return TRUE;
             } else
                 return PUT_ERROR("seq_img/3", 3, "IMG", "STRING");
         } else
@@ -378,20 +409,35 @@ PREDICATE(close_all_windows, 0) {
  * clone an image (mostly for drawing), REMEMBER TO RELEASE IT!
  */
 PREDICATE(clone_img, 2) {
-    char *p1 = (char*) A1;
+    char *p1;
+    if (!(p1 = (char*) A1))
+        return FALSE;
     const string add_img(p1); // address
     Mat *img = str2ptr<Mat>(add_img);
     Mat *newimg = new Mat(img->clone());
     // convert returning
     string add = ptr2str(newimg);
-    return A2 = PlTerm(add.c_str());    
+    A2 = PlTerm(add.c_str());    
+    // assert size_2d
+    int col = img->cols;
+    int row = img->rows;
+    PlTermv size_2d_args(3);
+    size_2d_args[0] = A2;
+    size_2d_args[1] = col;
+    size_2d_args[2] = row;
+    PlTermv size_2d_atom(1);
+    size_2d_atom[0] = PlCompound("size_2d", size_2d_args);
+    PlCall("assertz", size_2d_atom);
+    return TRUE;
 }
 
 /* clone_seq(SEQ1, SEQ2)
  * clone an image sequence (mostly for drawing), REMEMBER TO RELEASE IT!
  */
 PREDICATE(clone_seq, 2) {
-    char *p1 = (char*) A1;
+    char *p1;
+    if (!(p1 = (char*) A1))
+        return FALSE;
     const string add_seq(p1); // address
     vector<Mat> *seq = str2ptr<vector<Mat>>(add_seq);    
     // copy image sequence
@@ -400,5 +446,25 @@ PREDICATE(clone_seq, 2) {
         newseq->push_back(((Mat) *it).clone());
     }
     string add = ptr2str(newseq);
-    return A2 = PlTerm(add.c_str());    
+    A2 = PlTerm(add.c_str());
+    // assert size_2d and size_3d
+    int col = (*seq)[0].cols;
+    int row = (*seq)[0].rows;
+    int dur = seq->size();
+    PlTermv size_2d(3);
+    PlTermv size_3d(4);
+    size_2d[0] = A2;
+    size_2d[1] = col;
+    size_2d[2] = row;
+    size_3d[0] = A2;
+    size_3d[1] = col;
+    size_3d[2] = row;
+    size_3d[3] = dur;
+    PlTermv size_2d_atom(1);
+    size_2d_atom[0] = PlCompound("size_2d", size_2d);
+    PlTermv size_3d_atom(1);
+    size_3d_atom[0] = PlCompound("size_3d", size_3d);        
+    PlCall("assertz", size_2d_atom);
+    PlCall("assertz", size_3d_atom);
+    return TRUE;
 }

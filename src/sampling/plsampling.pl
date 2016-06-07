@@ -7,6 +7,37 @@
 
 :- ['../utils/utils.pl'].
 
+%===========================
+% sample variance of a line
+%===========================
+% sample_line_var(+Imgseq, +Start, +Direct, -Points, -Vars)
+% sample a line to get its points and cooresponding variance
+sample_line_var(Imgseq, Start, Direct, Points, Vars):-
+    size_3d(Imgseq, W, H, D),
+    line_points(Start, Direct, [W, H, D], Points),
+    pts_var(Imgseq, Points, Vars).
+
+% sample_line_seg_var(+Imgseq, +Start, +End, -Points, -Vars)
+% sample a line segment to get its points and cooresponding variance
+sample_line_seg_var(Imgseq, Start, End, Points, Vars):-
+    size_3d(Imgseq, W, H, D),
+    line_points(Start, End, [W, H, D], Points),
+    pts_var(Imgseq, Points, Vars).
+
+% sample_line_color(+Imgseq, +Start, +Direct, -Points, -Colors)
+% sample a line to get its points and cooresponding variance
+sample_line_color(Imgseq, Start, Direct, Points, Colors):-
+    size_3d(Imgseq, W, H, D),
+    line_points(Start, Direct, [W, H, D], Points),
+    pts_color(Imgseq, Points, Colors).
+
+% sample_line_seg_color(+Imgseq, +Start, +End, -Points, -Colors)
+% sample a line segment to get its points and cooresponding variance
+sample_line_seg_color(Imgseq, Start, End, Points, Colors):-
+    size_3d(Imgseq, W, H, D),
+    line_points(Start, End, [W, H, D], Points),
+    pts_color(Imgseq, Points, Colors).
+
 %================================
 % 1d Gradients for sampled lines
 %================================

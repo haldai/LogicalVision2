@@ -32,3 +32,6 @@
 
 # HTMLs
 *.html
+
+# do not ignore
+!libs/

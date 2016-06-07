@@ -34,13 +34,13 @@ Scalar term2color(PlTerm C) {
     return color;
 }
 
-/* draw_line(IMGSEQ, START, END, COLOR)
+/* draw_line_seg(+IMGSEQ, +START, +END, +COLOR)
  * @IMGSEQ: address of image sequence
  * @START = [SX, SY, SZ]: starting point
  * @END = [EX, EY, EZ]: ending point
  * @COLOR = <r(ed)/g(reen)/b(lue)/y(ellow)>: line color
  */
-PREDICATE(draw_line, 4) {
+PREDICATE(draw_line_seg, 4) {
     // parsing arguments
     char *p1 = (char*) A1;
     const string add_seq(p1); // address
@@ -61,7 +61,7 @@ PREDICATE(draw_line, 4) {
     return TRUE;
 }
     
-/* draw_line_2d(IMG, START, END, COLOR)
+/* draw_line_seg_2d(+IMG, +START, +END, +COLOR)
  * @IMG: address of image
  * @START = [SX, SY, SZ]: starting point
  * @END = [EX, EY, EZ]: ending point
@@ -85,7 +85,7 @@ PREDICATE(draw_line_seg_2d, 4) {
     return TRUE;
 }
 
-/* draw_points(SEQ, PTS, COLOR)
+/* draw_points(+SEQ, +PTS, +COLOR)
  * @SEQ: address of image sequence
  * @PTS = [[P1X, P1Y, P1Z], ...]: list of points
  * @COLOR = <r(ed)/g(reen)/b(lue)/y(ellow)>: line color
@@ -105,7 +105,7 @@ PREDICATE(draw_points, 3) {
     return TRUE;
 }
 
-/* draw_points(IMG, PTS, COLOR)
+/* draw_points_2d(+IMG, +PTS, +COLOR)
  * @IMG: address of image
  * @PTS = [[P1X, P1Y, P1Z], ...]: list of points
  * @COLOR = <r(ed)/g(reen)/b(lue)/y(ellow)>: line color

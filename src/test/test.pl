@@ -4,7 +4,6 @@
  * Author: Wang-Zhou Dai <dai.wzero@gmail.com>
  */
 
-
 :- ['../io/plio.pl'],
    ['../sampling/plsampling.pl'],
    ['../drawing/pldraw.pl'],
@@ -25,11 +24,6 @@ test_v2s(A, B):-
     video2imgseq(A, B),
     test_write_done.
 
-% test sample line
-test_smpl_line_var(A):-
-    test_write_start('sample line variance'),
-    
-
 % test release video
 test_rel_v(A):-
     test_write_start('release video.'),
@@ -40,6 +34,35 @@ test_rel_v(A):-
 test_rel_s(A):-
     test_write_start('release image sequence.'),
     release_imgseq(A),
+    test_write_done.
+
+% test draw line (on the first frame)
+test_draw_line_2d(IMGSEQ, Point, Dir, Color):-
+    test_write_start('test draw line (2d)'),
+    seq_img(IMGSEQ, 0, IMG1),
+    Point = [_, _, 0], Dir = [_, _, 0], % frame chk
+    clone_img(IMG1, IMG2),
+    draw_line_2d(IMG2, Point, Dir, Color),
+    showimg_win(IMG2, 'debug'),
+    release_img(IMG2),
+    test_write_done.
+
+% test draw line (on image sequence)
+test_draw_line(IMGSEQ, Point, Dir, Color):-
+    test_write_start('test draw line (3d)'),
+    clone_seq(IMGSEQ, SEQ1),
+    draw_line(SEQ1, Point, Dir, Color),
+    showseq_win(SEQ1, 'debug'),
+    release_imgseq(SEQ1),
+    test_write_done.
+
+% test draw line segment (on image sequence)
+test_draw_line_seg(IMGSEQ, Start, End, Color):-
+    test_write_start('test draw line segment (3d)'),
+    clone_seq(IMGSEQ, SEQ1),
+    draw_line_seg(SEQ1, Start, End, Color),
+    showseq_win(SEQ1, 'debug'),
+    release_imgseq(SEQ1),
     test_write_done.
 
 % test draw ellipse (on the first frame)
@@ -70,6 +93,22 @@ test_fit_elps(IMGSEQ, Center, [A, B, ALPHA], COLOR):-
     draw_points_2d(IMG2, PTS2, green),
     showimg_win(IMG2, 'debug'),
     release_img(IMG2),
+    test_write_done.
+
+% sample a line and its variance
+test_sample_line_var(Imgseq, Pts, Vars):-
+    test_write_start('sample line variance'),
+    sample_line_var(Imgseq, [100, 100, 0], [10, -7, 0], Pts, Vars),
+    print(Pts), nl,
+    print(Vars), nl,
+    test_write_done.
+
+% sample a line and its color
+test_sample_line_color(Imgseq, Pts, Color):-
+    test_write_start('sample line variance'),
+    sample_line_color(Imgseq, [100, 100, 0], [10, -7, 0], Pts, Color),
+    print(Pts), nl,
+    print(Color), nl,
     test_write_done.
 
 % test utilities
