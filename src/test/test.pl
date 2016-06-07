@@ -4,11 +4,11 @@
  * Author: Wang-Zhou Dai <dai.wzero@gmail.com>
  */
 
-:- load_foreign_library(foreign('../prolog2/cvio.so')),
-   load_foreign_library(foreign('../prolog2/cvsampler.so')),
-   load_foreign_library(foreign('../prolog2/cvdraw.so')).
 
-:- ['../scripts2/utils.pl'].
+:- ['../io/plio.pl'],
+   ['../sampling/plsampling.pl'],
+   ['../drawing/pldraw.pl'],
+   ['../utils/utils.pl'].
 
 % test load video
 test_load_v(A):-
@@ -24,6 +24,11 @@ test_v2s(A, B):-
     test_write_start('video to image sequence'),
     video2imgseq(A, B),
     test_write_done.
+
+% test sample line
+test_smpl_line_var(A):-
+    test_write_start('sample line variance'),
+    
 
 % test release video
 test_rel_v(A):-

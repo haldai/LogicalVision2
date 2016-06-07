@@ -1,11 +1,11 @@
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Logical Vision sampling predicates inplemented with Prolog
-% ===========================================================
-% Version: 2.0
-% AUTHOR: WANG-ZHOU DAI
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+/* Sampling module
+ * ============================
+ * Version: 2.0
+ * Author: Wang-Zhou Dai <dai.wzero@gmail.com>
+ */
+:- load_foreign_library(foreign('../../libs/cvsampler.so')).
 
-:- ['../scripts2/utils.pl'].
+:- ['../utils/utils.pl'].
 
 %================================
 % 1d Gradients for sampled lines

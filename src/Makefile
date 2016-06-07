@@ -1,4 +1,4 @@
 all:
-	cd prolog2 && make && cd ..
+	cd cpp && make && cd ..
 clean:
-	cd prolog2 && make clean && cd ..
+	cd cpp && make clean && cd ..

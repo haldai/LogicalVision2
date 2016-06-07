@@ -8,7 +8,7 @@
 #ifndef _IO_HPP
 #define _IO_HPP
 
-#include "../utils2/memread.hpp"
+#include "memread.hpp"
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc.hpp>

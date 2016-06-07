@@ -4,10 +4,10 @@
  * Author: Wang-Zhou Dai <dai.wzero@gmail.com>
  */
 
-#include "../img2/io.hpp"
-#include "../utils2/memread.hpp"
-#include "../utils2/errors.hpp"
-#include "../utils2/utils.hpp"
+#include "io.hpp"
+#include "memread.hpp"
+#include "errors.hpp"
+#include "utils.hpp"
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc.hpp>

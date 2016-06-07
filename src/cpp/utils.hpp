@@ -54,7 +54,13 @@ PlTerm vecvec2list(vector<vector<Type>> vec, int size_outer = -1,
 /* Return an empty list */
 PlTerm empty_list();
 
-/* translation between vector of point coordinates and prolog list
+/* transformation between 3D-scalar vector and prolog list */
+template <class Type>
+vector<Scalar> scalar_list2vec(PlTerm term, int size = -1);
+template <class Type>
+PlTerm scalar_vec2list(vector<Scalar> list, int size = -1);
+
+/* transformation between vector of point coordinates and prolog list
  * @term: prolog term of list, [[x1, y1, z1], [x2, y2, z2], ...]
  * @list: vector of scalar, each scalar is a point coordinate
  */
@@ -109,7 +115,6 @@ PlTerm vec2list(vector<Type> list, int size) {
                   || (is_same<Type, char*>::value)
                   || (is_same<Type, PlTerm>::value),
                   "Wrong template type for list2vec!");
-        
     term_t term_ref = PL_new_term_ref();
     PlTerm term(term_ref);
     PlTail tail(term);
@@ -203,50 +208,86 @@ PlTerm empty_list() {
     return re;
 }
 
-PlTerm point_vec2list(vector<Scalar> list) {
+template <class Type>
+PlTerm scalar_vec2list(vector<Scalar> list, int size) {
+    static_assert((is_same<Type, long>::value)
+                  || (is_same<Type, double>::value),
+                  "Wrong template type for list2vec!");
     // make a list of points
     term_t term_ref = PL_new_term_ref();
     PlTerm term(term_ref); // return a PlTerm, not PlTail
     PlTail term_list(term);
     try {
         // insert points
-        for (auto it = list.begin(); it != list.end(); ++it) {
-            Scalar pt = *it;
+        if (size < 0)
+            size = list.size();
+        //for (auto it = list.begin(); it != list.end(); ++it) {
+        for (int i = 0; i < size; i++) {
+            //Scalar pt = *it;
+            Scalar pt = list[i];
             // make a list of coordinates
             term_t point_ref = PL_new_term_ref();
             PlTerm point_term(point_ref); // PlTerm for insertion
             PlTail coord_list(point_term);
             for (int dim = 0; dim < 3; dim++)
-                coord_list.append((long) pt[dim]);
+                coord_list.append((Type) pt[dim]);
             coord_list.close();
             term_list.append(point_term);
         }
         term_list.close();
     } catch (...) { 
-        cerr << "[point_vec2list] Create prolog list failed!" << endl;
+        cerr << "[scalar_vec2list] Create prolog list failed!" << endl;
     }
     return term;
 }
 
-vector<Scalar> point_list2vec(PlTerm term) {
+template <class Type>
+vector<Scalar> scalar_list2vec(PlTerm term, int size) {
+    static_assert((is_same<Type, int>::value)
+                  || (is_same<Type, long>::value)
+                  || (is_same<Type, double>::value),
+                  "Wrong template type for list2vec!");
     vector<Scalar> vec;
     try {
         PlTail term_list(term);
         PlTerm point_term;
-        while (term_list.next(point_term)) {
-            PlTail coord_list(point_term);
-            PlTerm coord_term;
-            Scalar pt(-1, -1, -1);
-            for (int dim = 0; dim < 3; dim++) {
-                coord_list.next(coord_term);
-                pt[dim] = (int) coord_term;
+        if (size < 0) {
+            while (term_list.next(point_term)) {
+                PlTail coord_list(point_term);
+                PlTerm coord_term;
+                Scalar pt(-1, -1, -1);
+                for (int dim = 0; dim < 3; dim++) {
+                    coord_list.next(coord_term);
+                    pt[dim] = (Type) coord_term;
+                }
+                vec.push_back(pt);
             }
-            vec.push_back(pt);
+        } else {
+            for (int i = 0; i < size; i++) {
+                if (!term_list.next(point_term))
+                    break;
+                PlTail coord_list(point_term);
+                PlTerm coord_term;
+                Scalar pt(-1, -1, -1);
+                for (int dim = 0; dim < 3; dim++) {
+                    coord_list.next(coord_term);
+                    pt[dim] = (Type) coord_term;
+                }
+                vec.push_back(pt);                
+            }
         }
     } catch (...) {
         cerr << "[point_list2vec] Recieving coordinates from prolog list error !" << endl;
     }
     return vec;
+}
+
+PlTerm point_vec2list(vector<Scalar> list) {
+    return scalar_vec2list<long>(list);
+}
+
+vector<Scalar> point_list2vec(PlTerm term) {
+    return scalar_list2vec<int>(term);
 }
 
 template <typename T>

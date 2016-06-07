@@ -4,10 +4,10 @@
  * Author: Wang-Zhou Dai <dai.wzero@gmail.com>
  */
 
-#include "../img2/sampler.hpp"
-#include "../utils2/memread.hpp"
-#include "../utils2/errors.hpp"
-#include "../utils2/utils.hpp"
+#include "sampler.hpp"
+#include "memread.hpp"
+#include "errors.hpp"
+#include "utils.hpp"
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/videoio/videoio.hpp>
@@ -93,7 +93,6 @@ PREDICATE(sample_point_color, 4) {
     return A4 = vec2list<double>(col_vec);
 }
 
-
 /* line_points(POINT, DIR, PTS)
  * get a list of points that on line
  * @POINT = [X, Y, Z]: a point that the line crosses
@@ -166,7 +165,87 @@ PREDICATE(ellipse_points, 4) {
     return A4 = point_vec2list(pts);
 }
 
-/* sample_line(IMGSEQ, [PX, PY, PZ], [A, B, C], T_VAR, P_LIST)
+/* pts_var(+IMGSEQ, +PTS, -VARS)
+ * For a list of points, return their variance
+ * @IMGSEQ: input images
+ * @PTS: point list, [[X1, Y1, Z1], ...]
+ * @VARS: variances of each point, [V1, ...]
+ */
+PREDICATE(pts_var, 3) {
+    // image sequence
+    char *p1 = (char*) A1;
+    const string add_seq(p1);    
+    vector<Mat> *seq = str2ptr<vector<Mat>>(add_seq);
+    // point list
+    vector<Scalar> pts = point_list2vec(A2);
+    // calculate variances
+    vector<double> vars = cv_imgs_points_var_loc(seq, pts);
+    return A3 = vec2list(vars);
+}
+
+/* pts_color(+IMGSEQ, +PTS, -COLORS)
+ * For a list of points, return their color
+ * @IMGSEQ: input images
+ * @PTS: point list, [[X1, Y1, Z1], ...]
+ * @VARS: color of each point, [[L,A,B], ...]
+ */
+PREDICATE(pts_color, 3) {
+    // image sequence
+    char *p1 = (char*) A1;
+    const string add_seq(p1);    
+    vector<Mat> *seq = str2ptr<vector<Mat>>(add_seq);
+    // point list
+    vector<Scalar> pts = point_list2vec(A2);
+    // calculate variances
+    vector<Scalar> colors = cv_imgs_points_color_loc(seq, pts);
+    return A3 = scalar_vec2list<double>(colors);
+}
+
+/* pts_var_loc(+IMGSEQ, +PTS, +LOC, -VARS)
+ * For a list of points, return their variance
+ * @IMGSEQ: input images
+ * @PTS: point list, [[X1, Y1, Z1], ...]
+ * @LOC: local radius
+ * @VARS: variances of each point, [V1, ...]
+ */
+PREDICATE(pts_var_loc, 4) {
+    // image sequence
+    char *p1 = (char*) A1;
+    const string add_seq(p1);    
+    vector<Mat> *seq = str2ptr<vector<Mat>>(add_seq);
+    // point list
+    vector<Scalar> pts = point_list2vec(A2);
+    // radius
+    vector<int> r_vec = list2vec<int>(A4, 3);
+    Scalar rad(r_vec[0], r_vec[1], r_vec[2]);
+    // calculate variances
+    vector<double> vars = cv_imgs_points_var_loc(seq, pts, rad);
+    return A3 = vec2list(vars);
+}
+
+/* pts_color_loc(+IMGSEQ, +PTS, +LOC, -COLORS)
+ * For a list of points, return their color
+ * @IMGSEQ: input images
+ * @PTS: point list, [[X1, Y1, Z1], ...]
+ * @LOC: local radius (so we are getting localy averaged color...) 
+ * @VARS: color of each point, [[L,A,B], ...]
+ */
+PREDICATE(pts_color_loc, 4) {
+    // image sequence
+    char *p1 = (char*) A1;
+    const string add_seq(p1);    
+    vector<Mat> *seq = str2ptr<vector<Mat>>(add_seq);
+    // point list
+    vector<Scalar> pts = point_list2vec(A2);
+    // radius
+    vector<int> r_vec = list2vec<int>(A4, 3);
+    Scalar rad(r_vec[0], r_vec[1], r_vec[2]);
+    // calculate variances
+    vector<Scalar> colors = cv_imgs_points_color_loc(seq, pts, rad);
+    return A3 = scalar_vec2list<double>(colors);
+}
+
+/* line_pts_var_geq_T(IMGSEQ, [PX, PY, PZ], [A, B, C], T_VAR, P_LIST)
  *     equation of the line to be sampled:
  *         (X-PX)/A=(Y-PY)/B=(Z-PZ)/C
  * @(PX, PY, PZ) is a point that it crossed
@@ -175,7 +254,7 @@ PREDICATE(ellipse_points, 4) {
  * @P_LIST is the returned points that exceed the variance threshold on the
  *    line
  */
-PREDICATE(sample_line, 5) {
+PREDICATE(line_pts_var_geq_T, 5) {
     char *p1 = (char*) A1;
     // coordinates scalar
     vector<int> pt_vec = list2vec<int>(A2, 3);
@@ -190,11 +269,11 @@ PREDICATE(sample_line, 5) {
     double thresh = (double) A4;
 
     // sample a line and get all points that have high variance
-    vector<Scalar> points = cv_sample_line(seq, pt, dir, thresh);
+    vector<Scalar> points = cv_line_pts_var_geq_T(seq, pt, dir, thresh);
     return A5 = point_vec2list(points);
 }
 
-/* sample_line_seg(IMGSEQ, [SX, SY, SZ], [EX, EY, EZ], T_VAR, P_LIST)
+/* line_seg_pts_var_geq_T(IMGSEQ, [SX, SY, SZ], [EX, EY, EZ], T_VAR, P_LIST)
  *     equation of the line to be sampled:
  *         (X-PX)/A=(Y-PY)/B=(Z-PZ)/C
  * @[SX, SY, SZ] is starting point of the line segment
@@ -203,7 +282,7 @@ PREDICATE(sample_line, 5) {
  * @P_LIST is the returned points that exceed the variance threshold on the
  *    line
  */
-PREDICATE(sample_line_seg, 5) {
+PREDICATE(line_seg_pts_var_geq_T, 5) {
     char *p1 = (char*) A1;
     // coordinates scalar
     vector<int> pt_vec = list2vec<int>(A2, 3);
@@ -218,11 +297,12 @@ PREDICATE(sample_line_seg, 5) {
     double thresh = (double) A4;
     
     // sample a line and get all points that have high variance
-    vector<Scalar> points = cv_sample_line_seg(seq, pt, dir, thresh);
+    vector<Scalar> points = cv_line_seg_pts_var_geq_T(seq, pt, dir, thresh);
     return A5 = point_vec2list(points);
 }
 
-/* sample_line(IMGSEQ, [PX, PY, PZ], [A, B, C], [RX, RY, RZ], T_VAR, P_LIST)
+/* line_pts_var_geq_T(IMGSEQ, [PX, PY, PZ], [A, B, C], [RX, RY, RZ],
+ *                    T_VAR, P_LIST)
  *     equation of the line to be sampled:
  *         (X-PX)/A=(Y-PY)/B=(Z-PZ)/C
  * @[PX, PY, PZ] is a point that it crossed
@@ -232,7 +312,7 @@ PREDICATE(sample_line_seg, 5) {
  * @P_LIST is the returned points that exceed the variance threshold on the
  *    line
  */
-PREDICATE(sample_line, 6) {
+PREDICATE(line_pts_var_geq_T, 6) {
     char *p1 = (char*) A1;
     // coordinates scalar
     vector<int> pt_vec = list2vec<int>(A2, 3);
@@ -249,11 +329,12 @@ PREDICATE(sample_line, 6) {
     // get threshold
     double thresh = (double) A5;
     // sample a line and get all points that have high variance
-    vector<Scalar> points = cv_sample_line(seq, pt, dir, thresh, rad);
+    vector<Scalar> points = cv_line_pts_var_geq_T(seq, pt, dir, thresh, rad);
     return A6 = point_vec2list(points);
 }
 
-/* sample_line(IMGSEQ, [PX, PY, PZ], [A, B, C], [RX, RY, RZ], T_VAR, P_LIST)
+/* line_seg_pts_var_geq_T(IMGSEQ, [PX, PY, PZ], [A, B, C],
+                          [RX, RY, RZ], T_VAR, P_LIST)
  *     equation of the line to be sampled:
  *         (X-PX)/A=(Y-PY)/B=(Z-PZ)/C
  * @[SX, SY, SZ] is starting point of the line segment
@@ -263,7 +344,7 @@ PREDICATE(sample_line, 6) {
  * @P_LIST is the returned points that exceed the variance threshold on the
  *    line
  */
-PREDICATE(sample_line_seg, 6) {
+PREDICATE(line_seg_pts_var_geq_T, 6) {
     char *p1 = (char*) A1;
     // coordinates scalar
     vector<int> pt_vec = list2vec<int>(A2, 3);
@@ -280,7 +361,7 @@ PREDICATE(sample_line_seg, 6) {
     // get threshold
     double thresh = (double) A5;
     // sample a line and get all points that have high variance
-    vector<Scalar> points = cv_sample_line_seg(seq, pt, dir, thresh, rad);
+    vector<Scalar> points = cv_line_seg_pts_var_geq_T(seq, pt, dir, thresh, rad);
     return A6 = point_vec2list(points);
 }
 

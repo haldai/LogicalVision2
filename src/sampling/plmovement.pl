@@ -5,5 +5,8 @@
  * Author: Wang-Zhou Dai <dai.wzero@gmail.com>
  */
 
-sample_move():-
-    fail.
+/* movement(+Ellipse, +Frame, -Direction)
+ */
+movement(Elps, Frm, Dir):-
+    Elps = [[_, _, Frm0], _], % current frame
+    

@@ -7,7 +7,7 @@
 #ifndef _SAMPLER_HPP
 #define _SAMPLER_HPP
 
-#include "../utils2/utils.hpp"
+#include "utils.hpp"
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc.hpp>
@@ -60,6 +60,27 @@ Scalar cv_imgs_point_color_loc(vector<Mat> *images, Scalar point,
 double cv_imgs_point_var_loc(vector<Mat> *images, Scalar point,
                              Scalar radius = Scalar(3, 3, 0));
 
+/* calculate image local color of a set of points
+ * @images: image sequence
+ * @points: position of the interest points
+ * @radius: radius of the ellipsoid of the local area
+ * @return: variation of all the points
+ * REMARK: the 3 dimensions are width, height, duration
+ */
+vector<Scalar> cv_imgs_points_color_loc(vector<Mat> *images,
+                                        vector<Scalar> points,
+                                        Scalar radius = Scalar(0, 0, 0));
+
+/* calculate image local variance of a set of points
+ * @images: image sequence
+ * @points: position of the interest points
+ * @radius: radius of the ellipsoid of the local area
+ * @return: variation of all the points
+ * REMARK: the 3 dimensions are width, height, duration
+ */
+vector<double> cv_imgs_points_var_loc(vector<Mat> *images,
+                                      vector<Scalar> points,
+                                      Scalar radius = Scalar(3, 3, 0));
 /* get all points on a line
  * @point: position of a point on the line
  * @direction: direction of the line
@@ -86,6 +107,9 @@ vector<Scalar> get_line_seg_points(Scalar start, Scalar end, Scalar bound);
  */
 vector<Scalar> get_ellipse_points(Scalar centre, Scalar param, Scalar bound);
 
+
+//@TODO: rename: cv_line_pts_var_geq_T; cv_line_seg_pts_var_geq_T;
+
 /* sample a line in 3d space and return the points whose local variance 
  * exceeds the given threshold
  * @images: image sequence
@@ -95,7 +119,7 @@ vector<Scalar> get_ellipse_points(Scalar centre, Scalar param, Scalar bound);
  * @loc_radius: local area size
  * @return: points meet the requirement
  */
-vector<Scalar> cv_sample_line(vector<Mat> *images, Scalar point,
+vector<Scalar> cv_line_pts_var_geq_T(vector<Mat> *images, Scalar point,
                               Scalar direction, double var_threshold = 2.0,
                               Scalar loc_radius = Scalar(5, 5, 0));
 
@@ -108,7 +132,7 @@ vector<Scalar> cv_sample_line(vector<Mat> *images, Scalar point,
  * @loc_radius: local area size
  * @return: points meet the requirement
  */
-vector<Scalar> cv_sample_line_seg(vector<Mat> *images, Scalar start,
+vector<Scalar> cv_line_seg_pts_var_geq_T(vector<Mat> *images, Scalar start,
                               Scalar end, double var_threshold = 2.0,
                               Scalar loc_radius = Scalar(5, 5, 0));
 
@@ -276,6 +300,23 @@ Scalar cv_imgs_point_color_loc(vector<Mat> *images, Scalar point,
     return avg;
 }
 
+vector<Scalar> cv_imgs_points_color_loc(vector<Mat> *images,
+                                        vector<Scalar> points,
+                                        Scalar radius) {
+    vector<Scalar> re;
+    for (auto it = points.begin(); it != points.end(); ++it)
+        re.push_back(cv_imgs_point_color_loc(images, (Scalar) *it, radius));
+    return re;
+}
+
+vector<double> cv_imgs_points_var_loc(vector<Mat> *images,
+                                      vector<Scalar> points,
+                                      Scalar radius) {
+    vector<double> re;
+    for (auto it = points.begin(); it != points.end(); ++it)
+        re.push_back(cv_imgs_point_var_loc(images, (Scalar) *it, radius));
+    return re;
+}
 
 vector<Scalar> bound_scalar_3d(Scalar point, Scalar radius, Scalar bound) {
     Scalar left_up_most(10000, 10000, 10000);
@@ -291,7 +332,7 @@ vector<Scalar> bound_scalar_3d(Scalar point, Scalar radius, Scalar bound) {
     return re;
 }
 
-vector<Scalar> cv_sample_line(vector<Mat> *images, Scalar point,
+vector<Scalar> cv_line_pts_var_geq_T(vector<Mat> *images, Scalar point,
                               Scalar direction, double var_threshold,
                               Scalar loc_radius){
     vector<Scalar> re;
@@ -315,7 +356,7 @@ vector<Scalar> cv_sample_line(vector<Mat> *images, Scalar point,
     return re;
 }
 
-vector<Scalar> cv_sample_line_seg(vector<Mat> *images, Scalar start,
+vector<Scalar> cv_line_seg_pts_var_geq_T(vector<Mat> *images, Scalar start,
                               Scalar end, double var_threshold,
                               Scalar loc_radius){
     vector<Scalar> re;
