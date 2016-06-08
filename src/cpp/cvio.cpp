@@ -338,7 +338,7 @@ PREDICATE(showseq_win, 2) {
 }
 
 /* seq_img(SEQ, IDX, IMG)
- * get an image (IMG) from image sequence (SEQ)
+ * get an image (IMG) from image sequence (SEQ), starting from 0
  */
 PREDICATE(seq_img, 3) {
     term_t t1 = A1.ref;

@@ -101,14 +101,41 @@ test_sample_line_var(Imgseq, Pts, Vars):-
     sample_line_var(Imgseq, [100, 100, 0], [10, -7, 0], Pts, Vars),
     print(Pts), nl,
     print(Vars), nl,
+    seq_img(Imgseq, 0, IMG1),
+    clone_img(IMG1, IMG2),
+    draw_points_2d(IMG2, Pts, red),
+    showimg_win(IMG2, 'debug'),
+    release_img(IMG2),    
     test_write_done.
 
 % sample a line and its color
 test_sample_line_color(Imgseq, Pts, Color):-
-    test_write_start('sample line variance'),
+    test_write_start('sample line color'),
     sample_line_color(Imgseq, [100, 100, 0], [10, -7, 0], Pts, Color),
     print(Pts), nl,
     print(Color), nl,
+    seq_img(Imgseq, 0, IMG1),
+    clone_img(IMG1, IMG2),
+    draw_points_2d(IMG2, Pts, red),
+    showimg_win(IMG2, 'debug'),
+    release_img(IMG2),    
+    test_write_done.
+
+% sample a line and its color
+test_sample_line_color_L(Imgseq, Pts, L):-
+    test_write_start('sample line color - brightness'),
+    % get points and brightness
+    sample_line_color_L(Imgseq, [351, 147, 0], [1, 1, 0], Pts, L),
+    print(Pts), nl,
+    print(L), nl,
+    items_key_geq_T(Pts, L, 200, HL), % highlight
+    items_key_less_T(Pts, L, 120, SHD), % shadow
+    seq_img(Imgseq, 0, IMG1),
+    clone_img(IMG1, IMG2),
+    draw_points_2d(IMG2, HL, red),
+    draw_points_2d(IMG2, SHD, blue),
+    showimg_win(IMG2, 'debug'),
+    release_img(IMG2),    
     test_write_done.
 
 % test utilities
