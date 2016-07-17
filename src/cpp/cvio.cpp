@@ -137,8 +137,7 @@ PREDICATE(video2imgseq, 2) {
             PlCall("assertz", size_2d_atom);
             PlCall("assertz", size_3d_atom);
             return TRUE;
-        }
-        else
+        } else
             return PUT_ERROR("video2imgseq/2", 2, "ADD_I", "STRING");
     } else
         return LOAD_ERROR("video2imgseq/2", 1, "ADD_V", "STRING");
@@ -266,7 +265,7 @@ PREDICATE(showvid_win, 2) {
             VideoCapture *vid = str2ptr<VideoCapture>(add);
             long frame_total = vid->get(CV_CAP_PROP_FRAME_COUNT);
             long frame_start = 0;
-            long frame_end = frame_total;
+            long frame_end = frame_total - 1;
             double frame_rate = vid->get(CV_CAP_PROP_FPS);
             Mat frame;
             namedWindow(window_name);

@@ -17,3 +17,8 @@ sample_ellipse(Img, Elps):-
     Elps = [Center, [A, B, ALPHA]],
     fail.
 
+/* Abuductive definition of an object
+ */
+object(X):-
+    ellipse(X, Elps), % abduce an ellipse, Elps = [Center, Param].
+    fail.

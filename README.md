@@ -31,7 +31,7 @@ Please see the source codes for detail predicates.
 ### Example ###
 
 ```prolog
-?- load_foreign_library(foreign('src/prolog2/cvio.so')).
+?- load_foreign_library(foreign('libs/cvio.so')).
 ?- load_video('../../data/Protist.mp4', A), showvid_win(A, debug).
 ```
 

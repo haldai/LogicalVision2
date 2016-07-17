@@ -180,6 +180,22 @@ index_select(Index_list, List, Return, Temp_list):-
      index_select(Tail, List, Return, Temp_list_)
     ).
 
+% find the index of max number in list of numbers
+max_list_idx(List, Re):-
+    max_list_idx(List, 1, Re, 1), !.
+max_list_idx(List, Crt, Temp, Temp):-
+    length(List, Len),
+    Crt > Len, !.
+max_list_idx(List, Crt, Re, Temp):-
+    nth1(Crt, List, E_c),
+    nth1(Temp, List, E_t),
+    E_c >= E_t,
+    Crt1 is Crt + 1,
+    max_list_idx(List, Crt1, Re, Crt), !.
+max_list_idx(List, Crt, Re, Temp):-
+    Crt1 is Crt + 1,
+    max_list_idx(List, Crt1, Re, Temp).
+
 % column(Idx, Vectors, Col)
 % get a column from a list of vector
 column(_, [], []):-
@@ -192,22 +208,22 @@ column(Idx, [V | Vs], [C | Cs]):-
 middle_element([], []).
 middle_element(List, Element):-
     length(List, Len),
-    Idx is truncate(Len/2 + 0.5),
+    Idx is round(Len/2),
     nth1(Idx, List, Element).
 
-% reverse a list
+/*% reverse a list
 reverse([H | T], A, R):-
     reverse(T, [H | A], R). 
 reverse([], A, A).
+*/
 
-/* reverse a list
+% reverse a list
 reverse(L1, L2):-
     reverse_(L1, [], L2).
 reverse_([], L, L):-
     !.
 reverse_([H | T], R, L):-
     reverse_(T, [H | R], L).
-*/
 
 % indices combinations: comb_idx/3.
 % unordered combinations for natural number (N >= 0)

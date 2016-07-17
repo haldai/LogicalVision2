@@ -430,7 +430,7 @@ vector<Scalar> get_line_seg_points(Scalar start, Scalar end, Scalar bound) {
         SWAP(y, y2);
         SWAP(z, z2);
     }
-        
+    
     re.push_back(Scalar(x, y, z));
     // bresenham for line segment
     int dx = x2 - x;
@@ -472,6 +472,8 @@ vector<Scalar> get_line_seg_points(Scalar start, Scalar end, Scalar bound) {
                 if (!out_of_canvas(point, bound) &&
                     x != x2 && y != y2 && z != z2)
                     re.push_back(point);
+                else
+                    break;
             }
         }
         
@@ -494,6 +496,8 @@ vector<Scalar> get_line_seg_points(Scalar start, Scalar end, Scalar bound) {
                 if (!out_of_canvas(point, bound) &&
                     x != x2 && y != y2 && z != z2)
                     re.push_back(point);
+                else
+                    break;
             }
         }
         
@@ -516,6 +520,8 @@ vector<Scalar> get_line_seg_points(Scalar start, Scalar end, Scalar bound) {
                 if (!out_of_canvas(point, bound) &&
                     x != x2 && y != y2 && z != z2)
                     re.push_back(point);
+                else
+                    break;
             }
         }
     }
@@ -545,7 +551,7 @@ void bresenham(Scalar current, Scalar direction, Scalar inc,
     int x = current[0];
     int y = current[1];
     int z = current[2];
-    
+
     int err_1, err_2;
     
     if (Adx >= Ady && Adx >= Adz) { 
@@ -566,6 +572,8 @@ void bresenham(Scalar current, Scalar direction, Scalar inc,
             Scalar point(x, y, z);
             if (!out_of_canvas(point, bound))
                 points->push_back(point);
+            else
+                break;
         }
     }
     
@@ -587,6 +595,9 @@ void bresenham(Scalar current, Scalar direction, Scalar inc,
             Scalar point(x, y, z);
             if (!out_of_canvas(point, bound))
                 points->push_back(point);
+            else
+                break;
+            
         }
     }
    
@@ -608,8 +619,11 @@ void bresenham(Scalar current, Scalar direction, Scalar inc,
             Scalar point(x, y, z);
             if (!out_of_canvas(point, bound))
                 points->push_back(point);
+            else
+                break;
         }
     }
+    
     Scalar point(x, y, z);
     if (!out_of_canvas(point, bound))
         bresenham(point, direction, inc, bound, points);

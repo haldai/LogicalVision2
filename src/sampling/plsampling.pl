@@ -5,7 +5,18 @@
  */
 :- load_foreign_library(foreign('../../libs/cvsampler.so')).
 
-:- ['../utils/utils.pl'].
+:- ensure_loaded(['../utils/utils.pl']).
+
+%======================================
+% line with angle to start-end vector
+%======================================
+% given a desired 2d angle (DEG) of a line,
+%   get its direction vector
+angle2dir_2d(Angle, Dir):-
+    Angle_rad = Angle * pi/180,
+    X is round(10e6 * cos(Angle_rad)),
+    Y is round(10e6 * sin(Angle_rad)),
+    Dir = [X, Y, 0].
 
 %===========================
 % sample variance of a line
@@ -50,12 +61,36 @@ sample_line_color_L(Imgseq, Start, Direct, Points, Lchannel):-
     column(1, Colors, Lchannel). % nth1 starts with index 1
 
 % sample_line_seg_color_L(+Imgseq, +Start, +End, -Points, -Lchannel)
-% sample a line segment to get its points and cooresponding variance
+% sample a line segment to get its points and cooresponding brightness
 sample_line_seg_color_L(Imgseq, Start, End, Points, Lchannel):-
     size_3d(Imgseq, W, H, D),
     line_points(Start, End, [W, H, D], Points),
     pts_color(Imgseq, Points, Colors),
     column(0, Colors, Lchannel).
+
+%====================
+% sample gradients
+%====================
+% sample_line_L_grad(+Imgseq, +Pt, +Dir, -Points, -Grads)
+% sample a line and get its brightness gradients
+sample_line_L_grad(Imgseq, Pt, Dir, Points, Grads):-
+    sample_line_color(Imgseq, Pt, Dir, Points, Colors),
+    grad_l(Colors, Grads).
+
+sample_lines_L_grads(_, [], [], []):-
+    !.
+sample_lines_L_grads(Imgseq, [L | Lines], [Pts | Points], [Grds | Grads]):-
+    L = [Pt, Dir],
+    sample_line_color(Imgseq, Pt, Dir, Pts, Colors),
+    grad_l(Colors, Grds),
+    sample_lines_L_grads(Imgseq, Lines, Points, Grads).
+
+
+% sample_line_seg_L_grad(+Imgseq, +Start, +End, -Points, -Grads)
+% sample a line segment and get its brightness gradients
+sample_line_seg_L_grad(Imgseq, Start, End, Points, Grads):-
+    sample_line_seg_color(Imgseq, Start, End, Points, Colors),
+    grad_l(Colors, Grads).
 
 %================================
 % 1d Gradients for sampled lines
@@ -87,9 +122,10 @@ grad_column(Col, List_of_Vec, Grad):-
     column(Col, List_of_Vec, Column),
     grad(Column, Grad).
 
-%==============================================================
-% get items whose keys are greater/less than threshold
-%==============================================================
+%=================================================================
+% get items whose keys are greater/less than threshold,
+%     i.e. the map of points and gradients (G-[X, Y, Z]).
+%=================================================================
 items_key_geq_T(Items, Keys, Thresh, Return):-
     idx_element_geq_T(Keys, Thresh, Indices),
     index_select(Indices, Items, Return).
@@ -129,3 +165,28 @@ idx_element_less_T([E | Es], Thresh, Ns, N):-
     E >= Thresh,
     N1 is N + 1,
     idx_element_less_T(Es, Thresh, Ns, N1), !.
+
+%=================================================================
+% sort a mapping
+%     i.e. the map of points and gradients (G-[X, Y, Z]).
+%=================================================================
+mapsort(Keys, Values, S_Keys, S_Values):-
+    pairs_keys_values(Pairs, Keys, Values),
+    keysort(Pairs, S_Pairs),
+    pairs_keys_values(S_Pairs, S_Keys, S_Values).
+
+%===========================================================================
+% Sample many radial lines.
+%   The sampled lines cross same Point with degree from Start_deg to
+%   End_deg, Step is the stepsize. Lines = [[Start_point1, End_point1], ...]
+%===========================================================================
+radial_lines_2d(Point, Start_deg, End_deg, Step, Rays):-
+    Step >= 1,
+    my_findall(Ray,
+               radial_line_2d(Point, Start_deg, End_deg, Step, Ray),
+               Rays).
+radial_line_2d(Point, Start_deg, End_deg, Step, Ray):-
+    between(Start_deg, End_deg, Ang),
+    Ang mod Step =:= 0,
+    angle2dir_2d(Ang, Dir),
+    Ray = [Point, Dir].
