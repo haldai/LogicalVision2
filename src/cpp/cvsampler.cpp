@@ -53,6 +53,23 @@ PREDICATE(sample_point_var, 4) {
     return A4 = PlTerm(var);
 }
 
+/* sample_point_scharr(IMGSEQ, [X, Y, Z], GRAD)
+ * get scharr gradient of point [X, Y, Z] in image sequence IMGSEQ
+ */
+PREDICATE(sample_point_scharr, 3) {
+    char *p1 = (char*) A1;
+    vector<int> vec = list2vec<int>(A2, 3);
+    Scalar point(vec[0], vec[1], vec[2]); // coordinates scalar
+
+    // get image sequence and compute variance
+    const string add_seq(p1);
+    vector<Mat> *seq = str2ptr<vector<Mat>>(add_seq);
+    double var = cv_imgs_point_scharr(seq, point);
+
+    // return variance
+    return A3 = PlTerm(var);
+}
+
 /* sample_point_color(IMGSEQ, [X, Y, Z], COLOR)
  * get LAB color of local area of point [X, Y, Z] in image sequence IMGSEQ
  */
@@ -67,7 +84,7 @@ PREDICATE(sample_point_color, 3) {
     Scalar col = cv_imgs_point_color_loc(seq, point);
     vector<double> col_vec = {col[0], col[1], col[2]};
 
-    // return variance
+    // return colors
     return A3 = vec2list<double>(col_vec);
 }
 
@@ -183,6 +200,25 @@ PREDICATE(pts_var, 3) {
     return A3 = vec2list(vars);
 }
 
+/* pts_scharr(+IMGSEQ, +PTS, -VARS)
+ * For a list of points, return their scharr gradients
+ * @IMGSEQ: input images
+ * @PTS: point list, [[X1, Y1, Z1], ...]
+ * @GRADS: gradients of each point, [G1, ...]
+ */
+PREDICATE(pts_scharr, 3) {
+    // image sequence
+    char *p1 = (char*) A1;
+    const string add_seq(p1);    
+    vector<Mat> *seq = str2ptr<vector<Mat>>(add_seq);
+    // point list
+    vector<Scalar> pts = point_list2vec(A2);
+    // calculate variances
+    vector<double> vars = cv_imgs_points_scharr(seq, pts);
+    return A3 = vec2list(vars);
+}
+
+
 /* pts_color(+IMGSEQ, +PTS, -COLORS)
  * For a list of points, return their color
  * @IMGSEQ: input images
@@ -216,11 +252,12 @@ PREDICATE(pts_var_loc, 4) {
     // point list
     vector<Scalar> pts = point_list2vec(A2);
     // radius
-    vector<int> r_vec = list2vec<int>(A4, 3);
+    vector<int> r_vec = list2vec<int>(A3, 3);
     Scalar rad(r_vec[0], r_vec[1], r_vec[2]);
+    cout << rad << endl;
     // calculate variances
     vector<double> vars = cv_imgs_points_var_loc(seq, pts, rad);
-    return A3 = vec2list(vars);
+    return A4 = vec2list(vars);
 }
 
 /* pts_color_loc(+IMGSEQ, +PTS, +LOC, -COLORS)
@@ -238,11 +275,11 @@ PREDICATE(pts_color_loc, 4) {
     // point list
     vector<Scalar> pts = point_list2vec(A2);
     // radius
-    vector<int> r_vec = list2vec<int>(A4, 3);
+    vector<int> r_vec = list2vec<int>(A3, 3);
     Scalar rad(r_vec[0], r_vec[1], r_vec[2]);
     // calculate variances
     vector<Scalar> colors = cv_imgs_points_color_loc(seq, pts, rad);
-    return A3 = scalar_vec2list<double>(colors);
+    return A4 = scalar_vec2list<double>(colors);
 }
 
 /* line_pts_var_geq_T(IMGSEQ, [PX, PY, PZ], [A, B, C], T_VAR, P_LIST)
@@ -284,12 +321,12 @@ PREDICATE(line_pts_var_geq_T, 5) {
  */
 PREDICATE(line_seg_pts_var_geq_T, 5) {
     char *p1 = (char*) A1;
-    // coordinates scalar
-    vector<int> pt_vec = list2vec<int>(A2, 3);
-    Scalar pt(pt_vec[0], pt_vec[1], pt_vec[2]);
-    // direction scalar
-    vector<int> dr_vec = list2vec<int>(A3, 3);
-    Scalar dir(dr_vec[0], dr_vec[1], dr_vec[2]);
+    // start point scalar
+    vector<int> st_vec = list2vec<int>(A2, 3);
+    Scalar st(st_vec[0], st_vec[1], st_vec[2]);
+    // end point scalar
+    vector<int> ed_vec = list2vec<int>(A3, 3);
+    Scalar ed(ed_vec[0], ed_vec[1], ed_vec[2]);
     // get image sequence and compute variance
     const string add_seq(p1);
     vector<Mat> *seq = str2ptr<vector<Mat>>(add_seq);
@@ -297,7 +334,7 @@ PREDICATE(line_seg_pts_var_geq_T, 5) {
     double thresh = (double) A4;
     
     // sample a line and get all points that have high variance
-    vector<Scalar> points = cv_line_seg_pts_var_geq_T(seq, pt, dir, thresh);
+    vector<Scalar> points = cv_line_seg_pts_var_geq_T(seq, st, ed, thresh);
     return A5 = point_vec2list(points);
 }
 
@@ -346,12 +383,12 @@ PREDICATE(line_pts_var_geq_T, 6) {
  */
 PREDICATE(line_seg_pts_var_geq_T, 6) {
     char *p1 = (char*) A1;
-    // coordinates scalar
-    vector<int> pt_vec = list2vec<int>(A2, 3);
-    Scalar pt(pt_vec[0], pt_vec[1], pt_vec[2]);
-    // direction scalar
-    vector<int> dr_vec = list2vec<int>(A3, 3);
-    Scalar dir(dr_vec[0], dr_vec[1], dr_vec[2]);
+    // start point scalar
+    vector<int> st_vec = list2vec<int>(A2, 3);
+    Scalar st(st_vec[0], st_vec[1], st_vec[2]);
+    // end point scalar
+    vector<int> ed_vec = list2vec<int>(A3, 3);
+    Scalar ed(ed_vec[0], ed_vec[1], ed_vec[2]);
     // radius scalar
     vector<int> r_vec = list2vec<int>(A4, 3);
     Scalar rad(r_vec[0], r_vec[1], r_vec[2]);
@@ -361,9 +398,66 @@ PREDICATE(line_seg_pts_var_geq_T, 6) {
     // get threshold
     double thresh = (double) A5;
     // sample a line and get all points that have high variance
-    vector<Scalar> points = cv_line_seg_pts_var_geq_T(seq, pt, dir, thresh, rad);
+    vector<Scalar> points = cv_line_seg_pts_var_geq_T(seq, st, ed, thresh, rad);
     return A6 = point_vec2list(points);
 }
+
+/* line_pts_scharr_geq_T(IMGSEQ, [PX, PY, PZ], [A, B, C], T_SCHARR, P_LIST)
+ *     equation of the line to be sampled:
+ *         (X-PX)/A=(Y-PY)/B=(Z-PZ)/C
+ * @(PX, PY, PZ) is a point that it crossed
+ * @(A, B, C) is the direction of the line
+ * @T_SCHARR is the threshold of scharr gradient
+ * @P_LIST is the returned points that exceed the variance threshold on the
+ *    line
+ */
+PREDICATE(line_pts_scharr_geq_T, 5) {
+    char *p1 = (char*) A1;
+    // coordinates scalar
+    vector<int> pt_vec = list2vec<int>(A2, 3);
+    Scalar pt(pt_vec[0], pt_vec[1], pt_vec[2]);
+    // direction scalar
+    vector<int> dr_vec = list2vec<int>(A3, 3);
+    Scalar dir(dr_vec[0], dr_vec[1], dr_vec[2]);
+    // get image sequence and compute variance
+    const string add_seq(p1);
+    vector<Mat> *seq = str2ptr<vector<Mat>>(add_seq);
+    // get threshold
+    double thresh = (double) A4;
+
+    // sample a line and get all points that have high variance
+    vector<Scalar> points = cv_line_pts_scharr_geq_T(seq, pt, dir, thresh);
+    return A5 = point_vec2list(points);
+}
+
+/* line_seg_pts_scharr_geq_T(IMGSEQ, [SX, SY, SZ], [EX, EY, EZ], T_SCHARR, P_LIST)
+ *     equation of the line to be sampled:
+ *         (X-PX)/A=(Y-PY)/B=(Z-PZ)/C
+ * @[SX, SY, SZ] is starting point of the line segment
+ * @[EX, EY, EZ] is ending point of the line segment
+ * @T_SCHARR is the threshold of Scharr gradients
+ * @P_LIST is the returned points that exceed the variance threshold on the
+ *    line
+ */
+PREDICATE(line_seg_pts_scharr_geq_T, 5) {
+    char *p1 = (char*) A1;
+    // start point scalar
+    vector<int> st_vec = list2vec<int>(A2, 3);
+    Scalar st(st_vec[0], st_vec[1], st_vec[2]);
+    // end point scalar
+    vector<int> ed_vec = list2vec<int>(A3, 3);
+    Scalar ed(ed_vec[0], ed_vec[1], ed_vec[2]);
+    // get image sequence and compute variance
+    const string add_seq(p1);
+    vector<Mat> *seq = str2ptr<vector<Mat>>(add_seq);
+    // get threshold
+    double thresh = (double) A4;
+    
+    // sample a line and get all points that have high variance
+    vector<Scalar> points = cv_line_seg_pts_scharr_geq_T(seq, st, ed, thresh);
+    return A5 = point_vec2list(points);
+}
+
 
 /* fit_elps(PTS, CENTRE, PARAM)
  * given a list (>=5) of points, fit an ellipse on a plane (the 3rd dimenstion

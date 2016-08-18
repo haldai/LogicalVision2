@@ -32,8 +32,22 @@ sample_line_var(Imgseq, Start, Direct, Points, Vars):-
 % sample a line segment to get its points and cooresponding variance
 sample_line_seg_var(Imgseq, Start, End, Points, Vars):-
     size_3d(Imgseq, W, H, D),
-    line_points(Start, End, [W, H, D], Points),
+    line_seg_points(Start, End, [W, H, D], Points),
     pts_var(Imgseq, Points, Vars).
+
+% sample_line_scharr(+Imgseq, +Start, +Direct, -Points, -Grads)
+% sample a line to get its points and cooresponding scharr gradients
+sample_line_scharr(Imgseq, Start, Direct, Points, Grads):-
+    size_3d(Imgseq, W, H, D),
+    line_points(Start, Direct, [W, H, D], Points),
+    pts_scharr(Imgseq, Points, Grads).
+
+% sample_line_seg_scharr(+Imgseq, +Start, +End, -Points, -Grads)
+% sample a line segment to get its points and cooresponding variance
+sample_line_seg_scharr(Imgseq, Start, End, Points, Grads):-
+    size_3d(Imgseq, W, H, D),
+    line_seg_points(Start, End, [W, H, D], Points),
+    pts_scharr(Imgseq, Points, Grads).
 
 %===========================
 % sample color of a line
@@ -66,7 +80,7 @@ sample_line_seg_color_L(Imgseq, Start, End, Points, Lchannel):-
     size_3d(Imgseq, W, H, D),
     line_points(Start, End, [W, H, D], Points),
     pts_color(Imgseq, Points, Colors),
-    column(0, Colors, Lchannel).
+    column(1, Colors, Lchannel).
 
 %====================
 % sample gradients

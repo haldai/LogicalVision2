@@ -99,5 +99,9 @@ t(c).
 %@ B =  (a(2):-(b(2):-_G1814;(e(2):-true)), (c(2):-true)) ;
 %@ false.
 %?- nodebug.
-%?- abducible(xx), samplable(ff), abduce(a(X)).
+%?- assertz(abducible(xx)), assertz(samplable(ff)), abduce(a(X)).
+%@ X = 1 ;
+%@ X = 2 ;
+%@ false.
+
 

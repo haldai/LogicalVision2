@@ -60,6 +60,15 @@ Scalar cv_imgs_point_color_loc(vector<Mat> *images, Scalar point,
 double cv_imgs_point_var_loc(vector<Mat> *images, Scalar point,
                              Scalar radius = Scalar(3, 3, 0));
 
+/* calculate image gradient with Scharr operator
+ * @images: image sequence
+ * @point: position of the interest point
+ * @return: variation of all the points 
+ */
+double cv_imgs_point_scharr(vector<Mat> *images, Scalar point);
+vector<double> cv_imgs_points_scharr(vector<Mat> *images,
+                                     vector<Scalar> points);
+
 /* calculate image local color of a set of points
  * @images: image sequence
  * @points: position of the interest points
@@ -108,8 +117,6 @@ vector<Scalar> get_line_seg_points(Scalar start, Scalar end, Scalar bound);
 vector<Scalar> get_ellipse_points(Scalar centre, Scalar param, Scalar bound);
 
 
-//@TODO: rename: cv_line_pts_var_geq_T; cv_line_seg_pts_var_geq_T;
-
 /* sample a line in 3d space and return the points whose local variance 
  * exceeds the given threshold
  * @images: image sequence
@@ -136,6 +143,23 @@ vector<Scalar> cv_line_seg_pts_var_geq_T(vector<Mat> *images, Scalar start,
                               Scalar end, double var_threshold = 2.0,
                               Scalar loc_radius = Scalar(5, 5, 0));
 
+/* sample a line in 3d space and return the points whose scharr gradient
+ * exceeds the given threshold WITH THINNING
+ * @images: image sequence
+ * @point: position of a point
+ * @direction: direction of the line
+ * @grad_threshold: variance threshold
+ * @return: points meet the requirement
+ */
+vector<Scalar> cv_line_pts_scharr_geq_T(vector<Mat> *images,
+                                        Scalar point,
+                                        Scalar direction,
+                                        double var_threshold = 5.0);
+vector<Scalar> cv_line_seg_pts_scharr_geq_T(vector<Mat> *images,
+                                            Scalar start,
+                                            Scalar end,
+                                            double var_threshold = 5.0);
+
 /* bresenham's line algorithm
  * @current: starting point to be extended
  * @direction: direction of line extention
@@ -147,7 +171,7 @@ vector<Scalar> cv_line_seg_pts_var_geq_T(vector<Mat> *images, Scalar start,
 void bresenham(Scalar current, Scalar direction, Scalar inc,
                Scalar bound, vector<Scalar> *points);
 
-/* fit a set of points in to a ellipse on an 2d image
+/* fits a set of points in to a ellipse on an 2d image
  * Based on:
  *   Fitzgibbon, A.W., Pilu, M., and Fischer R.B., Direct least squares
  *   fitting of ellipsees, Proc. of the 13th Internation Conference on Pattern
@@ -158,7 +182,7 @@ void bresenham(Scalar current, Scalar direction, Scalar inc,
  */
 void fit_ellipse(vector<Scalar> points, Scalar& centre, Scalar& param);
 
-/* determine whether a 3D point is out of a 3D space (positive)
+/* determines whether a 3D point is out of a 3D space (positive)
  * @point: input point
  * @bound: boundary of the 3D space (>= 0)
  */
@@ -174,6 +198,19 @@ bool out_of_canvas(Scalar point, Scalar bound) {
     else
         return true;
 }
+/* determines whether two points are continuous
+ * @p1, p2: input points
+ */
+bool point_cont(Scalar p1, Scalar p2) {
+    arma::vec v = {(double) abs(p1[0] - p2[0]),
+                   (double) abs(p1[1] - p2[1]),
+                   (double) abs(p1[2] - p2[2])};
+    if (v.max() < 2)
+        return true;
+    else
+        return false;
+}
+
 
 /********* implementations *********/
 double cv_imgs_point_var_loc(vector<Mat> *images, Scalar point,
@@ -242,10 +279,52 @@ double cv_imgs_point_var_loc(vector<Mat> *images, Scalar point,
         }
     }
 
-    var = var/(double) (count - 1);
+    //var = var/(double) (count - 1);
     //cout << "var:\t" << var[0] << ", " << var[1] << ", " << var[2] << endl;
-    double std = sqrt(var[0] + var[1] + var[2]);
+    double std = sqrt(var[0] / (double) (count - 1))
+        + sqrt(var[1] / (double) (count - 1))
+        + sqrt(var[2] / (double) (count - 1));
     return std;
+}
+
+double cv_imgs_point_scharr(vector<Mat> *images, Scalar point) {
+    // get left_up_most and right_down_most and enumerate all pixels
+    int w = (*images)[0].cols;
+    int h = (*images)[0].rows;
+    // point position
+    int x = point[0];
+    int y = point[1];
+    int frame = point[2];
+    if (x < 1 || y < 1 || x > w - 2 || y > h - 2)
+        return 0.0;
+    // build brightness matrix
+    Mat img = (*images)[frame];
+    arma::mat A = {{(double) img.at<Vec3b>(y-1, x-1)[0],
+                    (double) img.at<Vec3b>(y-1, x)[0],
+                    (double) img.at<Vec3b>(y-1, x+1)[0]},
+                   {(double) img.at<Vec3b>(y, x-1)[0],
+                    (double) img.at<Vec3b>(y, x)[0],
+                    (double) img.at<Vec3b>(y, x+1)[0]},
+                   {(double) img.at<Vec3b>(y+1, x-1)[0],
+                    (double) img.at<Vec3b>(y+1, x)[0],
+                    (double) img.at<Vec3b>(y+1, x+1)[0]}};
+    // calculate Scharr gradients in brightness channel
+    arma::mat gx = {{3, 10, 3},
+                    {0, 0, 0},
+                    {-3, -10, -3}};
+    arma::mat gy = {{3, 0, -3},
+                    {10, 0, -10},
+                    {3, 0, -3}};
+    gx = gx/32;
+    gy = gy/32;
+    double Gx = gx(2,2)*A(0,0) + gx(2,1)*A(0,1) + gx(2,0)*A(0,2)
+        + gx(1,2)*A(1,0) + gx(1,1)*A(1,1) + gx(1,0)*A(1,2)
+        + gx(0,2)*A(2,0) + gx(0,1)*A(2,1) + gx(0,0)*A(2,2);
+    double Gy = gy(2,2)*A(0,0) + gy(2,1)*A(0,1) + gy(2,0)*A(0,2)
+        + gy(1,2)*A(1,0) + gy(1,1)*A(1,1) + gy(1,0)*A(1,2)
+        + gy(0,2)*A(2,0) + gy(0,1)*A(2,1) + gy(0,0)*A(2,2);
+    double G = sqrt(Gx*Gx + Gy*Gy);
+    return G;
 }
 
 Scalar cv_imgs_point_color_loc(vector<Mat> *images, Scalar point,
@@ -318,6 +397,14 @@ vector<double> cv_imgs_points_var_loc(vector<Mat> *images,
     return re;
 }
 
+vector<double> cv_imgs_points_scharr(vector<Mat> *images,
+                                     vector<Scalar> points) {
+    vector<double> re;
+    for (auto it = points.begin(); it != points.end(); ++it)
+        re.push_back(cv_imgs_point_scharr(images, (Scalar) *it));
+    return re;
+}
+
 vector<Scalar> bound_scalar_3d(Scalar point, Scalar radius, Scalar bound) {
     Scalar left_up_most(10000, 10000, 10000);
     Scalar right_down_most(-10000, -10000, -10000);
@@ -368,12 +455,12 @@ vector<Scalar> cv_line_seg_pts_var_geq_T(vector<Mat> *images, Scalar start,
     for (auto it = line_points.begin(); it != line_points.end(); ++it) {
         Scalar pt = *it;
         double var =  cv_imgs_point_var_loc(images, pt, loc_radius);
-        // debug
+        /* debug
         cout << (*it)[0] << ","
              << (*it)[1] << ","
              << (*it)[2] << "\t";
         cout << var << endl;
-        //
+        */
         if (var >= var_threshold)
             re.push_back(pt);
     }
@@ -733,6 +820,90 @@ vector<Scalar> get_ellipse_points(Scalar centre, Scalar param, Scalar bound) {
         p0 = p;
     }
     //cout << "polygon to line segment points done.\n";
+    return re;
+}
+
+vector<Scalar> cv_line_pts_scharr_geq_T(vector<Mat> *images,
+                                        Scalar point,
+                                        Scalar direction,
+                                        double grad_threshold) {
+    vector<Scalar> re;
+    // size of the 3-d space
+    Scalar bound((*images)[0].cols, (*images)[0].rows, images->size());
+    // get all points on this line
+    vector<Scalar> line_points = get_line_points(point, direction, bound);
+    // evaluate Scharr gradients of all points
+    Scalar tmp_last; // temporary last point
+    Scalar tmp_max; // max gradient point
+    double tmp_g; // max gradient intensity
+    bool cont = false; // flag of continuous component existence
+    for (auto it = line_points.begin(); it != line_points.end(); ++it) {
+        Scalar pt = *it;
+        double grad = cv_imgs_point_scharr(images, pt);
+
+        if (grad >= grad_threshold) {
+            if (!cont) {
+                tmp_last = pt;
+                tmp_max = pt;
+                tmp_g = grad;
+                cont = true;
+            } else {
+                if (point_cont(tmp_last, pt)) {
+                    tmp_last = pt;
+                    //re.push_back(pt);
+                    if (grad >= tmp_g) {
+                        tmp_g = grad;
+                        tmp_max = pt;
+                    }
+                } else { // when continuous ends
+                    re.push_back(tmp_max);
+                    cont = false;
+                }
+            }
+        }
+    }
+    return re;
+}
+
+vector<Scalar> cv_line_seg_pts_scharr_geq_T(vector<Mat> *images,
+                                            Scalar start,
+                                            Scalar end,
+                                            double grad_threshold) {
+    vector<Scalar> re;
+    // size of the 3-d space
+    Scalar bound((*images)[0].cols, (*images)[0].rows, images->size());
+    // get all points on this line
+    vector<Scalar> line_points = get_line_seg_points(start, end, bound);
+    // evaluate Scharr gradients of all points
+    Scalar tmp_last;
+    Scalar tmp_max;
+    double tmp_g;
+    bool cont = false; // flag of continuous component existence    
+    for (auto it = line_points.begin(); it != line_points.end(); ++it) {
+        Scalar pt = *it;
+        double grad = cv_imgs_point_scharr(images, pt);
+
+        if (grad >= grad_threshold) {
+            if (!cont) {
+                tmp_last = pt;
+                tmp_max = pt;
+                tmp_g = grad;
+                cont = true;
+            } else {
+                if (point_cont(tmp_last, pt)) {
+                    tmp_last = pt;
+                    //re.push_back(pt);
+                    if (grad >= tmp_g) {
+                        tmp_g = grad;
+                        tmp_max = pt;
+                    }
+                } else { // when continuous ends
+                    re.push_back(tmp_max);
+                    cont = false;
+                }
+            }
+        }
+    }
     return re;
 }
 

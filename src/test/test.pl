@@ -8,6 +8,7 @@
                  '../abduce/bk_light.pl',
                  '../io/plio.pl',
                  '../sampling/plsampling.pl',
+                 '../sampling/plellipse.pl',
                  '../drawing/pldraw.pl',
                  '../utils/utils.pl']).
 
@@ -92,7 +93,7 @@ test_draw_line_seg(IMGSEQ, Start, End, Color):-
     test_write_done.
 
 % test draw ellipse (on the first frame)
-test_draw_elps(IMGSEQ, Center, [A, B, ALPHA], COLOR):-
+test_draw_elps(IMGSEQ, [Center, [A, B, ALPHA]], COLOR):-
     test_write_start('draw ellipse'),
     seq_img(IMGSEQ, 0, IMG1),
     clone_img(IMG1, IMG2),
@@ -242,7 +243,7 @@ test_multiple_sample_line_L_grad(Imgseq):-
     clone_img(IMG1, IMG2),
     test_multiple_sample_line_L_grad(Imgseq, Centers, Directions, IMG2),
     showimg_win(IMG2, 'debug'),
-    release_img(IMG2),    
+    release_img(IMG2),
     test_write_done.
 
 test_multiple_sample_line_L_grad(_, [], [], _):-
@@ -311,9 +312,55 @@ test_deduce_light_source(Imgseq, N, Dir, Sum):-
 test_abduce_light_source(Imgseq, Frame, Sources):-
     abduce(ab_light_source(Imgseq, Frame, 0, [], Sources)).
 
+test_ellipse(Imgseq):-
+    test_write_start("ellipse definition"),
+    %ellipse(Imgseq, [[353, 143, 0], [35, 17, 100]], 6, 0.7, Pos, PTS),
+    ellipse(Imgseq, [[323, 143, 0], [35, 17, 100]], 6, -1.0, Pos, PTS),
+    seq_img(Imgseq, 0, IMG1),
+    clone_img(IMG1, IMG2),
+    draw_points_2d(IMG2, PTS, blue),    
+    draw_points_2d(IMG2, Pos, red),
+    showimg_win(IMG2, 'debug'),
+    release_img(IMG2),
+    test_write_done.
+
+test_scharr(Imgseq, Point):-
+    test_write_start("Schurr gradient calculator"),
+    sample_point_scharr(Imgseq, Point, G),
+    write("Grad: "), write(G), nl,
+    seq_img(Imgseq, 0, IMG1),
+    clone_img(IMG1, IMG2),
+    draw_points_2d(IMG2, [Point], blue),
+    showimg_win(IMG2, 'debug'),
+    release_img(IMG2),
+    test_write_done.
+
+test_line_scharr(Imgseq, Point, Dir, Thresh):-
+    test_write_start("Schurr gradient calculator"),
+    %sample_line_scharr(Imgseq, Point, Dir, Pts, Grads),
+    size_3d(Imgseq, W, H, D),
+    line_points(Point, Dir, [W, H, D], Pts),
+    line_pts_scharr_geq_T(Imgseq, Point, Dir, Thresh, Pos),
+    %items_key_geq_T(Pts, Grads, Thresh, Pos),
+    seq_img(Imgseq, 0, IMG1),
+    clone_img(IMG1, IMG2),
+    draw_points_2d(IMG2, Pts, blue),    
+    draw_points_2d(IMG2, Pos, red),
+    showimg_win(IMG2, 'debug'),
+    release_img(IMG2),
+    test_write_done.
+
 % test utilities
 test_write_start(Name):-
     write('[TEST] '), write(Name), write('.'), nl.
 test_write_done:-
     write('[DONE]'), nl,
     write('================'), nl.
+
+test_main:-
+    test_load_imgseq(Imgseq),
+    %test_draw_elps(Imgseq, [[353, 143, 0], [37, 18, 110]], red),
+    %test_ellipse(Imgseq),
+    %showseq_win(Imgseq, debug),
+    test_line_scharr(Imgseq, [353, 133, 0], [1, 1, 0], 2),
+    test_rel_s(Imgseq).
