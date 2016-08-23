@@ -253,6 +253,26 @@ indexof(Index, Item, List):-
     nth1(Index, List, Item).
 indexof(-1, _, _).
 
+% take first/last n elements from a list
+firstN(N, _, Xs):-
+    N =< 0, !,
+    N =:= 0,
+    Xs = [], !.
+firstN(_, [], []):-
+    !.
+firstN(N, [X | Xs], [X | Ys]):-
+    M is N - 1,
+    firstN(M, Xs, Ys).
+
+lastN(N, L, R):-
+    length(L, S),
+    N1 is S - N,
+    lastT(N1, L, R).
+lastT(0, L, L):- !.
+lastT(N, [_ | T], L):-
+    N1 is N - 1,
+    lastT(N1, T, L).
+    
 %=============
 % my find all
 %=============

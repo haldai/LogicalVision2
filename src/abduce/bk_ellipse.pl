@@ -1,29 +1,13 @@
-/* Prolog sampling
- *     Sample ellipses on *image*.
- * ============================
- * Version: 2.0
- * Author: Wang-Zhou Dai <dai.wzero@gmail.com>
+/* Background knowledge of ellipse
  */
+
+% 1. sample edge points in image (line sampling)
+% 2. hypothesis: fit ellipses with edge points
+% 3. validation: ellipse definition
+%      if not valid, do more sampling
+%      if valid, add to bk? or use statistics?
 
 :- ensure_loaded(['../sampling/plsampling.pl']).
-
-/* Sample one ellipse in image
- * @Img: input image
- * @Elps: parameter of the sampled ellipse, Elps = [Center, [A, B, ALPHA]],
- *     Center is the center of the ellipse
- *     A, B are axis length
- *     ALPHA: tilt angle
- */
-sample_ellipse(Img, Elps):-
-    % TODO:
-    Elps = [Center, [A, B, ALPHA]],
-    fail.
-
-/* Abuductive definition of an object
- */
-object(X):-
-    ellipse(X, Elps), % abduce an ellipse, Elps = [Center, Param].
-    fail.
 
 /* ellipse(+Img, +Param, +VAR_THRESH, +P_THRESH)
  * Definition of ellipse:

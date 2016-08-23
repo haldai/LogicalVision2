@@ -6,11 +6,18 @@
 
 :-ensure_loaded(['../abduce/plabduce.pl',
                  '../abduce/bk_light.pl',
+                 '../abduce/bk_ellipse.pl',
                  '../io/plio.pl',
                  '../sampling/plsampling.pl',
-                 '../sampling/plellipse.pl',
                  '../drawing/pldraw.pl',
                  '../utils/utils.pl']).
+
+% test utilities
+test_write_start(Name):-
+    write('[TEST] '), write(Name), write('.'), nl.
+test_write_done:-
+    write('[DONE]'), nl,
+    write('================'), nl.
 
 % test load image sequence
 test_load_imgseq(B):-
@@ -314,8 +321,8 @@ test_abduce_light_source(Imgseq, Frame, Sources):-
 
 test_ellipse(Imgseq):-
     test_write_start("ellipse definition"),
-    %ellipse(Imgseq, [[353, 143, 0], [35, 17, 100]], 6, 0.7, Pos, PTS),
-    ellipse(Imgseq, [[323, 143, 0], [35, 17, 100]], 6, -1.0, Pos, PTS),
+    ellipse(Imgseq, [[340, 143, 0], [35, 17, 100]], 2, 0.7, Pos, PTS),
+    %ellipse(Imgseq, [[323, 143, 0], [35, 17, 100]], 2, 0.6, Pos, PTS),
     seq_img(Imgseq, 0, IMG1),
     clone_img(IMG1, IMG2),
     draw_points_2d(IMG2, PTS, blue),    
@@ -350,17 +357,60 @@ test_line_scharr(Imgseq, Point, Dir, Thresh):-
     release_img(IMG2),
     test_write_done.
 
-% test utilities
-test_write_start(Name):-
-    write('[TEST] '), write(Name), write('.'), nl.
-test_write_done:-
-    write('[DONE]'), nl,
-    write('================'), nl.
+test_rand_sample_lines_scharrs(Imgseq, N):-
+    test_write_start('randomly sample multiple lines for points with large scharr gradient'),
+    seq_img(Imgseq, 0, IMG1),
+    clone_img(IMG1, IMG2),
+    test_rand_sample_line_scharr(Imgseq, Pos, N, []),
+    % most probable edge points
+    pts_scharr(Imgseq, Pos, Grads),
+    mapsort(Grads, Pos, _, S_Pos),
+    lastN(100, S_Pos, PPos),
+    draw_points_2d(IMG2, Pos, blue),
+    draw_points_2d(IMG2, PPos, red),
+    showimg_win(IMG2, 'debug'),
+    release_img(IMG2),    
+    test_write_done.
+    
+test_rand_sample_line_scharr(_, Re, 0, Re):-
+    !.
+test_rand_sample_line_scharr(Imgseq, Re, N, Tmp):-
+    random_between(0, 639, X), random_between(0, 359, Y),
+    random_between(-10, 10, XX), random_between(0, 20, YY), % YY > 0
+    C = [X, Y, 0],
+    Dir = [XX, YY, 0],
+    %size_3d(Imgseq, W, H, D),
+    %line_points(C, Dir, [W, H, D], Pts),
+    line_pts_scharr_geq_T(Imgseq, C, Dir, 2, Pos),
+    append(Tmp, Pos, Tmp1),
+    %sample_line_L_grad(Imgseq, C, D, Pts, G),
+    %print(Pts), nl,
+    %draw_points_2d(IMG, Pts, blue),
+    %draw_points_2d(IMG, Pos, red),
+    N1 is N - 1,
+    test_rand_sample_line_scharr(Imgseq, Re, N1, Tmp1).
 
+test_compare_hist(Imgseq, Dist):-
+    test_write_start("test compare histograms"),
+    size_3d(Imgseq, W, H, D),
+    line_pts_scharr_geq_T(Imgseq, [335, 133, 0], [1, 1, 0], 2, Pos),
+    Pos = [P1, P2, P3 | _],
+    line_seg_points(P1, P2, [W, H, D], Pts1),
+    line_seg_points(P2, P3, [W, H, D], Pts2),
+    compare_hist(Imgseq, Pts1, Pts2, Dist),
+    write("histogram KL divergence: "), write(Dist), nl,
+    test_write_done.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%HERE GOES MAIN TEST
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 test_main:-
     test_load_imgseq(Imgseq),
     %test_draw_elps(Imgseq, [[353, 143, 0], [37, 18, 110]], red),
     %test_ellipse(Imgseq),
     %showseq_win(Imgseq, debug),
-    test_line_scharr(Imgseq, [353, 133, 0], [1, 1, 0], 2),
+    %test_line_scharr(Imgseq, [353, 133, 0], [1, 1, 0], 2),
+    %test_line_scharr(Imgseq, [335, 133, 0], [1, 1, 0], 2),
+    test_compare_hist(Imgseq, _),
+    %test_rand_sample_lines_scharrs(Imgseq, 1000),
     test_rel_s(Imgseq).

@@ -33,5 +33,9 @@
 # HTMLs
 *.html
 
+# Temp files
+temp.*
+temp*
+
 # do not ignore
 !libs/

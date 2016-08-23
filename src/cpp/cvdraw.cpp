@@ -96,13 +96,17 @@ PREDICATE(draw_points, 3) {
     const string add_seq(p1); // address
     vector<Mat> *seq = str2ptr<vector<Mat>>(add_seq);
     vector<Scalar> pts = point_list2vec(A2);
-    Scalar color = term2color(A3); // color    
-    // draw
-    for (auto it = pts.begin(); it != pts.end(); ++it) {
-        Scalar pt = (Scalar) *it;
-        cv_draw_point((*seq)[pt[2]], Point(pt[0], pt[1]), color);
+    if (pts.empty())
+        return TRUE;
+    else {
+        Scalar color = term2color(A3); // color    
+        // draw
+        for (auto it = pts.begin(); it != pts.end(); ++it) {
+            Scalar pt = (Scalar) *it;
+            cv_draw_point((*seq)[pt[2]], Point(pt[0], pt[1]), color);
+        }
+        return TRUE;
     }
-    return TRUE;
 }
 
 /* draw_points_2d(+IMG, +PTS, +COLOR)
@@ -116,11 +120,15 @@ PREDICATE(draw_points_2d, 3) {
     const string add_img(p1); // address
     Mat *img = str2ptr<Mat>(add_img);
     vector<Scalar> pts = point_list2vec(A2);
-    Scalar color = term2color(A3); // color    
-    // draw
-    for (auto it = pts.begin(); it != pts.end(); ++it) {
-        Scalar pt = (Scalar) *it;
-        cv_draw_point(*img, Point(pt[0], pt[1]), color);
+    if (pts.empty())
+        return TRUE;
+    else {
+        Scalar color = term2color(A3); // color    
+        // draw
+        for (auto it = pts.begin(); it != pts.end(); ++it) {
+            Scalar pt = (Scalar) *it;
+            cv_draw_point(*img, Point(pt[0], pt[1]), color);
+        }
+        return TRUE;
     }
-    return TRUE;
 }

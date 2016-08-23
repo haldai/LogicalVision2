@@ -41,7 +41,7 @@ void cv_draw_line(Mat img, Point start, Point end, Scalar color) {
 }
 
 void cv_draw_point(Mat img, Point point, Scalar color) {
-    cv_draw_circle(img, point, 2, color);
+    cv_draw_circle(img, point, 1, color);
 }
 
 void cv_draw_circle(Mat img, Point point, double radius, Scalar color, int thickness) {

@@ -182,6 +182,15 @@ void bresenham(Scalar current, Scalar direction, Scalar inc,
  */
 void fit_ellipse(vector<Scalar> points, Scalar& centre, Scalar& param);
 
+/* Compare two sets of points' histogram distributions, return KL divergence
+ * @images: image sequence
+ * @points_1: point set 1
+ * @points_2: point set 2
+ */
+double compare_hist(vector<Mat> *images,
+                    vector<Scalar> points_1,
+                    vector<Scalar> points_2);
+
 /* determines whether a 3D point is out of a 3D space (positive)
  * @point: input point
  * @bound: boundary of the 3D space (>= 0)
@@ -473,6 +482,11 @@ vector<Scalar> get_line_points(Scalar point, Scalar direction,
     // REMARK: all coordinate oders as "column, row, duration"
     vector<Scalar> re; // returned point list
 
+    if (direction[0] == 0 &&
+        direction[1] == 0 &&
+        direction[2] == 0)
+        return re;
+    
     // increment in each direction
     int c_inc = direction[0] > 0 ? 1 : -1;
     int r_inc = direction[1] > 0 ? 1 : -1;
@@ -507,6 +521,11 @@ vector<Scalar> get_line_seg_points(Scalar start, Scalar end, Scalar bound) {
     int x2 = end[0];
     int y2 = end[1];
     int z2 = end[2];
+
+    if (x == x2 &&
+        y == y2 &&
+        z == z2)
+        return re;
     // boundary check
     if (out_of_canvas(start, bound) && out_of_canvas(end, bound))
         return re;
@@ -539,7 +558,7 @@ vector<Scalar> get_line_seg_points(Scalar start, Scalar end, Scalar bound) {
     int err_1, err_2;
 
     while (!out_of_canvas(Scalar(x, y, z), bound) &&
-           x != x2 && y != y2 && z != z2) {
+           !(x == x2 && y == y2 && z == z2)) {
         if (Adx >= Ady && Adx >= Adz) {
             err_1 = dy2 - Adx;
             err_2 = dz2 - Adx;
@@ -557,7 +576,7 @@ vector<Scalar> get_line_seg_points(Scalar start, Scalar end, Scalar bound) {
                 x += x_inc;
                 Scalar point(x, y, z);
                 if (!out_of_canvas(point, bound) &&
-                    x != x2 && y != y2 && z != z2)
+                    !(x == x2 && y == y2 && z == z2))
                     re.push_back(point);
                 else
                     break;
@@ -581,7 +600,7 @@ vector<Scalar> get_line_seg_points(Scalar start, Scalar end, Scalar bound) {
                 y += y_inc;
                 Scalar point(x, y, z);
                 if (!out_of_canvas(point, bound) &&
-                    x != x2 && y != y2 && z != z2)
+                    !(x == x2 && y == y2 && z == z2))
                     re.push_back(point);
                 else
                     break;
@@ -605,7 +624,7 @@ vector<Scalar> get_line_seg_points(Scalar start, Scalar end, Scalar bound) {
                 z += z_inc;
                 Scalar point(x, y, z);
                 if (!out_of_canvas(point, bound) &&
-                    x != x2 && y != y2 && z != z2)
+                    !(x == x2 && y == y2 && z == z2))
                     re.push_back(point);
                 else
                     break;
@@ -832,6 +851,7 @@ vector<Scalar> cv_line_pts_scharr_geq_T(vector<Mat> *images,
     Scalar bound((*images)[0].cols, (*images)[0].rows, images->size());
     // get all points on this line
     vector<Scalar> line_points = get_line_points(point, direction, bound);
+    re.push_back((Scalar) *(line_points.begin()));
     // evaluate Scharr gradients of all points
     Scalar tmp_last; // temporary last point
     Scalar tmp_max; // max gradient point
@@ -840,7 +860,6 @@ vector<Scalar> cv_line_pts_scharr_geq_T(vector<Mat> *images,
     for (auto it = line_points.begin(); it != line_points.end(); ++it) {
         Scalar pt = *it;
         double grad = cv_imgs_point_scharr(images, pt);
-
         if (grad >= grad_threshold) {
             if (!cont) {
                 tmp_last = pt;
@@ -862,6 +881,7 @@ vector<Scalar> cv_line_pts_scharr_geq_T(vector<Mat> *images,
             }
         }
     }
+    re.push_back((Scalar) *line_points.rbegin());
     return re;
 }
 
@@ -874,6 +894,7 @@ vector<Scalar> cv_line_seg_pts_scharr_geq_T(vector<Mat> *images,
     Scalar bound((*images)[0].cols, (*images)[0].rows, images->size());
     // get all points on this line
     vector<Scalar> line_points = get_line_seg_points(start, end, bound);
+    re.push_back((Scalar) *(line_points.begin()));
     // evaluate Scharr gradients of all points
     Scalar tmp_last;
     Scalar tmp_max;
@@ -904,8 +925,81 @@ vector<Scalar> cv_line_seg_pts_scharr_geq_T(vector<Mat> *images,
             }
         }
     }
+    re.push_back((Scalar) *line_points.rbegin());
     return re;
 }
 
-#endif
+double compare_hist(vector<Mat> *images,
+                    vector<Scalar> points_1,
+                    vector<Scalar> points_2) {
+    // get colors
+    vector<Scalar> colors_1;
+    vector<Scalar> colors_2;
+    for (auto it = points_1.begin(); it != points_1.end(); ++it)
+        colors_1.push_back(cv_imgs_point_color_loc(images, (Scalar) *it,
+                                                   Scalar(0, 0, 0)));
+    for (auto it = points_2.begin(); it != points_2.end(); ++it)
+        colors_2.push_back(cv_imgs_point_color_loc(images, (Scalar) *it,
+                                                   Scalar(0, 0, 0)));
+    // calculate histogram
+    /* cout << "pts1:" << endl; */
+    arma::Mat<int> freq_1(3, 32, arma::fill::zeros); // frequency
+    arma::Mat<int> freq_2(3, 32, arma::fill::zeros);
+    for (auto it = colors_1.begin(); it != colors_1.end(); ++it) {
+        Scalar lab = *it;
+        for (int channel = 0; channel < 3; channel++) {
+            int f = lab[channel]/8;
+            /*
+            cout << channel << " .. "
+                 << lab[channel] << " ~= " 
+                 << f << endl;
+            */
+            freq_1(channel, f) = freq_1(channel, f) + 1;
+        }
+    }
+    /* cout << "pts2:" << endl; */
+    for (auto it = colors_2.begin(); it != colors_2.end(); ++it) {
+        Scalar lab = *it;
+        for (int channel = 0; channel < 3; channel++) {
+            int f = lab[channel]/8;
+            /*
+            cout << channel << " .. "
+                 << lab[channel] << " ~= " 
+                 << f << endl;
+            */
+            freq_2(channel, f) = freq_2(channel, f) + 1;
+        }
+    }
+    arma::mat hist_1(3, 32, arma::fill::zeros); // histogram
+    arma::mat hist_2(3, 32, arma::fill::zeros);
+    /* cout << "frequencies: " << endl; */
+    for (int f = 0; f < 32; f++) {
+        for (int ch = 0; ch < 3; ch++) {
+            /* cout << freq_1(ch, f) << "/" << freq_2(ch, f) << ", "; */
+            // smooth the distribution with Dirichlet prior
+            hist_1(ch, f) =
+                (freq_1(ch, f) + 0.0001)/(arma::sum(freq_1.row(ch)) + 0.0032);
+            hist_2(ch, f) =
+                (freq_2(ch, f) + 0.0001)/(arma::sum(freq_2.row(ch)) + 0.0032);
+        }
+        /* cout << endl; */
+    }
+    // calculate KL divergence
+    Scalar kls(0.0, 0.0, 0.0);
+    for (int ch = 0; ch < 3; ch++) {
+        double D_1_2 = 0;
+        double D_2_1 = 0;
+        for (int f = 0; f < 32; f++) {
+            D_1_2 += hist_1(ch, f)*log2(hist_1(ch, f)/hist_2(ch, f));
+            D_2_1 += hist_2(ch, f)*log2(hist_2(ch, f)/hist_1(ch, f));
+        }
+        kls[ch] = (D_1_2 + D_2_1)/2;
+        /* cout << kls[ch] << " "; */
+    }
+    // quadratic mean of 3 channels
+    double kl = sqrt((kls[0]*kls[0] + kls[1]*kls[1] + kls[2]*kls[2])/3);
+    /* cout << ".......... " << kl << endl; */
+    return kl;
+}
 
+#endif

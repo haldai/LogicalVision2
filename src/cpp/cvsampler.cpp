@@ -494,3 +494,23 @@ PREDICATE(fit_elps, 3) {
     A3 = vec2list<long>(param_vec);
     return TRUE;
 }
+
+/* compare_hist(+IMGSEQ, +PTS_1, +PTS_2, -DIST)
+ * compare color histograms of two sets of points to decide whether
+ * their distribution is identical.
+ * @PTS_1/2: two set of point positions
+ * @DIST: distance of histograms (quadratic mean of KL divergence
+ *        in 3 channels).
+ */
+PREDICATE(compare_hist, 4) {
+    // image sequence    
+    char *p1 = (char*) A1;
+    const string add_seq(p1);
+    vector<Mat> *seq = str2ptr<vector<Mat>>(add_seq);
+    // point lists
+    vector<Scalar> pts_1 = point_list2vec(A2);
+    vector<Scalar> pts_2 = point_list2vec(A3);
+    // calculate histogram difference
+    double d = compare_hist(seq, pts_1, pts_2);
+    return A4 = d;
+}
