@@ -3,7 +3,8 @@
  * Version: 2.0
  * Author: Wang-Zhou Dai <dai.wzero@gmail.com>
  */
-:- load_foreign_library(foreign('../../libs/cvsampler.so')).
+:- load_foreign_library(foreign('../../libs/cvsampler.so')),
+   load_foreign_library(foreign('../../libs/cvcluster.so')).
 
 :- ensure_loaded(['../utils/utils.pl']).
 
@@ -204,3 +205,55 @@ radial_line_2d(Point, Start_deg, End_deg, Step, Ray):-
     Ang mod Step =:= 0,
     angle2dir_2d(Ang, Dir),
     Ray = [Point, Dir].
+
+%=================================================================
+% sample line segments and cluster them according to color hists
+%=================================================================
+% sample line get segments and histograms:
+sample_line_hists(Imgseq, [Point, Dir], Thresh_Scharr, Seg_Hist_Pairs):-
+    % get edge points
+    line_pts_scharr_geq_T(Imgseq, Point, Dir, Thresh_Scharr, Edge_pts),
+    seg_hists_pairs(Imgseq, Edge_pts, Seg_Hist_Pairs).
+% sample linesegment and get smaller segments and histograms
+sample_seg_hists(Imgseq, [Start, End], Thresh_Scharr, Seg_Hist_Pairs):-
+    line_seg_pts_scharr_geq_T(Imgseq, Start, End, Thresh_Scharr, Edge_pts),
+    seg_hists_pairs(Imgseq, Edge_pts, Seg_Hist_Pairs).
+% get line segment hists and return Seg-Hist pairs
+seg_hists_pairs(_, [_], []):-
+    !.
+seg_hists_pairs(Imgseq, [P1, P2 | Ps], [Seg-Hist | SHs]):-
+    Seg = [P1, P2],
+    size_3d(Imgseq, W, H, D),
+    line_seg_points(P1, P2, [W, H, D], Pts),
+    points_color_hist(Imgseq, Pts, Hist),
+    seg_hists_pairs(Imgseq, [P2 | Ps], SHs).
+
+% multiple lines
+sample_lines_hists(Imgseq, [L | Lines],
+                   Thresh_Scharr, Re):-
+    sample_lines_hists(Imgseq, [L | Lines], Thresh_Scharr, Re, []).
+sample_lines_hists(_, [], _, Re, Re):-
+    !.
+sample_lines_hists(Imgseq, [L | Lines],
+                   Thresh_Scharr, Re, Temp):-
+    sample_line_hists(Imgseq, L, Thresh_Scharr, SH),
+    append(SH, Temp, Temp1),
+    sample_lines_hists(Imgseq, Lines, Thresh_Scharr, Re, Temp1).
+% multiple segs
+sample_line_segs_hists(Imgseq, [L | Lines],
+                   Thresh_Scharr, Re):-
+    sample_line_segs_hists(Imgseq, [L | Lines], Thresh_Scharr, Re, []).
+sample_line_segs_hists(_, [], _, Re, Re):-
+    !.
+sample_line_segs_hists(Imgseq, [L | Lines],
+                   Thresh_Scharr, Re, Temp):-
+    sample_line_seg_hists(Imgseq, L, Thresh_Scharr, SH),
+    append(SH, Temp, Temp1),
+    sample_line_segs_hists(Imgseq, Lines, Thresh_Scharr, Re, Temp1).
+
+% clustering the segments
+cluster_seg_hist_pairs(SHs, Num_Clusters, Signed_SHs):-
+    pairs_keys_values(SHs, _, Hists),
+    kmeans(Hists, Num_Clusters, _, Assign),
+    pairs_keys_values(Signed_SHs, SHs, Assign).
+

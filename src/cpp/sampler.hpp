@@ -182,6 +182,13 @@ void bresenham(Scalar current, Scalar direction, Scalar inc,
  */
 void fit_ellipse(vector<Scalar> points, Scalar& centre, Scalar& param);
 
+/* compute the color histogram of a set of points in image sequence
+ * @images: image sequence
+ * @points: point set
+ */
+vector<double> cv_points_color_hist(vector<Mat> *images,
+                                    vector<Scalar> points);
+
 /* Compare two sets of points' histogram distributions, return KL divergence
  * @images: image sequence
  * @points_1: point set 1
@@ -1000,6 +1007,31 @@ double compare_hist(vector<Mat> *images,
     double kl = sqrt((kls[0]*kls[0] + kls[1]*kls[1] + kls[2]*kls[2])/3);
     /* cout << ".......... " << kl << endl; */
     return kl;
+}
+
+vector<double> cv_points_color_hist(vector<Mat> *images,
+                                    vector<Scalar> points) {
+    // get colors
+    vector<Scalar> colors;
+    for (auto it = points.begin(); it != points.end(); ++it)
+        colors.push_back(cv_imgs_point_color_loc(images, (Scalar) *it,
+                                                 Scalar(0, 0, 0)));
+    // frequency
+    arma::Mat<int> freq(3, 32, arma::fill::zeros); 
+    for (auto it = colors.begin(); it != colors.end(); ++it) {
+        Scalar lab = *it;
+        for (int channel = 0; channel < 3; channel++) {
+            int f = lab[channel]/8;
+            freq(channel, f) = freq(channel, f) + 1;
+        }
+    }
+    // calculate distribution
+    vector<double> re;
+    for (int f = 0; f < 32; f++)
+        for (int ch = 0; ch < 3; ch++)
+            re.push_back((freq(ch, f) + 0.0001)
+                         / (arma::sum(freq.row(ch)) + 0.0032));
+    return re;
 }
 
 #endif

@@ -4,12 +4,12 @@
  * Author: Wang-Zhou Dai <dai.wzero@gmail.com>
  */
 
+#include "utils.hpp"
 #include "io.hpp"
 #include "memread.hpp"
 #include "errors.hpp"
-#include "utils.hpp"
 
-#include <opencv2/core/core.hpp>
+//#include <opencv2/core/core.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/videoio/videoio.hpp>
 #include <opencv2/highgui.hpp>  // OpenCV window I/O

@@ -14,6 +14,9 @@ LDFLAGS = -Wall -fPIC $(LIBS) $(COFLAGS)
 INCLUDE = -I$(SRCDIR) -I$(INCLUDEDIR)
 LIBS = -lm -L$(SRCDIR) -L$(LIBSDIR)
 
+# Library prefix
+MLPACK_HOME = /home/daiwz/.local
+
 # SWI-prolog
 CXXFLAGS_SWI = `pkg-config --cflags swipl`
 LDFLAGS_SWI = `pkg-config --libs swipl`
@@ -29,26 +32,37 @@ LDFLAGS_ARMA = -larmadillo
 CXXFLAGS_QT = `pkg-config --cflags Qt5Gui`
 LDFLAGS_QT = `pkg-config --libs Qt5Gui`
 
-all:cvio.so cvsampler.so cvdraw.so
+# mlpack library
+CXXFLAGS_MLPACK = -I$(MLPACK_HOME)/include
+LDFLAGS_MLPACK = -L$(MLPACK_HOME) -L$(LDFLAGS_ARMA) -lmlpack -lboost_serialization
+
+#all:cvcluster.so
+all:cvio.so cvsampler.so cvdraw.so cvcluster.so
 	mv *.so $(LIBSDIR)/
 
 cvio.so:cvio.o
-	$(CXX) -shared $(LIBS) cvio.o -o cvio.so $(LDFLAGS_CV) $(LDFLAGS_SWI) $(LDFLAGS_QT)
+	$(CXX) -shared $(LIBS) cvio.o -o cvio.so $(LDFLAGS_CV) $(LDFLAGS_SWI) $(LDFLAGS_QT) $(LDFLAGS_MLPACK)
 
 cvio.o:
-	$(CXX) -shared $(CXXFLAGS) $(CXXFLAGS_CV) $(CXXFLAGS_SWI) $(CXXFLAGS_QT) -c cvio.cpp
+	$(CXX) $(CXXFLAGS) $(CXXFLAGS_CV) $(CXXFLAGS_SWI) $(CXXFLAGS_QT) -c cvio.cpp
 
 cvsampler.so:cvsampler.o
-	$(CXX) -shared $(LIBS) cvsampler.o -o cvsampler.so $(LDFLAGS_CV) $(LDFLAGS_SWI) $(LDFLAGS_QT) $(LDFLAGS_ARMA)
+	$(CXX) -shared $(LIBS) cvsampler.o -o cvsampler.so $(LDFLAGS_CV) $(LDFLAGS_SWI) $(LDFLAGS_QT) $(LDFLAGS_ARMA) $(LDFLAGS_MLPACK)
 
 cvsampler.o:
-	$(CXX) -shared $(CXXFLAGS) $(CXXFLAGS_CV) $(CXXFLAGS_SWI) $(CXXFLAGS_QT) -c cvsampler.cpp
+	$(CXX) $(CXXFLAGS) $(CXXFLAGS_CV) $(CXXFLAGS_SWI) $(CXXFLAGS_QT) -c cvsampler.cpp
 
 cvdraw.so:cvdraw.o
-	$(CXX) -shared $(LIBS) cvdraw.o -o cvdraw.so $(LDFLAGS_CV) $(LDFLAGS_SWI) $(LDFLAGS_QT)
+	$(CXX) -shared $(LIBS) cvdraw.o -o cvdraw.so $(LDFLAGS_CV) $(LDFLAGS_SWI) $(LDFLAGS_QT) $(LDFLAGS_MLPACK)
 
 cvdraw.o:
-	$(CXX) -shared $(CXXFLAGS) $(CXXFLAGS_CV) $(CXXFLAGS_SWI) $(CXXFLAGS_QT) -c cvdraw.cpp
+	$(CXX) $(CXXFLAGS) $(CXXFLAGS_CV) $(CXXFLAGS_SWI) $(CXXFLAGS_QT) -c cvdraw.cpp
+
+cvcluster.so:cvcluster.o
+	$(CXX) -shared $(LIBS) cvcluster.o -o cvcluster.so $(LDFLAGS_MLPACK) $(LDFLAGS_CV)
+
+cvcluster.o:
+	$(CXX) $(CXXFLAGS) $(CXXFLAGS_CV) $(CXXFLAGS_SWI) $(CXXFLAGS_QT) -c cvcluster.cpp
 
 clean:
 	rm -rf *.o *.so

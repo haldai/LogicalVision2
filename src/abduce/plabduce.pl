@@ -4,6 +4,14 @@
  * Author: Wang-Zhou Dai <dai.wzero@gmail.com>
  */
 
+:- dynamic
+       abducible/1,
+       samplable/1.
+
+:- discontiguous
+       abducible/1,
+       samplable/1.
+
 /* Abduction of concepts from Observation*/
 abduce(true):-
     !.
@@ -26,7 +34,7 @@ abduce(A):-
 % here the "abducible" is different with ALP definition
 abduce(A):-
     not(predicate_property(A, built_in);
-     predicate_property(A, imported_from(_))),    
+        predicate_property(A, imported_from(_))),    
     functor(A, Pred, Nargs),
     abducible(Pred/Nargs),
     call(A).
@@ -39,7 +47,7 @@ abduce(A):-
     call(A).
 abduce(A):-
     not(predicate_property(A, built_in);
-     predicate_property(A, imported_from(_))),
+        predicate_property(A, imported_from(_))),
     clause(A, B),
     not(functor(B, call, _)),
     abduce(B).
@@ -55,7 +63,6 @@ abduce(A):-
 
 
 % TODO: What does Args look like? [[Args1], [Args2], ...]?
-
 
 solve(true, true) :-!.
 solve(not(A), not(ProofA)) :-
@@ -93,15 +100,6 @@ t(b).
 t(c).
 
 %?- solve(a(X), B).
-%@ X = 1,
-%@ B =  (a(1):-(b(1):-(d(1):-true);_G1815), (c(1):-true)) ;
-%@ X = 2,
-%@ B =  (a(2):-(b(2):-_G1814;(e(2):-true)), (c(2):-true)) ;
-%@ false.
 %?- nodebug.
 %?- assertz(abducible(xx)), assertz(samplable(ff)), abduce(a(X)).
-%@ X = 1 ;
-%@ X = 2 ;
-%@ false.
-
-
+%?- abduce(a(X)).

@@ -272,7 +272,7 @@ lastT(0, L, L):- !.
 lastT(N, [_ | T], L):-
     N1 is N - 1,
     lastT(N1, T, L).
-    
+
 %=============
 % my find all
 %=============

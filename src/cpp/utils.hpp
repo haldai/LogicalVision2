@@ -7,7 +7,9 @@
 #ifndef _UTILS_HPP
 #define _UTILS_HPP
 
-#include <opencv2/core/core.hpp> // opencv library
+//#include <armadillo>
+#include <mlpack/core.hpp>
+#include <opencv2/core/core.hpp>
 #include <SWI-cpp.h>
 #include <SWI-Prolog.h>
 
@@ -66,6 +68,15 @@ PlTerm scalar_vec2list(vector<Scalar> list, int size = -1);
  */
 vector<Scalar> point_list2vec(PlTerm term);
 PlTerm point_vec2list(vector<Scalar> list);
+
+/* reassign data points into lists of groups according to clustering results
+ * @points: data points (vector of feature vectors)
+ * @group_num: number of groups
+ * @assignments: clustering assignments of data points
+ * @returned: a Prolog term, list of groups of points. L = [[Grp1], ...],
+ *    Grp = [Pt1, ...], Pt = [x1, x2, ...].
+ */
+PlTerm group2lists(vector<vector<double>> points, int group_num, arma::Row<size_t> assignments);
 
 /* Assert and retract a fact (PlCompoud as a PlTerm) in Prolog Engine */
 void pl_assert(string pred, PlTerm args);
@@ -319,6 +330,38 @@ void pl_retract(string pred, PlTerm args) {
     pl_args[0] = PlCompound(pred.c_str(), args);
     PlQuery q("retract", pl_args);
     q.next_solution();
+}
+
+PlTerm group2lists(vector<vector<double>> items,
+                   int group_num,
+                   arma::Row<size_t> assignments) {
+    //[[seg1,seg2],[seg3,seg4],...], where each seg=[x1,x2,...]
+    // assign items to groups
+    vector<vector<vector<double>>> groups; // groups<items<features>>
+    for (int i = 0; i < group_num; i++)
+        groups.push_back(vector<vector<double>>());
+    for (size_t i = 0; i < assignments.n_cols; i++) {
+        size_t cls = assignments(i);
+        groups[cls].push_back(items[i]);
+    }
+    // make new term for groups
+    term_t groups_ref = PL_new_term_ref();
+    PlTerm groups_term(groups_ref);
+    PlTail groups_tail(groups_term);
+    for (int grp = 0; grp < group_num; grp++) {
+        term_t items_ref = PL_new_term_ref();
+        PlTerm items_term(items_ref);
+        PlTail items_tail(items_term);
+        size_t items_num = groups[grp].size();
+        for (size_t pt = 0; pt < items_num; pt++) {
+            PlTerm item = vec2list<double>(groups[grp][pt]);
+            items_tail.append(item);
+        }
+        items_tail.close();
+        groups_tail.append(items_term);
+    }
+    groups_tail.close();
+    return groups_term;    
 }
 
 #endif

@@ -390,16 +390,61 @@ test_rand_sample_line_scharr(Imgseq, Re, N, Tmp):-
     N1 is N - 1,
     test_rand_sample_line_scharr(Imgseq, Re, N1, Tmp1).
 
-test_compare_hist(Imgseq, Dist):-
+test_compare_hist(Imgseq):-
     test_write_start("test compare histograms"),
     size_3d(Imgseq, W, H, D),
     line_pts_scharr_geq_T(Imgseq, [335, 133, 0], [1, 1, 0], 2, Pos),
-    Pos = [P1, P2, P3 | _],
+    Pos = [P1, P2, P3, _, P5, P6 | _],
     line_seg_points(P1, P2, [W, H, D], Pts1),
     line_seg_points(P2, P3, [W, H, D], Pts2),
-    compare_hist(Imgseq, Pts1, Pts2, Dist),
-    write("histogram KL divergence: "), write(Dist), nl,
+    line_seg_points(P5, P6, [W, H, D], Pts3),
+    compare_hist(Imgseq, Pts1, Pts2, Dist1),
+    compare_hist(Imgseq, Pts1, Pts3, Dist2),
+    write("histogram KL divergence ([P1, P2], [P2, P3]): "), write(Dist1), nl,
+    write("histogram KL divergence ([P1, P2], [P5, P6]): "), write(Dist2), nl,
     test_write_done.
+
+test_points_hist(Imgseq):-
+    test_write_start("test points histograms"),
+    size_3d(Imgseq, W, H, D),
+    line_pts_scharr_geq_T(Imgseq, [335, 133, 0], [1, 1, 0], 2, Pos),
+    Pos = [P1, P2, P3, _, P5, P6 | _],
+    line_seg_points(P1, P2, [W, H, D], Pts1),
+    line_seg_points(P2, P3, [W, H, D], Pts2),
+    line_seg_points(P5, P6, [W, H, D], Pts3),
+    points_color_hist(Imgseq, Pts1, H1),
+    points_color_hist(Imgseq, Pts2, H2),
+    points_color_hist(Imgseq, Pts3, H3),
+    print_list(H1),
+    hist_diff(H1, H2, Dist1),
+    hist_diff(H1, H3, Dist2),
+    write("histogram KL divergence (H1, H2): "), write(Dist1), nl,
+    write("histogram KL divergence (H1, H3): "), write(Dist2), nl,
+    test_write_done.
+
+test_sample_line_seg_hists(Imgseq):-
+    test_write_start("test sample line and get Seg-Hist pairs"),
+    sample_line_hists(Imgseq, [[335, 133, 0], [1, 1, 0]], 2, SHs),
+    print_list(SHs).
+
+% randomly sample many lines
+test_rand_sample_lines(0, []):-
+    !.
+test_rand_sample_lines(N, [[C, Dir] | CDs]):-
+    random_between(0, 639, X), random_between(0, 359, Y),
+    random_between(-10, 10, XX), random_between(0, 20, YY), % YY > 0
+    C = [X, Y, 0],
+    Dir = [XX, YY, 0],
+    N1 is N - 1,
+    test_rand_sample_lines(N1, CDs).
+
+% randomly sample many lines and get there histograms, then cluster them
+test_cluster_rand_segs(Imgseq):-
+    test_write_start("test randomly sample lines and do clustering"),
+    test_rand_sample_lines(100, Lines),
+    sample_lines_hists(Imgseq, Lines, 2, SHs),
+    cluster_seg_hist_pairs(SHs, 4, SHs_Sign),
+    print_list_ln(SHs_Sign).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %HERE GOES MAIN TEST
@@ -411,6 +456,9 @@ test_main:-
     %showseq_win(Imgseq, debug),
     %test_line_scharr(Imgseq, [353, 133, 0], [1, 1, 0], 2),
     %test_line_scharr(Imgseq, [335, 133, 0], [1, 1, 0], 2),
-    test_compare_hist(Imgseq, _),
+    %test_compare_hist(Imgseq),
+    %test_points_hist(Imgseq),
     %test_rand_sample_lines_scharrs(Imgseq, 1000),
+    %test_sample_line_seg_hists(Imgseq),
+    test_cluster_rand_segs(Imgseq),
     test_rel_s(Imgseq).

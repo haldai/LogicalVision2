@@ -1,5 +1,5 @@
 % background knowledge for abducing objects
-
+%=================================================================================
 % An object is defined like this:
 % 1. Background is an object;
 % 2. An object must connect with other objects: adjacent, include or be included.
@@ -9,8 +9,8 @@
 % 4. An object is marked by either a rectangle or an ellipse with parameters:
 %    e.g. rect([left_up_most_position], [x_length, y_length]);
 %         elps([center], [a_axis, b_axis, tilt_angle]).
-
-
+%================================================================================
+:- ensure_loaded(['../abduce/plabduce.pl']).
 
 % assumption: background is a pure colored board, its boudary is
 %             the canvas boundary.
@@ -30,5 +30,8 @@ inside_of([PX, PY], elps([CX, CY], [A, B, ALPHA])):-
 % to an object. This predicate abduces whether each edge_point is a noise
 % point or an inside point
 
-%obj([EP1 | EPs], )
+scene(Imgseq, Idx, Objs):-
+    segments(Imgseq, Idx, Segs),
+    abduce(objects(Segs, Objs)).
 
+%

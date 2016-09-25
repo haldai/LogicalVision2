@@ -14,6 +14,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <SWI-cpp.h>
 #include <SWI-Prolog.h>
+#include <cmath>
 
 /* sample_point_var(IMGSEQ, [X, Y, Z], VAR)
  * get variation of local area of point [X, Y, Z] in image sequence IMGSEQ
@@ -513,4 +514,65 @@ PREDICATE(compare_hist, 4) {
     // calculate histogram difference
     double d = compare_hist(seq, pts_1, pts_2);
     return A4 = d;
+}
+
+/* points_color_hist(+IMGSEQ, +PTS, -HIST)
+ * compute the color histogram vector of given point list
+ * @IMG_SEQ: image sequence
+ * @PTS: points [[x, y, frame] |...]
+ * @HIST: [V1_1, V1_2, V1_3, V2_1, ..., V32_3] as
+ *        [L1,   A1,   B1,   L2,   ..., B32]
+ */
+PREDICATE(points_color_hist, 3) {
+    // image sequence
+    char *p1 = (char*) A1;
+    const string add_seq(p1);
+    vector<Mat> *seq = str2ptr<vector<Mat>>(add_seq);
+    // point lists
+    vector<Scalar> pts = point_list2vec(A2);
+    // get histogram
+    vector<double> hist = cv_points_color_hist(seq, pts);
+    return A3 = vec2list<double>(hist);
+}
+/* hist_diff(+HIST_1, +HIST_2, -DIFF)
+ * compute the KL divergence between 2 color histograms
+ * @HIST_1/2: input histograms, each one is a list
+ *            [V1_1, V1_2, V1_3, V2_1, ..., V32_3] as
+ *            [L1,   A1,   B1,   L2,   ..., B32]
+ * @DIFF: output
+ */
+
+PREDICATE(hist_diff, 3) {
+    vector<double> h1 = list2vec<double>(A1);
+    vector<double> h2 = list2vec<double>(A2);
+    int n = h1.size();
+    // calculate KL divergence
+    Scalar kls(0.0, 0.0, 0.0);
+    double D_1_2_L = .0;
+    double D_2_1_L = .0;
+    double D_1_2_A = .0;
+    double D_2_1_A = .0;
+    double D_1_2_B = .0;
+    double D_2_1_B = .0;
+
+    for (int i = 0; i < n; i++) {
+        if (i % 3 == 0) { // L
+            D_1_2_L += h1[i]*log2(h1[i]/h2[i]);
+            D_2_1_L += h2[i]*log2(h2[i]/h1[i]);
+        }
+        else if (i % 3 == 1) {// A
+            D_1_2_A += h1[i]*log2(h1[i]/h2[i]);
+            D_2_1_A += h2[i]*log2(h2[i]/h1[i]);
+        }
+        else {// B
+            D_1_2_B += h1[i]*log2(h1[i]/h2[i]);
+            D_2_1_B += h2[i]*log2(h2[i]/h1[i]);
+        }
+    }
+    kls[0] = (D_1_2_L + D_2_1_L)/2;
+    kls[1] = (D_1_2_A + D_2_1_A)/2;
+    kls[2] = (D_1_2_B + D_2_1_B)/2;
+    // quadratic mean of 3 channels
+    double kl = sqrt((kls[0]*kls[0] + kls[1]*kls[1] + kls[2]*kls[2])/3);
+    return A3 = kl;
 }
