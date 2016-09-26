@@ -378,10 +378,12 @@ test_rand_sample_line_scharr(Imgseq, Re, N, Tmp):-
     random_between(0, 639, X), random_between(0, 359, Y),
     random_between(-10, 10, XX), random_between(0, 20, YY), % YY > 0
     C = [X, Y, 0],
-    Dir = [XX, YY, 0],
+    ((XX == 0, YY == 0) ->
+         (Dir = [1, 1, 0], !);
+     (Dir = [XX, YY, 0], !)),
     %size_3d(Imgseq, W, H, D),
     %line_points(C, Dir, [W, H, D], Pts),
-    line_pts_scharr_geq_T(Imgseq, C, Dir, 2, Pos),
+    line_pts_scharr_geq_T(Imgseq, C, Dir, 10, Pos),
     append(Tmp, Pos, Tmp1),
     %sample_line_L_grad(Imgseq, C, D, Pts, G),
     %print(Pts), nl,
@@ -432,19 +434,48 @@ test_rand_sample_lines(0, []):-
     !.
 test_rand_sample_lines(N, [[C, Dir] | CDs]):-
     random_between(0, 639, X), random_between(0, 359, Y),
-    random_between(-10, 10, XX), random_between(0, 20, YY), % YY > 0
+    random_between(-10, 10, XX), random_between(0, 50, YY), % YY >= 0
     C = [X, Y, 0],
-    Dir = [XX, YY, 0],
+    ((XX == 0, YY == 0) ->
+         (Dir = [1, 1, 0], !);
+     (Dir = [XX, YY, 0], !)),
     N1 is N - 1,
     test_rand_sample_lines(N1, CDs).
 
 % randomly sample many lines and get there histograms, then cluster them
 test_cluster_rand_segs(Imgseq):-
     test_write_start("test randomly sample lines and do clustering"),
-    test_rand_sample_lines(100, Lines),
+    test_rand_sample_lines(50, Lines),
+    write('sampling finished.'), nl,
     sample_lines_hists(Imgseq, Lines, 2, SHs),
-    cluster_seg_hist_pairs(SHs, 4, SHs_Sign),
-    print_list_ln(SHs_Sign).
+    write('computing histograms finished.'), nl,
+    cluster_seg_hist_pairs(SHs, 3, SHs_Sign),
+    write('clustering finished.'), nl,
+    % print_list_ln(SHs_Sign),
+    seq_img(Imgseq, 0, IMG1),
+    clone_img(IMG1, IMG2),    
+    test_display_SHs(IMG2, SHs_Sign),
+    showimg_win(IMG2, 'debug'),
+    release_img(IMG2),
+    test_write_done.
+
+test_display_SHs(_, []):-
+    !.
+test_display_SHs(Img, [[Start, End]-_-0 | SHs]):-
+    draw_line_seg_2d(Img, Start, End, r),
+    test_display_SHs(Img, SHs), !.
+test_display_SHs(Img, [[Start, End]-_-1 | SHs]):-
+    draw_line_seg_2d(Img, Start, End, g),
+    test_display_SHs(Img, SHs), !.
+test_display_SHs(Img, [[Start, End]-_-2 | SHs]):-
+    draw_line_seg_2d(Img, Start, End, b),
+    test_display_SHs(Img, SHs), !.
+test_display_SHs(Img, [[Start, End]-_-3 | SHs]):-
+    draw_line_seg_2d(Img, Start, End, y),
+    test_display_SHs(Img, SHs), !.
+test_display_SHs(Img, [[Start, End]-_-4 | SHs]):-
+    draw_line_seg_2d(Img, Start, End, w),
+    test_display_SHs(Img, SHs), !.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %HERE GOES MAIN TEST
