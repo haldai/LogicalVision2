@@ -30,6 +30,8 @@ using namespace cv;
 enum { XY_SHIFT = 16, XY_ONE = 1 << XY_SHIFT, DRAWING_STORAGE_BLOCK = (1 << 12) - 256 };
 
 /********* declarations *********/
+/* compute the variance of a set of points in image sequence */
+double cv_imgs_points_var(vector<Mat> *images, vector<Scalar> point_set);
 
 /* bound an local area in 3-d space and return the left/right up/down most
  *     points of the local area
@@ -115,6 +117,15 @@ vector<Scalar> get_line_seg_points(Scalar start, Scalar end, Scalar bound);
  * @return: all points on the circle
  */
 vector<Scalar> get_ellipse_points(Scalar centre, Scalar param, Scalar bound);
+
+/* get all points in an cube
+ *    When sampling a specific frame, remember to change z value of all points
+ * @centre: centre point of the cube
+ * @param: parameters of an cube (length in x, y, z directions)
+ * @bound: size of the 3d-space
+ * @return: all points in the cube
+ */
+vector<Scalar> get_in_cube_points(Scalar centre, Scalar param, Scalar bound);
 
 
 /* sample a line in 3d space and return the points whose local variance 
@@ -269,6 +280,10 @@ double cv_imgs_point_var_loc(vector<Mat> *images, Scalar point,
                 }
             }
 
+    return cv_imgs_points_var(images, point_set);
+}
+
+double cv_imgs_points_var(vector<Mat> *images, vector<Scalar> point_set) {
     int count = point_set.size();
     Scalar avg = Scalar(.0, .0, .0);
     // compute average
@@ -302,6 +317,7 @@ double cv_imgs_point_var_loc(vector<Mat> *images, Scalar point,
         + sqrt(var[2] / (double) (count - 1));
     return std;
 }
+
 
 double cv_imgs_point_scharr(vector<Mat> *images, Scalar point) {
     // get left_up_most and right_down_most and enumerate all pixels
@@ -846,6 +862,27 @@ vector<Scalar> get_ellipse_points(Scalar centre, Scalar param, Scalar bound) {
         p0 = p;
     }
     //cout << "polygon to line segment points done.\n";
+    return re;
+}
+
+vector<Scalar> get_in_cube_points(Scalar centre, Scalar param, Scalar bound) {
+    int x = (int) centre[0];
+    int y = (int) centre[1];
+    int z = (int) centre[2];
+    
+    int a = (int) param[0];
+    int b = (int) param[1];
+    int c = (int) param[2];
+
+    vector<Scalar> re;
+
+    for (int i = x - a; i <= x + a; i++)
+        for (int j = y - b; j <= y + b; j++)
+            for (int k = z - c; k <= z + c; k++) {
+                Scalar point = Scalar(i, j, k);
+                if (!out_of_canvas(point, bound))
+                    re.push_back(point);
+            }
     return re;
 }
 

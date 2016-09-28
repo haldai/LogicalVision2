@@ -183,6 +183,29 @@ PREDICATE(ellipse_points, 4) {
     return A4 = point_vec2list(pts);
 }
 
+/* in_cube_points(+CENTRE, +RADIUS, +BOUND, -PTS)
+ * get a list of points in side of a cube
+ * @CENTRE = [X, Y, Z]: centre point of the cube
+ * @RADIUS = [A, B, C]: radius of the cube
+ * @BOUND = [W, H, D]: size limit of the video (width, height and duration),
+ *      usually obained from 'size_3d(VID, W, H, D)'
+ * @PTS: returned point list
+ */
+PREDICATE(in_cube_points, 4) {
+    // centre coordinate scalar
+    vector<int> c_vec = list2vec<int>(A1, 3);
+    Scalar centre(c_vec[0], c_vec[1], c_vec[2]);
+    // parameter scalar
+    vector<int> p_vec = list2vec<int>(A2, 3);
+    Scalar param(p_vec[0], p_vec[1], p_vec[2]);
+    // boundary scalar
+    vector<int> bd_vec = list2vec<int>(A3, 3);
+    Scalar bound(bd_vec[0], bd_vec[1], bd_vec[2]);
+    // get points
+    vector<Scalar> pts = get_in_cube_points(centre, param, bound);
+    return A4 = point_vec2list(pts);
+}
+
 /* pts_var(+IMGSEQ, +PTS, -VARS)
  * For a list of points, return their variance
  * @IMGSEQ: input images
@@ -199,6 +222,24 @@ PREDICATE(pts_var, 3) {
     // calculate variances
     vector<double> vars = cv_imgs_points_var_loc(seq, pts);
     return A3 = vec2list(vars);
+}
+
+/* pts_set_var(+IMGSEQ, +PTS, -VAR)
+ * Compute the variance of a set of poins
+ * @IMGSEQ: input images
+ * @PTS: point list, [[X1, Y1, Z1], ...]
+ * @VAR: variances of the point set, [V1, ...]
+ */
+PREDICATE(pts_set_var, 3) {
+    // image sequence
+    char *p1 = (char*) A1;
+    const string add_seq(p1);    
+    vector<Mat> *seq = str2ptr<vector<Mat>>(add_seq);
+    // point list
+    vector<Scalar> pts = point_list2vec(A2);
+    // calculate variances
+    double var = cv_imgs_points_var(seq, pts);
+    return A3 = var;
 }
 
 /* pts_scharr(+IMGSEQ, +PTS, -VARS)

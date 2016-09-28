@@ -11,6 +11,8 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 
+#include <iostream> // for standard I/O
+
 #define BLACK Scalar(0, 128, 128)
 #define BLUE Scalar(0, 128, 0)
 #define GREEN Scalar(255, 0, 255)
@@ -33,6 +35,9 @@ void cv_draw_circle(Mat img, Point point, double radius, Scalar color, int thick
 
 void cv_draw_ellipse(Mat img, Point center, Scalar Param, Scalar color, int thickness = 1);
 
+// draw a rectangle on img
+void cv_draw_rect(Mat img, Scalar center, Scalar radius, Scalar color, int thickness = 1);
+
 /********* implementation *********/
 void cv_draw_line(Mat img, Point start, Point end, Scalar color) {
     int thickness = 2;
@@ -54,4 +59,13 @@ void cv_draw_ellipse(Mat img, Point center, Scalar Param, Scalar color, int thic
     ellipse(img, center, Size(Param[0], Param[1]), Param[2], 0, 360, color, thickness, lineType);
 }
 
+void cv_draw_rect(Mat img, Scalar center, Scalar radius, Scalar color, int thickness) {
+    int lineType = 8;
+    int x = (center[0] - radius[0] >= 0) ? (center[0] - radius[0]) : 0;
+    int y = (center[1] - radius[1] >= 0) ? (center[1] - radius[1]) : 0;
+    int lx = 2*radius[0] + 1;
+    int ly = 2*radius[1] + 1;
+    Rect rec(x, y, lx, ly);
+    rectangle(img, rec,	color, thickness, lineType);
+}
 #endif

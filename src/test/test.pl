@@ -449,7 +449,7 @@ test_cluster_rand_segs(Imgseq):-
     write('sampling finished.'), nl,
     sample_lines_hists(Imgseq, Lines, 2, SHs),
     write('computing histograms finished.'), nl,
-    cluster_seg_hist_pairs(SHs, 3, SHs_Sign),
+    cluster_seg_hist_pairs(SHs, 2, SHs_Sign),
     write('clustering finished.'), nl,
     % print_list_ln(SHs_Sign),
     seq_img(Imgseq, 0, IMG1),
@@ -477,8 +477,31 @@ test_display_SHs(Img, [[Start, End]-_-4 | SHs]):-
     draw_line_seg_2d(Img, Start, End, w),
     test_display_SHs(Img, SHs), !.
 
+% test sample cubes
+test_sample_cube_var_hist(Imgseq):-
+    test_write_start("test cube sampling"),
+    %sample_cube_var(Imgseq, [353, 133, 0], [3, 3, 0], Var),
+    sample_cube_var(Imgseq, [100, 100, 0], [3, 3, 0], Var),
+    write("Var: "), write(Var), nl,
+    %sample_cube_hist(Imgseq, [353, 133, 0], [3, 3, 0], Hist),
+    sample_cube_hist(Imgseq, [100, 100, 0], [3, 3, 0], Hist),
+    write("Hist: "), print_list(Hist), nl,
+    test_write_done.
+
+% test draw cubes
+test_draw_cubes(Imgseq):-
+    test_write_start("test draw cubes"),
+    clone_seq(Imgseq, Seq),
+    seq_img(Seq, 0, Img),
+    draw_rect_2d(Img, [100, 150, 0], [37, 18, 110], gree),
+    showimg_win(Img, '2d'),
+    draw_rect(Seq, [353, 143, 0], [37, 18, 110], red),    
+    showseq_win(Seq, '3d'),
+    release_imgseq(Seq),
+    test_write_done.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%HERE GOES MAIN TEST
+% HERE GOES MAIN TEST
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 test_main:-
     test_load_imgseq(Imgseq),
@@ -491,5 +514,7 @@ test_main:-
     %test_points_hist(Imgseq),
     %test_rand_sample_lines_scharrs(Imgseq, 1000),
     %test_sample_line_seg_hists(Imgseq),
-    test_cluster_rand_segs(Imgseq),
+    %test_cluster_rand_segs(Imgseq),
+    %test_sample_cube_var_hist(Imgseq),
+    test_draw_cubes(Imgseq),
     test_rel_s(Imgseq).

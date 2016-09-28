@@ -85,6 +85,54 @@ PREDICATE(draw_line_seg_2d, 4) {
     return TRUE;
 }
 
+/* draw_rect(+SEQ, +CENTER, +RADIUS, +COLOR)
+ * @SEQ: img sequence
+ * @CENTER: rectangle center [X, Y, Z]
+ * @RADIUS: rectangle radius [RX, RY, RZ]
+ * @COLOR: rectangle color
+ */
+PREDICATE(draw_rect, 4) {
+    // parsing arguments
+    char *p1 = (char*) A1;
+    const string add_seq(p1); // address
+    vector<Mat> *seq = str2ptr<vector<Mat>>(add_seq);
+    vector<int> center = list2vec<int>(A2, 3);
+    vector<int> radius = list2vec<int>(A3, 3);
+    Scalar c(center[0], center[1], -1);
+    Scalar r(radius[0], radius[1], -1);
+    Scalar color = term2color(A4); // color
+    // get start and end frame
+    int T = seq->size() - 1;
+    int f_start = (center[2] - radius[2] >= 0) ? (center[2] - radius[2]) : 0;
+    int f_end = (center[2] + radius[2] <= T) ? (center[2] + radius[2]) : T;
+    // draw
+    for (int i = f_start; i <= f_end; i++) {
+        cv_draw_rect((*seq)[i], c, r, color);
+    }
+    return TRUE;
+}
+
+/* draw_rect_2d(+IMG, +CENTER, +RADIUS)
+ * @SEQ: img sequence
+ * @CENTER: rectangle center [X, Y, Z]
+ * @RADIUS: rectangle radius [RX, RY, RZ]
+ * @COLOR: rectangle color 
+ */
+PREDICATE(draw_rect_2d, 4) {
+    // parsing arguments
+    char *p1 = (char*) A1;
+    const string add_img(p1); // address
+    Mat *img = str2ptr<Mat>(add_img);
+    vector<int> center = list2vec<int>(A2, 3);
+    vector<int> radius = list2vec<int>(A3, 3);
+    Scalar c(center[0], center[1], -1);
+    Scalar r(radius[0], radius[1], -1);
+    Scalar color = term2color(A4); // color
+    // draw
+    cv_draw_rect(*img, c, r, color);
+    return TRUE;
+}
+
 /* draw_points(+SEQ, +PTS, +COLOR)
  * @SEQ: address of image sequence
  * @PTS = [[P1X, P1Y, P1Z], ...]: list of points

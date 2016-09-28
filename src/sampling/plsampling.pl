@@ -6,7 +6,8 @@
 :- load_foreign_library(foreign('../../libs/cvsampler.so')),
    load_foreign_library(foreign('../../libs/cvcluster.so')).
 
-:- ensure_loaded(['../utils/utils.pl']).
+:- ensure_loaded(['../utils/utils.pl']),
+   ensure_loaded(['../sampling/plregion.pl']).
 
 %======================================
 % line with angle to start-end vector
