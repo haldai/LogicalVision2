@@ -9,13 +9,13 @@ using namespace std;
 using namespace arma;
 using namespace mlpack;
 
-/* kmeans(+List_of_Insts, +Num_Clusters, -Clusters, -Assignments)
+/* kmeans(+List_of_Insts, +Num_Clusters, -Clusters, -Assignments, -Centroids)
  * @List_of_Insts: [Inst1, Inst2, ...] list of list
  * @Num_clusters: number of clusters
  * @Clusters: [C1, C2, ...], C = [Inst1, Inst2, ...].
  * @Assignments: assignments of each instance [C1, C2, ...].
  */
-PREDICATE(kmeans, 4) {
+PREDICATE(kmeans, 5) {
     vector<vector<double>> insts = list2vecvec<double>(A1);
     int num_clusters = (int) A2;
     size_t nrows = insts[0].size();
@@ -33,6 +33,7 @@ PREDICATE(kmeans, 4) {
         assign.push_back((long) assignments(i));
     A4 = vec2list(assign);
     A3 = group2lists(insts, num_clusters, assignments);
+    A5 = arma_mat2list<double>(centroids);
     // make new term for groups
     return TRUE;
 }

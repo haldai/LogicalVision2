@@ -198,22 +198,6 @@ ray_source_intsct(A, B, Source):-
     SY is round(SAY + DAY * U),
     Source = [SX, SY, F].
 
-% dot/3: Inner product of two lists (vectors)
-dot([], [], 0).
-dot([X | Xs], [Y | Ys], Result):-
-    Prod is X*Y,
-    dot(Xs, Ys, Remaining),
-    Result is Prod + Remaining.
-
-% eu_dist/3: Euclidean distance between two vectors
-eu_dist_sum([], [], 0).
-eu_dist_sum([X | Xs], [Y | Ys], Sum):-
-    Dist is (X - Y)^2,
-    eu_dist_sum(Xs, Ys, Remaining),
-    Sum is Dist + Remaining.
-eu_dist(X, Y, Result):-
-    eu_dist_sum(X, Y, Sum),
-    Result is sqrt(Sum).
 
 %?- gtrace.
 %@ % The graphical front-end will be used for subsequent tracing

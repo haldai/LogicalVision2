@@ -54,6 +54,23 @@ vec_thresh_idx([V | Vs], [_ | Is], T, [R | Rs]):-
     V < T,
     vec_thresh_idx(Vs, Is, T, [R | Rs]), !.
 
+% dot/3: Inner product of two lists (vectors)
+dot([], [], 0).
+dot([X | Xs], [Y | Ys], Result):-
+    Prod is X*Y,
+    dot(Xs, Ys, Remaining),
+    Result is Prod + Remaining.
+
+% eu_dist/3: Euclidean distance between two vectors
+eu_dist(A, B, D):-
+    eu_dist_sum(A, B, S),
+    D is sqrt(S).
+eu_dist_sum([], [], 0).
+eu_dist_sum([X | Xs], [Y | Ys], Sum):-
+    Dist is (X - Y)**2,
+    eu_dist_sum(Xs, Ys, Remaining),
+    Sum is Dist + Remaining.
+
 %============
 % primitives
 %============

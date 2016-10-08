@@ -52,6 +52,9 @@ vector<vector<Type>> list2vecvec(PlTerm term, int size_outer = -1,
 template <class Type>
 PlTerm vecvec2list(vector<vector<Type>> vec, int size_outer = -1,
                    int size_inner = -1);
+template <class Type>
+PlTerm arma_mat2list(arma::mat m, int size_outer = -1,
+                     int size_inner = -1);
 
 /* Return an empty list */
 PlTerm empty_list();
@@ -192,7 +195,8 @@ PlTerm vecvec2list(vector<vector<Type>> vec, int size_outer, int size_inner) {
     PlTail re_tail(re_term);
 
     try {
-        size_outer = (size_outer < 0) ? vec.size() : size_outer;
+        size_outer = (size_outer < 0 || size_outer > vec.size()) ?
+            vec.size() : size_outer;
         for (int o_idx = 0; o_idx < size_outer; o_idx++) {
             size_inner = (size_inner < 0) ? vec[o_idx].size() : size_inner;
             term_t points_ref = PL_new_term_ref();
@@ -211,6 +215,43 @@ PlTerm vecvec2list(vector<vector<Type>> vec, int size_outer, int size_inner) {
     }
     return re_term;
 }
+
+template <class Type>
+PlTerm arma_mat2list(arma::mat m, int size_outer, int size_inner) {
+    static_assert((is_same<Type, long>::value)
+                  || (is_same<Type, double>::value)
+                  || (is_same<Type, wchar_t*>::value)
+                  || (is_same<Type, char*>::value)
+                  || (is_same<Type, PlTerm>::value),
+                  "Wrong template type for list2vecvec!");
+    term_t re_ref = PL_new_term_ref();
+    PlTerm re_term(re_ref);
+    PlTail re_tail(re_term);
+    try {
+        size_outer = (size_outer < 0 ||
+                      arma::uword(size_outer) > m.n_cols) ?
+            m.n_cols : size_outer;
+        for (int o_idx = 0; o_idx < size_outer; o_idx++) {
+            size_inner = (size_inner < 0 ||
+                          arma::uword(size_inner) > m.col(o_idx).n_rows) ?
+                m.col(o_idx).n_rows : size_inner;
+            term_t points_ref = PL_new_term_ref();
+            PlTerm points_term(points_ref);
+            PlTail points_tail(points_term);
+            for (int i_idx = 0; i_idx < size_inner; i_idx++) {
+                PlTerm point((Type) (m(i_idx, o_idx)));
+                points_tail.append(point);
+            }
+            points_tail.close();
+            re_tail.append(points_term);
+        }
+        re_tail.close();
+    } catch (...) {
+        cerr << "Parsing list error!" << endl;
+    }
+    return re_term;
+}
+
 
 PlTerm empty_list() {
     PlTerm re;

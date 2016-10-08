@@ -365,9 +365,11 @@ test_rand_sample_lines_scharrs(Imgseq, N):-
     % most probable edge points
     pts_scharr(Imgseq, Pos, Grads),
     mapsort(Grads, Pos, _, S_Pos),
-    lastN(100, S_Pos, PPos),
+    lastN(500, S_Pos, PPos),
+    firstN(3000, S_Pos, NPos),
     draw_points_2d(IMG2, Pos, blue),
     draw_points_2d(IMG2, PPos, red),
+    draw_points_2d(IMG2, NPos, green),
     showimg_win(IMG2, 'debug'),
     release_img(IMG2),    
     test_write_done.
@@ -383,7 +385,7 @@ test_rand_sample_line_scharr(Imgseq, Re, N, Tmp):-
      (Dir = [XX, YY, 0], !)),
     %size_3d(Imgseq, W, H, D),
     %line_points(C, Dir, [W, H, D], Pts),
-    line_pts_scharr_geq_T(Imgseq, C, Dir, 10, Pos),
+    line_pts_scharr_geq_T(Imgseq, C, Dir, 2, Pos),
     append(Tmp, Pos, Tmp1),
     %sample_line_L_grad(Imgseq, C, D, Pts, G),
     %print(Pts), nl,
@@ -445,12 +447,14 @@ test_rand_sample_lines(N, [[C, Dir] | CDs]):-
 % randomly sample many lines and get there histograms, then cluster them
 test_cluster_rand_segs(Imgseq):-
     test_write_start("test randomly sample lines and do clustering"),
-    test_rand_sample_lines(50, Lines),
+    test_rand_sample_lines(100, Lines),
     write('sampling finished.'), nl,
-    sample_lines_hists(Imgseq, Lines, 2, SHs),
+    sample_lines_hists(Imgseq, Lines, 5, SHs),
     write('computing histograms finished.'), nl,
-    cluster_seg_hist_pairs(SHs, 2, SHs_Sign),
+    cluster_seg_hist_pairs(SHs, 3, SHs_Sign, Cents),
     write('clustering finished.'), nl,
+    write('Centroids:'), nl,
+    print_list_ln(Cents),
     % print_list_ln(SHs_Sign),
     seq_img(Imgseq, 0, IMG1),
     clone_img(IMG1, IMG2),    
@@ -500,6 +504,21 @@ test_draw_cubes(Imgseq):-
     release_imgseq(Seq),
     test_write_done.
 
+test_color_bk_nonbk(Imgseq):-
+    test_write_start('test color_bk_nonbk'),
+    color_bk_nonbk(Imgseq, 0, BK, NonBK, Longest),
+    write('BK centroid: '), nl, print(BK), nl,
+    write('Non-BK centroid: '), nl, print(NonBK), nl,
+    seq_img(Imgseq, 0, Img),
+    clone_img(Img, Img1),
+    Longest = [S, E],    
+    draw_line_seg_2d(Img1, S, E, r),
+    showimg_win(Img1, 'debug'),
+    release_img(Img1),
+    test_write_done.
+    
+    
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % HERE GOES MAIN TEST
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -516,5 +535,6 @@ test_main:-
     %test_sample_line_seg_hists(Imgseq),
     %test_cluster_rand_segs(Imgseq),
     %test_sample_cube_var_hist(Imgseq),
-    test_draw_cubes(Imgseq),
+    %test_draw_cubes(Imgseq),
+    test_color_bk_nonbk(Imgseq),
     test_rel_s(Imgseq).
