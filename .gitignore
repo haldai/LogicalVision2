@@ -29,6 +29,7 @@
 
 # Emacs backups
 *~
+*.bak
 
 # HTMLs
 *.html
