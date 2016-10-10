@@ -19,3 +19,12 @@ draw_line(Imgseq, Point, Dir, Color):-
     size_3d(Imgseq, W, H, D),
     line_points(Point, Dir, [W, H, D], Pts),
     draw_points(Imgseq, Pts, Color). % draw points
+
+%=========================
+% draw line segments 2d
+%=========================
+draw_line_segs_2d(_, [], _):-
+    !.
+draw_line_segs_2d(Img, [[S, E] | Ss], Color):-
+    draw_line_seg_2d(Img, S, E, Color),
+    draw_line_segs_2d(Img, Ss, Color).

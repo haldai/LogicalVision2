@@ -4,6 +4,8 @@
 % AUTHOR: WANG-ZHOU DAI
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+:- ensure_loaded('../utils/geometry.pl').
+
 % generate temporary variables
 temp_vars(0, Return, Temp):-
     Return = Temp, !.
@@ -70,6 +72,15 @@ eu_dist_sum([X | Xs], [Y | Ys], Sum):-
     Dist is (X - Y)**2,
     eu_dist_sum(Xs, Ys, Remaining),
     Sum is Dist + Remaining.
+
+%=================
+% switch control
+%=================
+switch(X, [Val:Goal | Cases]):-
+    (X = Val ->
+         (call(Goal), !);
+     switch(X, Cases)
+    ).
 
 %============
 % primitives

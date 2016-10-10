@@ -65,7 +65,7 @@ vector<Mat> *cv_video2imgseq(VideoCapture *vid) {
                  << " failed" << endl;
             return FALSE;
         }
-        medianBlur(frame, frame, 5);
+        // medianBlur(frame, frame, 5);
         // convert to LAB space (comparing to
         //     RGB color space, Lab is closer to human cognition)
         cvtColor(frame, frame, COLOR_BGR2Lab); 
