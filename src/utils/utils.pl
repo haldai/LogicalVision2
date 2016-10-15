@@ -29,6 +29,13 @@ append_lists([L | Ls], As):-
 	append(L, Ws, As),
 	append_lists(Ls, Ws).
 
+group_pairs_by_numbers(_, -1, []):-
+    !.
+group_pairs_by_numbers(Pairs, N, [N-G | Groups]):-
+    findall(V, member(N-V, Pairs), G), !,
+    N1 is N - 1,
+    group_pairs_by_numbers(Pairs, N1, Groups).
+
 % difference between two vector, C = A - B
 vec_diff([], [], []):-
     !.
@@ -209,6 +216,15 @@ index_select(Index_list, List, Return, Temp_list):-
      append(Temp_list, [Ele], Temp_list_),
      index_select(Tail, List, Return, Temp_list_)
     ).
+
+mask_select(_, [], []):-
+    !.
+mask_select([], _, []):-
+    !.
+mask_select([1 | Ms], [E | Es], [E | Re]):-
+    mask_select(Ms, Es, Re), !.
+mask_select([0 | Ms], [_ | Es], Re):-
+    mask_select(Ms, Es, Re), !.
 
 % find the index of max number in list of numbers
 max_list_idx(List, Re):-

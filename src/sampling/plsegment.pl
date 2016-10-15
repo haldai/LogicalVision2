@@ -1,12 +1,13 @@
 % number of random lines for determine background and non-background colors
 rand_line_num(500).
+num_clusters(2).
 % threshold of scharr gradient
 thresh_scharr(5).
 % threshold of cross segment sampling
-cross_thresh(3).
+cross_thresh(5).
 cross_eval_thresh(0.6).
 % recursively eval turns
-rec_eval_turn(4).
+rec_eval_turn(3).
 
 %=================================================================
 % sample line segments and cluster them according to color hists
@@ -80,39 +81,39 @@ longest_seg([[S, E] | Ss], [Ts, Te], Re):-
 %===================================================================
 % initilization: sample the color of background and non-backgrounds
 %===================================================================
-color_bg_nonbg(Imgseq, Frame, [BG_Centroid, NonBG_Centroids], NonBG_Segs):-
+color_bg_nonbg(Imgseq, Frame, Centroids, NonBG_Segs):-
     write('sampling random lines.'), nl,
     rand_line_num(N),
     size_3d(Imgseq, W, H, _),
     rand_sample_lines(Frame, [W, H], N, Lines),
     thresh_scharr(T),
     sample_lines_hists(Imgseq, Lines, T, SHs),
-    cluster_seg_hist_pairs(SHs, 4, SHs_Sign, Cents),
+    num_clusters(Num_Clusters),
+    get_centroids(SHs, Num_Clusters, Centroids, NonBG_Segs).
+get_centroids(SHs, Num_Clusters, [BG_Centroid, NonBG_Centroids], NonBG_Segs):-
+    cluster_seg_hist_pairs(SHs, Num_Clusters, SHs_Sign, Cents),
     write('clustering finished.'), nl,
     transpose_pairs(SHs_Sign, Sign_SHs),
     % group the clusters, the larger one is BG
-    group_pairs_by_key(Sign_SHs, [0-G0, 1-G1, 2-G2, 3-G3]),
+    group_pairs_by_numbers(Sign_SHs, 4, Grps),
+    Grps = [4-G4, 3-G3, 2-G2, 1-G1, 0-G0],
     % the group with maximum local length is background
     total_seg_length(G0, L0), total_seg_length(G1, L1),
     total_seg_length(G2, L2), total_seg_length(G3, L3),
+    total_seg_length(G4, L4),
     write(L0), write(', '), write(L1), write(', '),
-    write(L2), write(', '), write(L3), nl,
-    max_list([L0, L1, L2, L3], Max),
-    switch(Max, [L0:
-                 (Cents = [BG_Centroid, NonBG1, NonBG2, NonBG3],
-                  append([G1, G2, G3], NBGs)),
-                 L1:
-                 (Cents = [NonBG1, BG_Centroid, NonBG2, NonBG3],
-                  append([G0, G2, G3], NBGs)),
-                 L2:
-                 (Cents = [NonBG1, NonBG2, BG_Centroid, NonBG3],
-                  append([G0, G1, G3], NBGs)),
-                 L3:
-                 (Cents = [NonBG1, NonBG2, NonBG3, BG_Centroid],
-                  append([G0, G1, G2], NBGs))
+    write(L2), write(', '), write(L3), write(', '), write(L4), nl,
+    max_list([L0, L1, L2, L3, L4], Max),
+    nth0(Idx, [L0, L1, L2, L3, L4], Max), % get largest cluster's index
+    nth0(Idx, Cents, BG_Centroid, NonBG_Centroids), % set it as BG centorid
+    switch(Idx, [0: append([G1, G2, G3, G4], NBGs),
+                 1: append([G0, G2, G3, G4], NBGs),
+                 2: append([G0, G1, G3, G4], NBGs),
+                 3: append([G0, G1, G2, G4], NBGs),
+                 4: append([G0, G1, G2, G3], NBGs)
                 ]
           ),
-    NonBG_Centroids = [NonBG1, NonBG2, NonBG3],
+    % NonBG_Centroids = [NonBG1, NonBG2, NonBG3],
 %    (L0 >= L1 ->
 %         (Cents = [BG, NonBG], NBGs = G1, !);
 %     (Cents = [NonBG, BG], NBGs = G0, !)
@@ -221,6 +222,39 @@ sample_line_get_seg_classes(Imgseq, Centroids, Point, Dir, Seg_Classes):-
     thresh_scharr(Thresh_Scharr),
     line_pts_scharr_geq_T(Imgseq, Point, Dir, Thresh_Scharr, Edge_pts),
     class_of_segs(Imgseq, Edge_pts, Centroids, Seg_Classes).
+
+%======================================
+% sample lines that crosses a segment,
+%   [[X1, Y1, Z1], [X2, Y2, Z2]],
+%   seg must on a frame, i.e. Z1 == Z2
+%======================================
+sample_rand_lines_cross_seg_2d(_, N, []):-
+    N =< 0, !.
+sample_rand_lines_cross_seg_2d(Seg, N, [[Pt, Dir] | Lines]):-
+    N > 0,
+    Seg = [[_, _, Z], [_, _, Z]],
+    rand_point_on_seg(Seg, Pt),
+    rand_2d_angle_vec([X, Y]), Dir = [X, Y, 0],
+    N1 is N - 1,
+    sample_rand_lines_cross_seg_2d(Seg, N1, Lines).
+
+sample_grid_lines_cross_seg_2d(Seg, Total, [[Pt, Dir] | Lines]):-
+    N is Total - 1,
+    sample_grid_lines_cross_seg_2d(Seg, N, Total, [[Pt, Dir] | Lines]).
+sample_grid_lines_cross_seg_2d(_, N, _, []):-
+    N =< 0, !.
+sample_grid_lines_cross_seg_2d(Seg, N, Total, [[Pt, Dir] | Lines]):-
+    N > 0,
+    Seg = [[X1, Y1, Z], [X2, Y2, Z]],
+    % rand_point_on_seg(Seg, Pt),
+    section_on_seg(Seg, N, Total, Pt),
+    Seg_Dir_X is X2 - X1, Seg_Dir_Y is Y2 - Y1,
+    ((Seg_Dir_Y =\= 0, X is 1, Y is -Seg_Dir_X / Seg_Dir_Y);
+     (Seg_Dir_Y == 0, X is 0, Y is 1)),
+    !,
+    Dir = [X, Y, 0],
+    N1 is N - 1,
+    sample_grid_lines_cross_seg_2d(Seg, N1, Total, Lines).
 
 %==================================
 % edge points on line to segments

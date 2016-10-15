@@ -641,17 +641,21 @@ test([_ | Ss], Ds):-
 %%%%%%%%%%%%%%%%%%%%%%%
 % PREDICATES TO DEBUG
 %%%%%%%%%%%%%%%%%%%%%%%
+discover_object_1(_, _, _, []):-
+    !.
 % discover object in a Frame of ImageSequence
 discover_object_1(Imgseq, Frm, Centroids, [S | Segs]):-
     rec_eval_turn(Turn),
     class_of_seg(Imgseq, S, Centroids, C),
-    eval_segs(Imgseq, Frm, [S-C], Centroids, Turn, _, [VSegs]),
-    VSegs \= [],
+    eval_segs(Imgseq, Frm, [S-C], Centroids, Turn, _, VSegs1),
+    VSegs1 \= [[]],
+    VSegs1 = [VSegs],
     length(Segs, L), write('VSegs #'), write(L), nl, print_list(VSegs),
     % DEBUG START
     % write('Current Seg: '), write(S-C), nl,    
     % write('Crossed Segs: '), nl, print_list_ln(Crossed_SCs),
     append(VSegs, Edg_Pts_1), list_to_set(Edg_Pts_1, Edg_Pts),
+    length(Edg_Pts, LE), LE >= 5,
     fit_elps(Edg_Pts, Cen, Para),
     write('fitted parameters: '), write(Cen), write(', '), write(Para), nl,
     size_3d(Imgseq, W, H, D),
@@ -672,7 +676,7 @@ discover_object_1(Imgseq, Frm, Centroids, [_ | Segs]):-
     % get seg class
     % class_of_seg(Imgseq, S, Centroids, C),
     % cross segment sampling
-    % cross_thresh(TL), sample_lines_cross_seg_2d(S, TL, Ls),
+    % cross_thresh(TL), sample_grid_lines_cross_seg_2d(S, TL, Ls),
     % eval each line and get classes, calculate the propotion of class "C"
     % cross_seg_classes(Imgseq, S, Centroids, Ls, Crossed_SCs),
 
@@ -701,39 +705,29 @@ discover_object_1(Imgseq, Frm, Centroids, [_ | Segs]):-
 
 eval_segs(_, _, [], _, _, [], []):-
     !.
+% class BG
 eval_segs(Imgseq, Frm, [_-0 | Css], Cents, N, [0 | Res], VSs):-
     eval_segs(Imgseq, Frm, Css, Cents, N, Res, VSs),
     !.
-eval_segs(Imgseq, Frm, [S-C | Css], Cents, 0, [Re | Res], VSs):-
+% level-0: success
+eval_segs(Imgseq, Frm, [S-C | Css], Cents, 0, [1 | Res], VSs):-
     C =\= 0,
-    cross_thresh(TL), sample_lines_cross_seg_2d(S, TL, Ls),
+    cross_thresh(TL), sample_grid_lines_cross_seg_2d(S, TL, Ls),
     cross_seg_classes(Imgseq, S, Cents, Ls, Crossed_SCs),
-    %transpose_pairs(Crossed_SCs_1, Crossed_SCs),
-    %group_pairs_by_key(Crossed_SCs, [0-G0, 1-G1, 2-G2, 3-G3]),
-    %length(G0, L0), length(G1, L1), length(G2, L2), length(G3, L3),
-    %Prob is (L1 + L2 + L3)/L0,
-    % find all BG segs
-    findall(Seg, (member(Seg-C, Crossed_SCs), C =\= 0), NBGs),
+    findall(Seg, member(Seg-C, Crossed_SCs), NBGs),
     length(NBGs, Lnbg), length(Crossed_SCs, Total),
     Prob is Lnbg/Total,
     cross_eval_thresh(TE),
-    % (Prob >= TE ->
-    %      (Re = 1,
-    %       VSegs = NBGs,
-    %       eval_segs(Imgseq, Frm, Css, Cents, 0, Res, VSs), !);
-    %  (Re = 0,
-    %   eval_segs(Imgseq, Frm, Css, Cents, 0, Res, [VSegs | VSs]), !)
-    % ).
     Prob >= TE,
-    Re = 1,
-    %VSegs = NBGs,
     eval_segs(Imgseq, Frm, Css, Cents, 0, Res, VSs), !.
+% level-0: failed
 eval_segs(Imgseq, Frm, [_-C | Css], Cents, 0, [0 | Res], VSs):-
     C =\= 0,
     eval_segs(Imgseq, Frm, Css, Cents, 0, Res, VSs), !.
 eval_segs(Imgseq, Frm, [S-C | Css], Cents, N, [Re | Res], [VSegs | VSs]):-
     N > 0, C =\= 0,
-    cross_thresh(TL), sample_lines_cross_seg_2d(S, TL, Ls),
+    cross_thresh(TL),
+    sample_grid_lines_cross_seg_2d(S, TL, Ls),
     cross_seg_classes(Imgseq, S, Cents, Ls, Crossed_SCs),
     N1 is N - 1,
     eval_segs(Imgseq, Frm, Crossed_SCs, Cents, N1, Re1, VSegs1),
@@ -749,9 +743,13 @@ eval_segs(Imgseq, Frm, [S-C | Css], Cents, N, [Re | Res], [VSegs | VSs]):-
     % ).
     Prob >= TE,
     Re = 1,
-    append(VSegs1, VSegs2),
-    append(VSegs2, [S], VSegs),
+    mask_select(Re1, VSegs1, VSegs2),
+    pairs_keys(Crossed_SCs, Crossed_Segs),
+    mask_select(Re1, Crossed_Segs, VSegs3),
+    %append(VSegs1, VSegs2),
+    append(VSegs2, VSegs4),
+    append(VSegs3, VSegs4, VSegs),
     eval_segs(Imgseq, Frm, Css, Cents, N, Res, VSs), !.
-eval_segs(Imgseq, Frm, [_-C | Css], Cents, N, [0 | Res], VSs):-
+eval_segs(Imgseq, Frm, [_-C | Css], Cents, N, [0 | Res], [[] | VSs]):-
     C =\= 0,
     eval_segs(Imgseq, Frm, Css, Cents, N, Res, VSs), !.

@@ -307,6 +307,11 @@ rand_point_on_seg(Seg, Point):-
     random(T),
     point_on_seg(Seg, T, Point), !.
 
+section_on_seg(Seg, N, Total, Point):-
+    N >= 0, N =< Total,
+    T is N / Total,
+    point_on_seg(Seg, T, Point), !.
+
 %===================================
 % random 2d angle's direction vector
 %===================================
@@ -314,19 +319,4 @@ rand_2d_angle_vec([X, Y]):-
     random(R), Phi is R*2*pi,
     X is cos(Phi),
     Y is sin(Phi).
-
-%======================================
-% sample lines that crosses a segment,
-%   [[X1, Y1, Z1], [X2, Y2, Z2]],
-%   seg must on a frame, i.e. Z1 == Z2
-%======================================
-sample_lines_cross_seg_2d(_, N, []):-
-    N =< 0, !.
-sample_lines_cross_seg_2d(Seg, N, [[Pt, Dir] | Lines]):-
-    N > 0,
-    Seg = [[_, _, Z], [_, _, Z]],
-    rand_point_on_seg(Seg, Pt),
-    rand_2d_angle_vec([X, Y]), Dir = [X, Y, 0],
-    N1 is N - 1,
-    sample_lines_cross_seg_2d(Seg, N1, Lines).
     
