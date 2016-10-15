@@ -30,10 +30,29 @@ append_lists([L | Ls], As):-
 	append_lists(Ls, Ws).
 
 % difference between two vector, C = A - B
-vec_diff([], [], []).
+vec_diff([], [], []):-
+    !.
 vec_diff([A | As], [B | Bs], [C | Cs]):-
     C is A - B,
     vec_diff(As, Bs, Cs).
+
+vec_sum([], [], []):-
+    !.
+vec_sum([A | As], [B | Bs], [C | Cs]):-
+    C is A + B,
+    vec_sum(As, Bs, Cs).
+
+vec_neg([], []):-
+    !.
+vec_neg([A | As], [B | Bs]):-
+    B is -A,
+    vec_neg(As, Bs).
+
+vec_multiply(_, [], []):-
+    !.
+vec_multiply(V, [A | As], [B | Bs]):-
+    B is V*A,
+    vec_multiply(V, As, Bs).
 
 % vector absolute value B = |A|
 vec_abs([], []).
@@ -55,23 +74,6 @@ vec_thresh_idx([V | Vs], [I | Is], T, [R | Rs]):-
 vec_thresh_idx([V | Vs], [_ | Is], T, [R | Rs]):-
     V < T,
     vec_thresh_idx(Vs, Is, T, [R | Rs]), !.
-
-% dot/3: Inner product of two lists (vectors)
-dot([], [], 0).
-dot([X | Xs], [Y | Ys], Result):-
-    Prod is X*Y,
-    dot(Xs, Ys, Remaining),
-    Result is Prod + Remaining.
-
-% eu_dist/3: Euclidean distance between two vectors
-eu_dist(A, B, D):-
-    eu_dist_sum(A, B, S),
-    D is sqrt(S).
-eu_dist_sum([], [], 0).
-eu_dist_sum([X | Xs], [Y | Ys], Sum):-
-    Dist is (X - Y)**2,
-    eu_dist_sum(Xs, Ys, Remaining),
-    Sum is Dist + Remaining.
 
 %=================
 % switch control

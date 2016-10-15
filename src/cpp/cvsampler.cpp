@@ -124,7 +124,7 @@ PREDICATE(line_points, 4) {
     vector<int> pt_vec = list2vec<int>(A1, 3);
     Scalar pt(pt_vec[0], pt_vec[1], pt_vec[2]);
     // direction scalar
-    vector<int> dr_vec = list2vec<int>(A2, 3);
+    vector<double> dr_vec = list2vec<double>(A2, 3);
     Scalar dir(dr_vec[0], dr_vec[1], dr_vec[2]);
     // boundary scalar
     vector<int> bd_vec = list2vec<int>(A3, 3);
@@ -143,10 +143,10 @@ PREDICATE(line_points, 4) {
  * @PTS: returned point list
  */
 PREDICATE(line_seg_points, 4) {
-    // coordinates scalar
+    // start scalar
     vector<int> s_vec = list2vec<int>(A1, 3);
     Scalar start(s_vec[0], s_vec[1], s_vec[2]);
-    // direction scalar
+    // end scalar
     vector<int> e_vec = list2vec<int>(A2, 3);
     Scalar end(e_vec[0], e_vec[1], e_vec[2]);
     // boundary scalar
@@ -339,7 +339,7 @@ PREDICATE(line_pts_var_geq_T, 5) {
     vector<int> pt_vec = list2vec<int>(A2, 3);
     Scalar pt(pt_vec[0], pt_vec[1], pt_vec[2]);
     // direction scalar
-    vector<int> dr_vec = list2vec<int>(A3, 3);
+    vector<double> dr_vec = list2vec<double>(A3, 3);
     Scalar dir(dr_vec[0], dr_vec[1], dr_vec[2]);
     // get image sequence and compute variance
     const string add_seq(p1);
@@ -397,7 +397,7 @@ PREDICATE(line_pts_var_geq_T, 6) {
     vector<int> pt_vec = list2vec<int>(A2, 3);
     Scalar pt(pt_vec[0], pt_vec[1], pt_vec[2]);
     // direction scalar
-    vector<int> dr_vec = list2vec<int>(A3, 3);
+    vector<double> dr_vec = list2vec<double>(A3, 3);
     Scalar dir(dr_vec[0], dr_vec[1], dr_vec[2]);
     // radius scalar
     vector<int> r_vec = list2vec<int>(A4, 3);
@@ -459,7 +459,7 @@ PREDICATE(line_pts_scharr_geq_T, 5) {
     vector<int> pt_vec = list2vec<int>(A2, 3);
     Scalar pt(pt_vec[0], pt_vec[1], pt_vec[2]);
     // direction scalar
-    vector<int> dr_vec = list2vec<int>(A3, 3);
+    vector<double> dr_vec = list2vec<double>(A3, 3);
     Scalar dir(dr_vec[0], dr_vec[1], dr_vec[2]);
     // get image sequence and compute variance
     const string add_seq(p1);
@@ -524,7 +524,8 @@ PREDICATE(fit_elps, 3) {
     // fit ellipse
     Scalar cen;
     Scalar param;
-    fit_ellipse(pts, cen, param);
+    opencv_fit_ellipse(pts, cen, param);
+    //fit_ellipse(pts, cen, param);
     // bind variables
     vector<long> cen_vec = {(long) cen[0],
                             (long) cen[1],

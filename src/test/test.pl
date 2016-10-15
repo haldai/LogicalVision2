@@ -90,6 +90,15 @@ test_draw_line(IMGSEQ, Point, Dir, Color):-
     release_imgseq(SEQ1),
     test_write_done.
 
+test_draw_line_(IMGSEQ, Point, Dir, Color):-
+    test_write_start('test draw line (3d)'),
+    clone_seq(IMGSEQ, SEQ1),
+    draw_line(SEQ1, Point, Dir, Color),
+    seq_img(SEQ1, 0, IMG1),
+    showimg_win(IMG1, 'debug'),
+    release_imgseq(SEQ1),
+    test_write_done.
+
 % test draw line segment (on image sequence)
 test_draw_line_seg(IMGSEQ, Start, End, Color):-
     test_write_start('test draw line segment (3d)'),
@@ -451,7 +460,7 @@ test_cluster_rand_segs(Imgseq):-
     write('sampling finished.'), nl,
     sample_lines_hists(Imgseq, Lines, 2, SHs),
     write('computing histograms finished.'), nl,
-    cluster_seg_hist_pairs(SHs, 4, SHs_Sign, Cents),
+    cluster_seg_hist_pairs(SHs, 2, SHs_Sign, Cents),
     write('clustering finished.'), nl,
     write('Centroids:'), nl,
     print_list_ln(Cents),
@@ -519,23 +528,24 @@ test_draw_cubes(Imgseq):-
     release_imgseq(Seq),
     test_write_done.
 
-test_color_bk_nonbk(Imgseq, [BK, NonBK]):-
-    test_write_start('test color_bk_nonbk'),
-    color_bk_nonbk(Imgseq, 0, [BK, NonBK], NBKs),
-    write('BK centroid: '), nl, print(BK), nl,
-    write('Non-BK centroid: '), nl, print(NonBK), nl,
+test_color_bg_nonbg(Imgseq, [BG, NonBG]):-
+    test_write_start('test color_bg_nonbg'),
+    color_bg_nonbg(Imgseq, 0, [BG, NonBG], NBGs),
+    write('BG centroid: '), nl, print(BG), nl,
+    write('Non-BG centroid: '), nl, print(NonBG), nl,
     seq_img(Imgseq, 0, Img),
     clone_img(Img, Img1),
-    %Longest = [S, E],
-    draw_line_segs_2d(Img1, NBKs, r),
+    longest_seg(NBGs, Longest),
+    %draw_line_segs_2d(Img1, NBGs, r),
+    draw_line_segs_2d(Img1, [Longest], r),
     showimg_win(Img1, 'debug'),
     release_img(Img1),
     test_write_done.
 
-test_sample_seg_get_classes(Imgseq, Point, Dir):-
-    test_write_start('test_sample_seg_get_classes'),
-    test_color_bk_nonbk(Imgseq, Cents),
-    sample_seg_get_classes(Imgseq, Cents, Point, Dir, Seg_Class),
+test_sample_line_get_seg_classes(Imgseq, Point, Dir):-
+    test_write_start('test sample_line_get_seg_classes'),
+    test_color_bg_nonbg(Imgseq, Cents),
+    sample_line_get_seg_classes(Imgseq, Cents, Point, Dir, Seg_Class),
     write('seg class: '), nl,
     print_list_ln(Seg_Class),
     seq_img(Imgseq, 0, Img),
@@ -545,12 +555,61 @@ test_sample_seg_get_classes(Imgseq, Point, Dir):-
     release_img(Img1),
     test_write_done.
 
+test_seg_seg_dist(I):-
+    test_write_start('test seg_seg_distance.'),
+    (I == 1 ->
+         % ex 1~~9.7307189345304538e-10
+         (P0 = [-1.0264718499965966, 9.6163341007195407e-7, 0.0],
+          P1 = [0.91950808032415809, -1.0094441192690283e-6, 0.0],
+          Q0 = [-1.0629447383806110, 9.2709540082141753e-7, 0.0],
+          Q1 = [1.0811583868227901, -1.0670017179567367e-6, 0.0], !);
+     (I == 2 ->
+          % ex 2~~1.1575046138574101e-7
+          (P0 = [-1.0896217473782599, 9.7236145595088601e-7, 0.0],
+           P1 = [0.91220578597858548, -9.4369829432107506e-7, 0.0],
+           Q0 = [-0.90010447502136237, 9.0671446351334441e-7, 0.0],
+           Q1 = [1.0730877178721130, -9.8185787633992740e-7, 0.0], !);
+      (I == 3 ->
+           % ex 3~0.98292397116488739
+           (P0 = [0.77998990099877119, 0.61192502360790968, -0.22703111823648214],
+            P1 = [0.53215344529598951, 0.85724585503339767, -0.10102437809109688],
+            Q0 = [-0.21277333982288837, 0.35091548087075353, -0.49557160679250956],
+            Q1 = [0.11881479667499661, 0.022494725417345762, -0.66426620958372951],
+            !);
+       % ex 4~~2.7122314947662727e-17
+       (Delta is 0.25*1e-4,
+        Epsilon is sqrt(Delta),
+        Phi is 1e-5,
+        P0 = [0,0,0],
+        P1 = [1,0,0],
+        QQ0 is Phi + Delta,
+        QQ1 is Phi - Delta,
+        EE0 is -Epsilon,
+        Q0 = [EE0, QQ0, 0],
+        Q1 = [Epsilon, QQ1, 0], !)
+      )
+     )
+    ),
+    seg_seg_distance([P0, P1], [Q0, Q1], Dist, Closest),
+    write('Dist: '), write(Dist), nl,
+    write('Closest Points: '), nl, print_list_ln(Closest),
+    test_write_done.
+
+test_object_discover(Imgseq, Frm):-
+    test_write_start('test object discovering'),
+    color_bg_nonbg(Imgseq, Frm, Cents, NonBGSegs),
+    discover_object_1(Imgseq, Frm, Cents, NonBGSegs),
+    test_write_done.
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % HERE GOES MAIN TEST
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 test_main:-
     test_load_imgseq(Imgseq),
     %test_draw_elps(Imgseq, [[353, 143, 0], [37, 18, 110]], red),
+    %test_draw_line_2d(Imgseq, [100, 100, 0], [2, 7, 0], red),
+    %test_draw_line_(Imgseq, [100, 100, 0], [2, 7, 0], red),
     %test_ellipse(Imgseq),
     %showseq_win(Imgseq, debug),
     %test_line_scharr(Imgseq, [353, 133, 0], [1, 1, 0], 2),
@@ -562,6 +621,137 @@ test_main:-
     %test_cluster_rand_segs(Imgseq),
     %test_sample_cube_var_hist(Imgseq),
     %test_draw_cubes(Imgseq),
-    %test_color_bk_nonbk(Imgseq, _),
-    test_sample_seg_get_classes(Imgseq, [353, 133, 0], [1, 0, 0]),
+    %test_color_bg_nonbg(Imgseq, _),
+    %test_sample_line_get_seg_classes(Imgseq, [353, 133, 0], [1, 2, 0]),
+    test_object_discover(Imgseq, 0),
     test_rel_s(Imgseq).
+
+% test library without image processing
+test_lib(Param):-
+    test_seg_seg_dist(Param).
+
+test([], []):-!.
+test([S | Ss], [S | Ds]):-
+    S < 0,
+    test(Ss, Ds), !.
+test([_ | Ss], Ds):-
+    test(Ss, Ds), !.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%
+% PREDICATES TO DEBUG
+%%%%%%%%%%%%%%%%%%%%%%%
+% discover object in a Frame of ImageSequence
+discover_object_1(Imgseq, Frm, Centroids, [S | Segs]):-
+    rec_eval_turn(Turn),
+    class_of_seg(Imgseq, S, Centroids, C),
+    eval_segs(Imgseq, Frm, [S-C], Centroids, Turn, _, [VSegs]),
+    VSegs \= [],
+    length(Segs, L), write('VSegs #'), write(L), nl, print_list(VSegs),
+    % DEBUG START
+    % write('Current Seg: '), write(S-C), nl,    
+    % write('Crossed Segs: '), nl, print_list_ln(Crossed_SCs),
+    append(VSegs, Edg_Pts_1), list_to_set(Edg_Pts_1, Edg_Pts),
+    fit_elps(Edg_Pts, Cen, Para),
+    write('fitted parameters: '), write(Cen), write(', '), write(Para), nl,
+    size_3d(Imgseq, W, H, D),
+    seq_img(Imgseq, Frm, IMG1),
+    clone_img(IMG1, IMG2),
+    draw_line_segs_2d(IMG2, VSegs, red),
+    ellipse_points(Cen, Para, [W, H, D], Elps),
+    draw_points_2d(IMG2, Elps, green),
+    showimg_win(IMG2, 'debug'),
+    release_img(IMG2),
+    % DEBUG END
+
+    discover_object_1(Imgseq, Frm, Centroids, Segs), !.
+discover_object_1(Imgseq, Frm, Centroids, [_ | Segs]):-
+    length(Segs, L), write('VSegs #'), write(L), nl,
+    discover_object_1(Imgseq, Frm, Centroids, Segs), !.
+
+    % get seg class
+    % class_of_seg(Imgseq, S, Centroids, C),
+    % cross segment sampling
+    % cross_thresh(TL), sample_lines_cross_seg_2d(S, TL, Ls),
+    % eval each line and get classes, calculate the propotion of class "C"
+    % cross_seg_classes(Imgseq, S, Centroids, Ls, Crossed_SCs),
+
+    % DEBUG START
+    % write('Current Seg: '), write(S-C), nl,    
+    % write('Crossed Segs: '), nl, print_list_ln(Crossed_SCs),
+    % seq_img(Imgseq, Frm, IMG1),
+    % clone_img(IMG1, IMG2),
+    % test_display_SHs(IMG2, [S-4]),
+    % test_display_SHs(IMG2, Crossed_SCs),
+    % showimg_win(IMG2, 'debug'),
+    % release_img(IMG2),
+    % DEBUG END
+    
+    %group_pairs_by_key(Crossed_SCs, [0-G0, 1-G1, 2-G2, 3-G3]),
+    %length(G0, L0), length(G1, L1), length(G2, L2), length(G3, L3),
+    %Prop is (L1 + L2 + L3)/(L0 + L1 + L2 + L3),
+    %cross_eval_thresh(TE),
+    %(Prop < TE ->
+    %     (discover_object_1(Imgseq, Frm, Centroids, Segs, Buff, Return), !);
+    % (discover_object_1(Imgseq, Frm, Centroids, Segs, Buff_1, Return))
+    %).
+    %sum_list(Cs, Ones), length(Cs, Total),
+    %Prop is Ones/Total,
+    % TODO: if success, save Cs, put into buff
+
+eval_segs(_, _, [], _, _, [], []):-
+    !.
+eval_segs(Imgseq, Frm, [_-0 | Css], Cents, N, [0 | Res], VSs):-
+    eval_segs(Imgseq, Frm, Css, Cents, N, Res, VSs),
+    !.
+eval_segs(Imgseq, Frm, [S-C | Css], Cents, 0, [Re | Res], VSs):-
+    C =\= 0,
+    cross_thresh(TL), sample_lines_cross_seg_2d(S, TL, Ls),
+    cross_seg_classes(Imgseq, S, Cents, Ls, Crossed_SCs),
+    %transpose_pairs(Crossed_SCs_1, Crossed_SCs),
+    %group_pairs_by_key(Crossed_SCs, [0-G0, 1-G1, 2-G2, 3-G3]),
+    %length(G0, L0), length(G1, L1), length(G2, L2), length(G3, L3),
+    %Prob is (L1 + L2 + L3)/L0,
+    % find all BG segs
+    findall(Seg, (member(Seg-C, Crossed_SCs), C =\= 0), NBGs),
+    length(NBGs, Lnbg), length(Crossed_SCs, Total),
+    Prob is Lnbg/Total,
+    cross_eval_thresh(TE),
+    % (Prob >= TE ->
+    %      (Re = 1,
+    %       VSegs = NBGs,
+    %       eval_segs(Imgseq, Frm, Css, Cents, 0, Res, VSs), !);
+    %  (Re = 0,
+    %   eval_segs(Imgseq, Frm, Css, Cents, 0, Res, [VSegs | VSs]), !)
+    % ).
+    Prob >= TE,
+    Re = 1,
+    %VSegs = NBGs,
+    eval_segs(Imgseq, Frm, Css, Cents, 0, Res, VSs), !.
+eval_segs(Imgseq, Frm, [_-C | Css], Cents, 0, [0 | Res], VSs):-
+    C =\= 0,
+    eval_segs(Imgseq, Frm, Css, Cents, 0, Res, VSs), !.
+eval_segs(Imgseq, Frm, [S-C | Css], Cents, N, [Re | Res], [VSegs | VSs]):-
+    N > 0, C =\= 0,
+    cross_thresh(TL), sample_lines_cross_seg_2d(S, TL, Ls),
+    cross_seg_classes(Imgseq, S, Cents, Ls, Crossed_SCs),
+    N1 is N - 1,
+    eval_segs(Imgseq, Frm, Crossed_SCs, Cents, N1, Re1, VSegs1),
+    length(Re1, Total), sum_list(Re1, Valid),
+    Prob is Valid/Total,
+    cross_eval_thresh(TE),
+    % (Prob >= TE ->
+    %      (Re = 1,          
+    %       append(VSegs1, VSegs),
+    %       eval_segs(Imgseq, Frm, Css, Cents, N, Res, VSs), !);
+    %  (Re = 0,
+    %   eval_segs(Imgseq, Frm, Css, Cents, N, Res, [VSegs | VSs]), !)
+    % ).
+    Prob >= TE,
+    Re = 1,
+    append(VSegs1, VSegs2),
+    append(VSegs2, [S], VSegs),
+    eval_segs(Imgseq, Frm, Css, Cents, N, Res, VSs), !.
+eval_segs(Imgseq, Frm, [_-C | Css], Cents, N, [0 | Res], VSs):-
+    C =\= 0,
+    eval_segs(Imgseq, Frm, Css, Cents, N, Res, VSs), !.

@@ -1,7 +1,12 @@
 % number of random lines for determine background and non-background colors
-rand_line_num(200).
+rand_line_num(500).
 % threshold of scharr gradient
 thresh_scharr(5).
+% threshold of cross segment sampling
+cross_thresh(3).
+cross_eval_thresh(0.6).
+% recursively eval turns
+rec_eval_turn(4).
 
 %=================================================================
 % sample line segments and cluster them according to color hists
@@ -75,7 +80,7 @@ longest_seg([[S, E] | Ss], [Ts, Te], Re):-
 %===================================================================
 % initilization: sample the color of background and non-backgrounds
 %===================================================================
-color_bk_nonbk(Imgseq, Frame, [BK_Centroid, NonBK_Centroids], NonBK_Segs):-
+color_bg_nonbg(Imgseq, Frame, [BG_Centroid, NonBG_Centroids], NonBG_Segs):-
     write('sampling random lines.'), nl,
     rand_line_num(N),
     size_3d(Imgseq, W, H, _),
@@ -85,37 +90,35 @@ color_bk_nonbk(Imgseq, Frame, [BK_Centroid, NonBK_Centroids], NonBK_Segs):-
     cluster_seg_hist_pairs(SHs, 4, SHs_Sign, Cents),
     write('clustering finished.'), nl,
     transpose_pairs(SHs_Sign, Sign_SHs),
-    % group the clusters, the larger one is BK
+    % group the clusters, the larger one is BG
     group_pairs_by_key(Sign_SHs, [0-G0, 1-G1, 2-G2, 3-G3]),
     % the group with maximum local length is background
-    total_seg_length(G0, L0),
-    total_seg_length(G1, L1),
-    total_seg_length(G2, L2),
-    total_seg_length(G3, L3),
+    total_seg_length(G0, L0), total_seg_length(G1, L1),
+    total_seg_length(G2, L2), total_seg_length(G3, L3),
     write(L0), write(', '), write(L1), write(', '),
     write(L2), write(', '), write(L3), nl,
     max_list([L0, L1, L2, L3], Max),
     switch(Max, [L0:
-                 (Cents = [BK_Centroid, NonBK1, NonBK2, NonBK3],
-                  append([G1, G2, G3], NBKs)),
+                 (Cents = [BG_Centroid, NonBG1, NonBG2, NonBG3],
+                  append([G1, G2, G3], NBGs)),
                  L1:
-                 (Cents = [NonBK1, BK_Centroid, NonBK2, NonBK3],
-                  append([G0, G2, G3], NBKs)),
+                 (Cents = [NonBG1, BG_Centroid, NonBG2, NonBG3],
+                  append([G0, G2, G3], NBGs)),
                  L2:
-                 (Cents = [NonBK1, NonBK2, BK_Centroid, NonBK3],
-                  append([G0, G1, G3], NBKs)),
+                 (Cents = [NonBG1, NonBG2, BG_Centroid, NonBG3],
+                  append([G0, G1, G3], NBGs)),
                  L3:
-                 (Cents = [NonBK1, NonBK2, NonBK3, BK_Centroid],
-                  append([G0, G1, G2], NBKs))
+                 (Cents = [NonBG1, NonBG2, NonBG3, BG_Centroid],
+                  append([G0, G1, G2], NBGs))
                 ]
           ),
-    NonBK_Centroids = [NonBK1, NonBK2, NonBK3],
+    NonBG_Centroids = [NonBG1, NonBG2, NonBG3],
 %    (L0 >= L1 ->
-%         (Cents = [BK, NonBK], NBKs = G1, !);
-%     (Cents = [NonBK, BK], NBKs = G0, !)
+%         (Cents = [BG, NonBG], NBGs = G1, !);
+%     (Cents = [NonBG, BG], NBGs = G0, !)
 %    ),
-    pairs_keys(NBKs, NonBK_Segs).
-%    longest_seg(NonBK_Segs, Longest).
+    pairs_keys(NBGs, NonBG_Segs).
+%    longest_seg(NonBG_Segs, Longest).
 
 % randomly sample multiple lines
 rand_sample_lines(_, _, 1, []):-
@@ -147,18 +150,18 @@ total_seg_length([[Start, End] | Segs], Sum):-
     
 
 %========================================================
-% determine whether a line segment belongs to background
+% determine the class of a line segment 
 %========================================================
-%seg_is_bk(Imgseq, [P1, P2], [BK_Centroid, NonBK_Centroids]):-
+%seg_is_bg(Imgseq, [P1, P2], [BG_Centroid, NonBG_Centroids]):-
 %    size_3d(Imgseq, W, H, D),
 %    line_seg_points(P1, P2, [W, H, D], Pts),
 %    points_color_hist(Imgseq, Pts, Hist),
-%    eu_dist(Hist, BK, D1),
-%    eu_dist(Hist, NonBK, D2),
+%    eu_dist(Hist, BG, D1),
+%    eu_dist(Hist, NonBG, D2),
 %    D1 >= D2.
 
-class_of_seg(Imgseq, Seg, [BK_Centroid, NonBK_Centroids], Class):-
-    append([BK_Centroid], NonBK_Centroids, Cents),
+class_of_seg(Imgseq, Seg, [BG_Centroid, NonBG_Centroids], Class):-
+    append([BG_Centroid], NonBG_Centroids, Cents),
     length(Cents, L),
     L1 is L - 1,
     class_of_seg(Imgseq, Seg, Cents, Class, -1, 10e5, L1).
@@ -187,7 +190,7 @@ seg_hist(Imgseq, [P1, P2], Hist):-
     points_color_hist(Imgseq, Pts, Hist).
 
 % input a list of edge points, get segments and get each classes
-% Cents = [BK, [NonBK1, NonBK2, NonBK3]].
+% Cents = [BG, [NonBG1, NonBG2, NonBG3]].
 class_of_segs(Imgseq, [P1, P2 | Pts], Cents, Re):-
     class_of_segs(Imgseq, [P1, P2 | Pts], Cents, [], Re).
 class_of_segs(_, [_], _, Re, Re):-
@@ -214,14 +217,63 @@ class_of_segs(Imgseq, [P1, P2 | Pts], Cents, [LS-LC | SCs], Re):-
 %============================================
 % sample a new line and get segment classes
 %============================================
-sample_seg_get_classes(Imgseq, Centroids, Point, Dir, Seg_Classes):-
+sample_line_get_seg_classes(Imgseq, Centroids, Point, Dir, Seg_Classes):-
     thresh_scharr(Thresh_Scharr),
     line_pts_scharr_geq_T(Imgseq, Point, Dir, Thresh_Scharr, Edge_pts),
     class_of_segs(Imgseq, Edge_pts, Centroids, Seg_Classes).
+
+%==================================
+% edge points on line to segments
+%==================================
+pts2segs([_], []):-
+    !.
+pts2segs([P1, P2 | Ps], [[P1, P2] | Ss]):-
+    pts2segs([P2 | Ps], Ss).
+
+%===========================================================================
+% crossed segment classes:
+%   given a Seg-Class and a set of lines, find the intersected
+%   segments of the lines with Seg, and return if their classes are "Class"
+%===========================================================================
+cross_seg_classes(_, _, _, [], []):-
+    !.
+cross_seg_classes(Imgseq, Seg, Centroids, [[P, Dir] | Ls], [CLS | Cs]):-
+    sample_line_get_seg_classes(Imgseq, Centroids, P, Dir, Seg_Cls),
+    % P here is a point belongs to Seg, so only make interval tests!
+    ((crossed_seg(P, Seg_Cls, [CSeg-C]), % P is not an edge point
+      CLS = CSeg-C,
+      cross_seg_classes(Imgseq, Seg, Centroids, Ls, Cs)
+     );
+     (crossed_seg(P, Seg_Cls, [CSeg0-C0, CSeg1-C1]), % P is an edge point
+      CLS = CSeg0-C0,
+      Cs = [CSeg1-C1 | Cs1],
+      cross_seg_classes(Imgseq, Seg, Centroids, Ls, Cs1)
+     )), !.
+
+% use starting point of line [P, D] to find intersected segments
+%   by interval test
+crossed_seg(_, [], []):-
+    !.
+crossed_seg([X, Y, Z], [S-C | Ss], [S-C | CSs]):-
+    S = [[X1, Y1, Z], [X2, Y2, Z]],
+    ((between(X1, X2, X); between(X2, X1, X)),
+     (between(Y1, Y2, Y); between(Y2, Y1, Y))), !,
+    crossed_seg([X, Y, Z], Ss, CSs).
+crossed_seg(P, [_ | Ss], CSs):-
+    crossed_seg(P, Ss, CSs).
 
 %===================================
 % make conjectures
 %===================================
 % discover object in a Frame of ImageSequence
-discover_object(Imgseq, Frm, [BK_Centroid, NonBK_Centroids], Buff, Return):-
+discover_object(Imgseq, Frm, Centroids, [S | Segs], Buf, Return):-
+    % get seg class
+    class_of_seg(Imgseq, S, Centroids, C),
+    % cross segment sampling
+    cross_thresh(TL), sample_lines_cross_seg_2d(S, TL, Ls),
+    % eval each line and get classes, calculate the propotion of class "C"
+    cross_seg_classes(Imgseq, S-C, Centroids, Ls, Cs),
+    sum_list(Cs, Ones), length(Cs, Total),
+    Prop is Ones/Total,
+    % TODO: if success, save Cs, put into buff
     fail.

@@ -192,6 +192,7 @@ void bresenham(Scalar current, Scalar direction, Scalar inc,
  * @param: other parameters (long/short axis length and axis angle)
  */
 void fit_ellipse(vector<Scalar> points, Scalar& centre, Scalar& param);
+void opencv_fit_ellipse(vector<Scalar> points, Scalar& centre, Scalar& param);
 
 /* compute the color histogram of a set of points in image sequence
  * @images: image sequence
@@ -538,12 +539,12 @@ vector<Scalar> get_line_points(Scalar point, Scalar direction,
 vector<Scalar> get_line_seg_points(Scalar start, Scalar end, Scalar bound) {
     vector<Scalar> re; // returned point list
     
-    int x = start[0];
-    int y = start[1];
-    int z = start[2];
-    int x2 = end[0];
-    int y2 = end[1];
-    int z2 = end[2];
+    double x = start[0];
+    double y = start[1];
+    double z = start[2];
+    double x2 = end[0];
+    double y2 = end[1];
+    double z2 = end[2];
 
     if (x == x2 &&
         y == y2 &&
@@ -561,10 +562,28 @@ vector<Scalar> get_line_seg_points(Scalar start, Scalar end, Scalar bound) {
     }
     
     re.push_back(Scalar(x, y, z));
+    
     // bresenham for line segment
-    int dx = x2 - x;
-    int dy = y2 - y;
-    int dz = z2 - z;
+    double mdx = abs(x2 - x);
+    double mdy = abs(y2 - y);
+    double mdz = abs(z2 - z);
+    double ddx = x2 - x;
+    double ddy = y2 - y;
+    double ddz = z2 - z;
+
+    // robustness for double input
+    double min = mdx;
+    if (min == 0 && mdy != 0)
+        min = mdy;
+    if (min == 0 && mdz != 0)
+        min = mdz;
+    if (mdy != 0 && min > mdy)
+        SWAP(min, mdy);
+    if (mdz != 0 && min > mdz)
+        SWAP(min, mdz);
+    int dx = round(ddx*1000/min);
+    int dy = round(ddy*1000/min);
+    int dz = round(ddz*1000/min);
 
     int x_inc = dx > 0 ? 1 : -1;
     int y_inc = dy > 0 ? 1 : -1;
@@ -660,10 +679,26 @@ vector<Scalar> get_line_seg_points(Scalar start, Scalar end, Scalar bound) {
 /* bresenham for line, NOT segment */
 void bresenham(Scalar current, Scalar direction, Scalar inc,
                Scalar bound, vector<Scalar> *points) {
+    // magnitude
+    double ddx = abs(direction[0]);
+    double ddy = abs(direction[1]);
+    double ddz = abs(direction[2]);
+
+    // robustness for double input
+    double min = ddx;
+    if (min == 0 && ddy != 0)
+        min = ddy;
+    if (min == 0 && ddz != 0)
+        min = ddz;
+    if (ddy != 0 && min > ddy)
+        SWAP(min, ddy);
+    if (ddz != 0 && min > ddz)
+        SWAP(min, ddz);
+    
     // direction
-    int dx = direction[0];
-    int dy = direction[1];
-    int dz = direction[2];
+    int dx = round(direction[0]*1000/min);
+    int dy = round(direction[1]*1000/min);
+    int dz = round(direction[2]*1000/min);
     
     int x_inc = inc[0];
     int y_inc = inc[1];
@@ -809,8 +844,11 @@ void fit_ellipse(vector<Scalar> points, Scalar& centre, Scalar& param) {
         ((c - a) * sqrt(1 + 4 * b * b / ((a - c) * (a - c))) - (c + a));
     double down2 = (b * b - a * c) *
         ((a - c) * sqrt(1 + 4 * b * b / ((a - c) * (a - c))) - (c + a));
-    double res1 = sqrt(up / down1); // axis length
-    double res2 = sqrt(up / down2); // axis length
+    double res1 = sqrt(abs(up / down1)); // axis length
+    double res2 = sqrt(abs(up / down2)); // axis length
+    cout << "up: " << up << endl;
+    cout << "down1: " << down1 << endl;
+    cout << "down2: " << down2 << endl;
     double angle; // angle of ellipse
     if (b == 0)
         if (a > c)
@@ -823,11 +861,38 @@ void fit_ellipse(vector<Scalar> points, Scalar& centre, Scalar& param) {
         else
             angle = arma::datum::pi/2 + atan(2 * b / (a - c)) / 2;
     // save parameters
-    angle = 90 + (angle * 180/arma::datum::pi); // readjust "angle" to OpenCV radius axis
-    if (res1 >= res2)
-        param = Scalar(round(res1), round(res2), round(angle));
-    else
-        param = Scalar(round(res2), round(res1), round(angle));
+    // angle = 90 + (angle * 180/arma::datum::pi); // readjust "angle" to OpenCV radius axis
+    if (res1 > res2) {
+        SWAP(res1, res2);
+        angle = (double) (90 + angle*180/arma::datum::pi);
+    }
+
+    if (angle < -180)
+        angle += 360;
+    if (angle > 360 )
+        angle -= 360;
+
+    //if (res1 >= res2)
+    param = Scalar(round(res1), round(res2), round(angle));
+    //else
+    //param = Scalar(round(res2), round(res1), round(angle));
+}
+
+void opencv_fit_ellipse(vector<Scalar> points, Scalar& centre, Scalar& param) {
+    std::vector<cv::Point2f> pointsf;
+    for (size_t i = 0; i < points.size(); i++)
+        pointsf.push_back(cv::Point2f(points[i][0], points[i][1]));
+    cv::RotatedRect box = cv::fitEllipse(pointsf);
+    int frame = points[0][2];
+    // centre of ellipse
+    centre = Scalar(round(box.center.x),
+                    round(box.center.y), frame);
+    // width, height, and rotate angle of ellipse
+    cout << "width and height: "
+         << box.size.width << ", " << box.size.height << endl;
+    param = Scalar(round(box.size.width/2), // we need radius = half of them
+                   round(box.size.height/2),
+                   box.angle);
 }
 
 vector<Scalar> get_ellipse_points(Scalar centre, Scalar param, Scalar bound) {
@@ -835,8 +900,8 @@ vector<Scalar> get_ellipse_points(Scalar centre, Scalar param, Scalar bound) {
     // detailness of using polylines to approximate ellipse
     int width = std::abs((int) param[0]);
     int height = std::abs((int) param[1]);
-    if (width > height)
-        SWAP(width, height);
+    //if (width > height)
+    //    SWAP(width, height);
 
     std::vector<Point> v; // vertices
     //cout << "Starting OpenCV ellipse2Poly.\n";
