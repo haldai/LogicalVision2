@@ -28,3 +28,20 @@ draw_line_segs_2d(_, [], _):-
 draw_line_segs_2d(Img, [[S, E] | Ss], Color):-
     draw_line_seg_2d(Img, S, E, Color),
     draw_line_segs_2d(Img, Ss, Color).
+
+%==================
+% draw ellipses
+%==================
+draw_elpses(_, []):-
+    !.
+draw_elpses(Img, [elps(Cen, Para, C) | Elpses]):-
+    size_2d(Img, W, H),
+    ellipse_points(Cen, Para, [W, H, 1000000], Pts),
+    ((C == 0, Col = r);
+     (C == 1, Col = g);
+     (C == 2, Col = b);
+     (C == 3, Col = y);
+     (C == 4, Col = k)),
+    !,
+    draw_points_2d(Img, Pts, Col),
+    draw_elpses(Img, Elpses).

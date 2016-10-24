@@ -25,6 +25,13 @@ eu_dist_sum([X | Xs], [Y | Ys], Sum):-
     eu_dist_sum(Xs, Ys, Remaining),
     Sum is Dist + Remaining.
 
+% seg_length/2: Length of a line segment
+seg_length([], 0):-
+    !.
+seg_length(S, L):-
+    S = [X, Y],
+    eu_dist(X, Y, L), !.
+
 % direction of vector P1P2 and P1P3, it is a determination of P1P3 and P1P2
 vector_direction(P1, P2, P3, D):-
     P1 = [X1, Y1],
@@ -40,6 +47,17 @@ on_segment(P1, P2, P3):-
     (X1 < X2 -> (X_min = X1, X_max = X2); (X_min = X2, X_max = X1)),
     (Y1 < Y2 -> (Y_min = Y1, Y_max = Y2); (Y_min = Y2, Y_max = Y1)),
     \+(X3 < X_min; X3 > X_max; Y3 < Y_min; Y3 > Y_max).
+
+on_segment(P1, P2, P3):-
+    P1 = [X1, Y1, Z1],
+    P2 = [X2, Y2, Z2],
+    P3 = [X3, Y3, Z3],
+    (X1 < X2 -> (X_min = X1, X_max = X2); (X_min = X2, X_max = X1)),
+    (Y1 < Y2 -> (Y_min = Y1, Y_max = Y2); (Y_min = Y2, Y_max = Y1)),
+    (Z1 < Z2 -> (Z_min = Z1, Z_max = Z2); (Z_min = Z2, Z_max = Z1)),
+    \+(X3 < X_min; X3 > X_max;
+       Y3 < Y_min; Y3 > Y_max;
+       Z3 < Z_min; Z3 > Z_max).
 
 % inersection of two line segments
 intersected_seg(S1, S2):-
@@ -319,4 +337,29 @@ rand_2d_angle_vec([X, Y]):-
     random(R), Phi is R*2*pi,
     X is cos(Phi),
     Y is sin(Phi).
+
+%======================
+% point inside ellipse
+%======================
+point_in_ellipse(Pt, [Center, Param], [W, H, D]):-
+    line_seg_points(Pt, Center, [W, H, D], Pts1),
+    ellipse_points(Center, Param, [W, H, D], Pts2),
+    intersection(Pts1, Pts2, Pts3),
+    length(Pts3, L),
+    (member(Pt, Pts2);
+     L == 0),
+    !.
     
+%==============================
+% segment ellipse intersection
+%==============================
+intsct_seg_elps([S, E], [Center, Param], Bound, Intsct):-
+    line_seg_points(S, E, Bound, Pts1),
+    ellipse_points(Center, Param, Bound, Pts2),
+    intersection(Pts1, Pts2, Pts3),
+    ((Pts3 = [], point_in_ellipse(S, [Center, Param], Bound), Intsct = [S, E]);
+     (Pts3 = [], \+point_in_ellipse(S, [Center, Param], Bound), Intsct = []);
+     (Pts3 = [A], point_in_ellipse(S, [Center, Param], Bound), Intsct = [A, S]);
+     (Pts3 = [A], point_in_ellipse(E, [Center, Param], Bound), Intsct = [A, E]);
+     (Pts3 = [A, B], Intsct = [A, B])),
+    !.

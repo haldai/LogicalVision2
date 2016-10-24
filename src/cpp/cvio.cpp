@@ -294,6 +294,36 @@ PREDICATE(showimg_win, 2) {
         return LOAD_ERROR("showimg_win/2", 1, "ADD", "STRING");
 }
 
+/* show2imgs_win(ADD1, ADD2, WINDOW_NAME)
+ * show 2 images in a window
+ */
+PREDICATE(show2imgs_win, 3) {
+    char* p1 = (char*) A1;
+    char* p2 = (char*) A2;
+    char* p3 = (char*) A3;
+
+    const string window_name(p3);
+
+    cv::Mat* im1 = str2ptr<Mat>(p1);
+    cv::Mat* im2 = str2ptr<Mat>(p2);
+    cv::Size sz1 = im1->size();
+    cv::Size sz2 = im2->size();
+    cv::Mat im3(sz1.height, sz1.width + 10 + sz2.width, CV_8UC3);
+    // Move right boundary to the left.
+    im3.adjustROI(0, 0, 0, -sz2.width - 10);
+    im1->copyTo(im3);
+    // Move the left boundary to the right, right boundary to the right.
+    im3.adjustROI(0, 0, -sz1.width - 10, sz2.width + 10);
+    im2->copyTo(im3);
+    // restore original ROI.
+    im3.adjustROI(0, 0, sz1.width + 10, 0);
+    cvtColor(im3, im3, COLOR_Lab2BGR);
+    imshow(window_name, im3);
+    waitKey(0);
+    destroyWindow(window_name);
+    return TRUE;
+}
+
 /* showvid_win(ADD, WINDOW_NAME)
  * show a video in stack (ADD)
  */

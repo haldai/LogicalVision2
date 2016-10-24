@@ -4,13 +4,14 @@
  * Author: Wang-Zhou Dai <dai.wzero@gmail.com>
  */
 
-:-ensure_loaded(['../abduce/plabduce.pl',
-                 '../abduce/bk_light.pl',
-                 '../abduce/bk_ellipse.pl',
-                 '../io/plio.pl',
-                 '../sampling/plsampling.pl',
-                 '../drawing/pldraw.pl',
-                 '../utils/utils.pl']).
+:- ensure_loaded(['../abduce/plabduce.pl',
+                  '../abduce/bk_light.pl',
+                  '../abduce/bk_ellipse.pl',
+                  '../io/plio.pl',
+                  '../sampling/plsampling.pl',
+                  '../drawing/pldraw.pl',
+                  '../utils/utils.pl',
+                  '../learning/pllearning.pl']).
 
 % test utilities
 test_write_start(Name):-
@@ -52,6 +53,13 @@ test_rel_v(A):-
 test_rel_s(A):-
     test_write_start('release image sequence.'),
     release_imgseq(A),
+    test_write_done.
+
+test_show2imgs(A):-
+    test_write_start('release show 2 images.'),
+    seq_img(A, 0, Img1),
+    seq_img(A, 700, Img2),
+    show2imgs_win(Img1, Img2, 'test'),
     test_write_done.
 
 % test draw line (on the first frame)
@@ -440,23 +448,14 @@ test_sample_line_seg_hists(Imgseq):-
     sample_line_hists(Imgseq, [[335, 133, 0], [1, 1, 0]], 2, SHs),
     print_list(SHs).
 
-% randomly sample many lines
-test_rand_sample_lines(0, []):-
-    !.
-test_rand_sample_lines(N, [[C, Dir] | CDs]):-
-    random_between(0, 639, X), random_between(0, 359, Y),
-    random_between(-10, 10, XX), random_between(0, 50, YY), % YY >= 0
-    C = [X, Y, 0],
-    ((XX == 0, YY == 0) ->
-         (Dir = [1, 1, 0], !);
-     (Dir = [XX, YY, 0], !)),
-    N1 is N - 1,
-    test_rand_sample_lines(N1, CDs).
-
 % randomly sample many lines and get there histograms, then cluster them
 test_cluster_rand_segs(Imgseq):-
     test_write_start("test randomly sample lines and do clustering"),
-    test_rand_sample_lines(500, Lines),
+    size_2d(Imgseq, W, H),
+    %rand_sample_lines(500, Lines),
+    sample_horizon_lines(2000, [W, H], 50, Lines1),
+    sample_vertical_lines(2000, [W, H], 100, Lines2),
+    append(Lines1, Lines2, Lines),
     write('sampling finished.'), nl,
     sample_lines_hists(Imgseq, Lines, 2, SHs),
     write('computing histograms finished.'), nl,
@@ -465,7 +464,7 @@ test_cluster_rand_segs(Imgseq):-
     write('Centroids:'), nl,
     print_list_ln(Cents),
     % print_list_ln(SHs_Sign),
-    seq_img(Imgseq, 0, IMG1),
+    seq_img(Imgseq, 2000, IMG1),
     clone_img(IMG1, IMG2),    
     test_display_SHs(IMG2, SHs_Sign),
     showimg_win(IMG2, 'debug'),
@@ -598,15 +597,35 @@ test_seg_seg_dist(I):-
 test_object_discover(Imgseq, Frm):-
     test_write_start('test object discovering'),
     color_bg_nonbg(Imgseq, Frm, Cents, NonBGSegs),
-    discover_object_1(Imgseq, Frm, Cents, NonBGSegs),
+    discover_object(Imgseq, Frm, Cents, NonBGSegs, Elpses),
+    print_list_ln(Elpses),
+    seq_img(Imgseq, Frm, IMG1),
+    clone_img(IMG1, IMG2),
+    test_draw_elpses(IMG2, Elpses),
+    showimg_win(IMG2, 'debug'),
+    release_img(IMG2),
     test_write_done.
 
+test_draw_elpses(_, []):-
+    !.
+test_draw_elpses(Img, [elps(Cen, Para, C) | Elpses]):-
+    size_2d(Img, W, H),
+    ellipse_points(Cen, Para, [W, H, 1000000], Pts),
+    ((C == 0, Col = r);
+     (C == 1, Col = g);
+     (C == 2, Col = b);
+     (C == 3, Col = y);
+     (C == 4, Col = k)),
+    !,
+    draw_points_2d(Img, Pts, Col),
+    test_draw_elpses(Img, Elpses).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % HERE GOES MAIN TEST
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 test_main:-
     test_load_imgseq(Imgseq),
+    %test_show2imgs(Imgseq),
     %test_draw_elps(Imgseq, [[353, 143, 0], [37, 18, 110]], red),
     %test_draw_line_2d(Imgseq, [100, 100, 0], [2, 7, 0], red),
     %test_draw_line_(Imgseq, [100, 100, 0], [2, 7, 0], red),
@@ -618,13 +637,16 @@ test_main:-
     %test_points_hist(Imgseq),
     %test_rand_sample_lines_scharrs(Imgseq, 1000),
     %test_sample_line_seg_hists(Imgseq),
-    %test_cluster_rand_segs(Imgseq),
+    test_cluster_rand_segs(Imgseq),
     %test_sample_cube_var_hist(Imgseq),
     %test_draw_cubes(Imgseq),
     %test_color_bg_nonbg(Imgseq, _),
     %test_sample_line_get_seg_classes(Imgseq, [353, 133, 0], [1, 2, 0]),
-    test_object_discover(Imgseq, 0),
-    test_rel_s(Imgseq).
+    %test_object_discover(Imgseq, 1000),
+    %debug(Imgseq),
+    test_rel_s(Imgseq).    
+    %learn(pairing).
+    
 
 % test library without image processing
 test_lib(Param):-
@@ -637,119 +659,15 @@ test([S | Ss], [S | Ds]):-
 test([_ | Ss], Ds):-
     test(Ss, Ds), !.
 
-
 %%%%%%%%%%%%%%%%%%%%%%%
 % PREDICATES TO DEBUG
 %%%%%%%%%%%%%%%%%%%%%%%
-discover_object_1(_, _, _, []):-
-    !.
-% discover object in a Frame of ImageSequence
-discover_object_1(Imgseq, Frm, Centroids, [S | Segs]):-
-    rec_eval_turn(Turn),
-    class_of_seg(Imgseq, S, Centroids, C),
-    eval_segs(Imgseq, Frm, [S-C], Centroids, Turn, _, VSegs1),
-    VSegs1 \= [[]],
-    VSegs1 = [VSegs],
-    length(Segs, L), write('VSegs #'), write(L), nl, print_list(VSegs),
-    % DEBUG START
-    % write('Current Seg: '), write(S-C), nl,    
-    % write('Crossed Segs: '), nl, print_list_ln(Crossed_SCs),
-    append(VSegs, Edg_Pts_1), list_to_set(Edg_Pts_1, Edg_Pts),
-    length(Edg_Pts, LE), LE >= 5,
-    fit_elps(Edg_Pts, Cen, Para),
-    write('fitted parameters: '), write(Cen), write(', '), write(Para), nl,
-    size_3d(Imgseq, W, H, D),
-    seq_img(Imgseq, Frm, IMG1),
+test_debug:-
+    test_load_imgseq(Imgseq),
+    A = [elps([341,145,0],[14,40,95],1),elps([479,326,0],[25,45,115],1),elps([352,151,0],[17,29,91],1),elps([360,151,0],[16,24,77],1),elps([343,147,0],[11,42,88],1),elps([339,129,0],[8,23,80],2),elps([339,129,0],[8,25,80],2),elps([339,143,0],[20,29,76],2),elps([454,342,0],[26,62,64],2)],
+    seq_img(Imgseq, 0, IMG1),
     clone_img(IMG1, IMG2),
-    draw_line_segs_2d(IMG2, VSegs, red),
-    ellipse_points(Cen, Para, [W, H, D], Elps),
-    draw_points_2d(IMG2, Elps, green),
+    test_draw_elpses(IMG2, A),
     showimg_win(IMG2, 'debug'),
     release_img(IMG2),
-    % DEBUG END
-
-    discover_object_1(Imgseq, Frm, Centroids, Segs), !.
-discover_object_1(Imgseq, Frm, Centroids, [_ | Segs]):-
-    length(Segs, L), write('VSegs #'), write(L), nl,
-    discover_object_1(Imgseq, Frm, Centroids, Segs), !.
-
-    % get seg class
-    % class_of_seg(Imgseq, S, Centroids, C),
-    % cross segment sampling
-    % cross_thresh(TL), sample_grid_lines_cross_seg_2d(S, TL, Ls),
-    % eval each line and get classes, calculate the propotion of class "C"
-    % cross_seg_classes(Imgseq, S, Centroids, Ls, Crossed_SCs),
-
-    % DEBUG START
-    % write('Current Seg: '), write(S-C), nl,    
-    % write('Crossed Segs: '), nl, print_list_ln(Crossed_SCs),
-    % seq_img(Imgseq, Frm, IMG1),
-    % clone_img(IMG1, IMG2),
-    % test_display_SHs(IMG2, [S-4]),
-    % test_display_SHs(IMG2, Crossed_SCs),
-    % showimg_win(IMG2, 'debug'),
-    % release_img(IMG2),
-    % DEBUG END
-    
-    %group_pairs_by_key(Crossed_SCs, [0-G0, 1-G1, 2-G2, 3-G3]),
-    %length(G0, L0), length(G1, L1), length(G2, L2), length(G3, L3),
-    %Prop is (L1 + L2 + L3)/(L0 + L1 + L2 + L3),
-    %cross_eval_thresh(TE),
-    %(Prop < TE ->
-    %     (discover_object_1(Imgseq, Frm, Centroids, Segs, Buff, Return), !);
-    % (discover_object_1(Imgseq, Frm, Centroids, Segs, Buff_1, Return))
-    %).
-    %sum_list(Cs, Ones), length(Cs, Total),
-    %Prop is Ones/Total,
-    % TODO: if success, save Cs, put into buff
-
-eval_segs(_, _, [], _, _, [], []):-
-    !.
-% class BG
-eval_segs(Imgseq, Frm, [_-0 | Css], Cents, N, [0 | Res], VSs):-
-    eval_segs(Imgseq, Frm, Css, Cents, N, Res, VSs),
-    !.
-% level-0: success
-eval_segs(Imgseq, Frm, [S-C | Css], Cents, 0, [1 | Res], VSs):-
-    C =\= 0,
-    cross_thresh(TL), sample_grid_lines_cross_seg_2d(S, TL, Ls),
-    cross_seg_classes(Imgseq, S, Cents, Ls, Crossed_SCs),
-    findall(Seg, member(Seg-C, Crossed_SCs), NBGs),
-    length(NBGs, Lnbg), length(Crossed_SCs, Total),
-    Prob is Lnbg/Total,
-    cross_eval_thresh(TE),
-    Prob >= TE,
-    eval_segs(Imgseq, Frm, Css, Cents, 0, Res, VSs), !.
-% level-0: failed
-eval_segs(Imgseq, Frm, [_-C | Css], Cents, 0, [0 | Res], VSs):-
-    C =\= 0,
-    eval_segs(Imgseq, Frm, Css, Cents, 0, Res, VSs), !.
-eval_segs(Imgseq, Frm, [S-C | Css], Cents, N, [Re | Res], [VSegs | VSs]):-
-    N > 0, C =\= 0,
-    cross_thresh(TL),
-    sample_grid_lines_cross_seg_2d(S, TL, Ls),
-    cross_seg_classes(Imgseq, S, Cents, Ls, Crossed_SCs),
-    N1 is N - 1,
-    eval_segs(Imgseq, Frm, Crossed_SCs, Cents, N1, Re1, VSegs1),
-    length(Re1, Total), sum_list(Re1, Valid),
-    Prob is Valid/Total,
-    cross_eval_thresh(TE),
-    % (Prob >= TE ->
-    %      (Re = 1,          
-    %       append(VSegs1, VSegs),
-    %       eval_segs(Imgseq, Frm, Css, Cents, N, Res, VSs), !);
-    %  (Re = 0,
-    %   eval_segs(Imgseq, Frm, Css, Cents, N, Res, [VSegs | VSs]), !)
-    % ).
-    Prob >= TE,
-    Re = 1,
-    mask_select(Re1, VSegs1, VSegs2),
-    pairs_keys(Crossed_SCs, Crossed_Segs),
-    mask_select(Re1, Crossed_Segs, VSegs3),
-    %append(VSegs1, VSegs2),
-    append(VSegs2, VSegs4),
-    append(VSegs3, VSegs4, VSegs),
-    eval_segs(Imgseq, Frm, Css, Cents, N, Res, VSs), !.
-eval_segs(Imgseq, Frm, [_-C | Css], Cents, N, [0 | Res], [[] | VSs]):-
-    C =\= 0,
-    eval_segs(Imgseq, Frm, Css, Cents, N, Res, VSs), !.
+    test_rel_s(Imgseq).

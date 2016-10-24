@@ -1,10 +1,14 @@
+:- ensure_loaded('../utils/utils.pl').
+
 % number of random lines for determine background and non-background colors
 rand_line_num(500).
 num_clusters(2).
+% number of random line segments to be sampled 
+rand_seg_num(5).
 % threshold of scharr gradient
-thresh_scharr(5).
-% threshold of cross segment sampling
-cross_thresh(5).
+thresh_scharr(2.0).
+% thresholds of cross segment sampling
+cross_num(4). % number of crossed segs to be sampled
 cross_eval_thresh(0.6).
 % recursively eval turns
 rec_eval_turn(3).
@@ -63,6 +67,15 @@ cluster_seg_hist_pairs(SHs, Num_Clusters, Signed_SHs, Centroids):-
     kmeans(Hists, Num_Clusters, _, Assign, Centroids),
     pairs_keys_values(Signed_SHs, SHs, Assign).
 
+% given centroids and sampled lines, return non background segments.
+get_non_bg_segs(_, _, [], []):-
+    !.
+get_non_bg_segs(Imgseq, Centroids, [[Point, Dir] | Lines], Segs):-
+    sample_line_get_seg_classes(Imgseq, Centroids, Point, Dir, Seg_Classes),
+    findall(Seg, (member(Seg-C, Seg_Classes), C =\= 0), NonBGs),
+    get_non_bg_segs(Imgseq, Centroids, Lines, Segs1),
+    append(NonBGs, Segs1, Segs).
+
 %==========================
 % find the longest segment
 %==========================
@@ -89,7 +102,9 @@ color_bg_nonbg(Imgseq, Frame, Centroids, NonBG_Segs):-
     thresh_scharr(T),
     sample_lines_hists(Imgseq, Lines, T, SHs),
     num_clusters(Num_Clusters),
-    get_centroids(SHs, Num_Clusters, Centroids, NonBG_Segs).
+    get_centroids(SHs, Num_Clusters, Centroids, NonBG_Segs),
+    !.
+
 get_centroids(SHs, Num_Clusters, [BG_Centroid, NonBG_Centroids], NonBG_Segs):-
     cluster_seg_hist_pairs(SHs, Num_Clusters, SHs_Sign, Cents),
     write('clustering finished.'), nl,
@@ -113,13 +128,7 @@ get_centroids(SHs, Num_Clusters, [BG_Centroid, NonBG_Centroids], NonBG_Segs):-
                  4: append([G0, G1, G2, G3], NBGs)
                 ]
           ),
-    % NonBG_Centroids = [NonBG1, NonBG2, NonBG3],
-%    (L0 >= L1 ->
-%         (Cents = [BG, NonBG], NBGs = G1, !);
-%     (Cents = [NonBG, BG], NBGs = G0, !)
-%    ),
     pairs_keys(NBGs, NonBG_Segs).
-%    longest_seg(NonBG_Segs, Longest).
 
 % randomly sample multiple lines
 rand_sample_lines(_, _, 1, []):-
@@ -130,10 +139,43 @@ rand_sample_lines(Frame, [W, H], N, [[C, Dir] | CDs]):-
     random_between(-10, 10, XX), random_between(-64, 64, YY), % YY>=0
     C = [X, Y, Frame],
     ((XX == 0, YY == 0) ->
-         (Dir = [1, 1, Frame], !);
-     (Dir = [XX, YY, Frame], !)),
+         (Dir = [1, 1, 0], !);
+     (Dir = [XX, YY, 0], !)),
     N1 is N - 1,
     rand_sample_lines(Frame, [W, H], N1, CDs).
+
+% horizontally sample multiple lines
+sample_horizon_lines(Frame, [_, H], N, Lines):-
+    P is H / N,
+    sample_horizon_lines(Frame, [_, H], N, P, Lines), !.
+sample_horizon_lines(_, _, 0, _, []):-
+    !.
+sample_horizon_lines(Frame, [_, H], N, P, [[[0, Y, Frame], [1, 0]] | Lines]):-
+    Y is ceil(N * P),
+    Y =\= 0,
+    \+ minus(H, 1, Y),
+    N1 is N - 1,
+    sample_horizon_lines(Frame, [_, H], N1, P, Lines).
+sample_horizon_lines(Frame, [_, H], N, P, Lines):-
+    N1 is N - 1,
+    sample_horizon_lines(Frame, [_, H], N1, P, Lines).
+
+% vertically sample multiple lines
+sample_vertical_lines(Frame, [W, _], N, Lines):-
+    P is W / N,
+    sample_vertical_lines(Frame, [W, _], N, P, Lines), !.
+sample_vertical_lines(_, _, 0, _, []):-
+    !.
+sample_vertical_lines(Frame, [W, _], N, P, [[[X, 0, Frame], [0, 1]] | Lines]):-
+    X is ceil(N * P),
+    X =\= 0,
+    \+ minus(W, 1, X),
+    N1 is N - 1,
+    sample_vertical_lines(Frame, [W, _], N1, P, Lines).
+sample_vertical_lines(Frame, [W, _], N, P, Lines):-
+    N1 is N - 1,
+    sample_vertical_lines(Frame, [W, _], N1, P, Lines).
+    
 
 % calculate the total length of a list of line segments
 total_seg_length([], 0):-
@@ -149,7 +191,6 @@ total_seg_length([[Start, End] | Segs], Sum):-
     !,
     Sum is Sum1 + Dist.
     
-
 %========================================================
 % determine the class of a line segment 
 %========================================================
@@ -263,7 +304,31 @@ pts2segs([_], []):-
     !.
 pts2segs([P1, P2 | Ps], [[P1, P2] | Ss]):-
     pts2segs([P2 | Ps], Ss).
+%===============================================
+% sample line segment that cross a given point
+%===============================================
+random_line_segs_crossing_point(Imgseq, Point, Bound, Segs):-
+    rand_seg_num(N),
+    random_line_segs_crossing_point(Imgseq, Point, Bound, N, Segs).
 
+random_line_segs_crossing_point(_, _, _, 0, []):-
+    !.
+random_line_segs_crossing_point(Imgseq, Point, Bound, N, [S | Segs]):-
+    rand_2d_angle_vec([X, Y]),
+    thresh_scharr(Th),
+    line_pts_scharr_geq_T(Imgseq, Point, [X, Y, 0], Th, Edg_pts),
+    pts2segs(Edg_pts, Ss),
+    seg_cross_point(Ss, Point, S),
+    N1 is N - 1,
+    random_line_segs_crossing_point(Imgseq, Point, Bound, N1, Segs).
+
+seg_cross_point([], _, []):-
+    !.
+seg_cross_point([[Start, End] | _], Point, S):-
+    on_segment(Start, End, Point),
+    S = [Start, End], !.
+seg_cross_point([_ | Ss], Point, S):-
+    seg_cross_point(Ss, Point, S).
 %===========================================================================
 % crossed segment classes:
 %   given a Seg-Class and a set of lines, find the intersected
@@ -296,18 +361,120 @@ crossed_seg([X, Y, Z], [S-C | Ss], [S-C | CSs]):-
 crossed_seg(P, [_ | Ss], CSs):-
     crossed_seg(P, Ss, CSs).
 
+% remove segments duplicates with ellipse
+remove_duplicate_segs([], _, _, []):-
+    !.
+remove_duplicate_segs([S | Seg], [Cen, Para], Bound, Ss):-
+    intsct_seg_elps(S, [Cen, Para], Bound, S1),
+    seg_length(S, Ls), seg_length(S1, Ls1),
+    P is Ls1/Ls,
+    P >= 0.2,
+    remove_duplicate_segs(Seg, [Cen, Para], Bound, Ss), !.
+remove_duplicate_segs([S | Seg], Elps, Bound, [S | Ss]):-
+    remove_duplicate_segs(Seg, Elps, Bound, Ss), !.
+    
 %===================================
 % make conjectures
 %===================================
 % discover object in a Frame of ImageSequence
-discover_object(Imgseq, Frm, Centroids, [S | Segs], Buf, Return):-
-    % get seg class
+discover_object(_, _, _, [], []):-
+    !.
+% discover object in a Frame of ImageSequence
+discover_object(Imgseq, Frm, Centroids, [S | Segs],
+                [elps(Cen, Para, C) | Elpses]):-
+    rec_eval_turn(Turn),
     class_of_seg(Imgseq, S, Centroids, C),
-    % cross segment sampling
-    cross_thresh(TL), sample_lines_cross_seg_2d(S, TL, Ls),
-    % eval each line and get classes, calculate the propotion of class "C"
-    cross_seg_classes(Imgseq, S-C, Centroids, Ls, Cs),
-    sum_list(Cs, Ones), length(Cs, Total),
-    Prop is Ones/Total,
-    % TODO: if success, save Cs, put into buff
-    fail.
+    length(Segs, L), write('VSegs #'), write(L), nl,
+    eval_segs(Imgseq, Frm, [S-C], Centroids, Turn, _, VSegs1),
+    %write(eval_segs(Imgseq, Frm, [S-C], Centroids, Turn, _, VSegs1)), nl,
+    VSegs1 \= [[]],
+    VSegs1 = [VSegs],
+    print_list(VSegs),
+    append(VSegs, Edg_Pts_1), list_to_set(Edg_Pts_1, Edg_Pts),
+    length(Edg_Pts, LE), LE >= 5,
+    fit_elps(Edg_Pts, Cen, Para),
+    write('fitted parameters: '), write(Cen), write(', '), write(Para), nl,    
+    size_3d(Imgseq, W, H, D),
+    remove_duplicate_segs(Segs, [Cen, Para], [W, H, D], Segs1),
+    %Segs1 = Segs,
+
+    % DEBUG START
+    % write('Current Seg: '), write(S-C), nl,    
+    % write('Crossed Segs: '), nl, print_list_ln(Crossed_SCs),
+%    size_3d(Imgseq, W, H, D),
+%    seq_img(Imgseq, Frm, IMG1),
+%    clone_img(IMG1, IMG2),
+%    draw_line_segs_2d(IMG2, VSegs, red),
+%    ellipse_points(Cen, Para, [W, H, D], Elps),
+%    draw_points_2d(IMG2, Elps, green),
+%    showimg_win(IMG2, 'debug'),
+%    release_img(IMG2),
+    % DEBUG END
+
+    discover_object(Imgseq, Frm, Centroids, Segs1, Elpses), !.
+discover_object(Imgseq, Frm, Centroids, [_ | Segs], Elps):-
+    discover_object(Imgseq, Frm, Centroids, Segs, Elps), !.
+
+% average ellipse (according to parameters) of a list of ellipses
+average_elps(Elpses, elps(Cen, Param, Color)):-
+    findall(Center, member(elps(Center, _, _), Elpses), Centers),
+    findall(A, member(elps(_, [A, _, _], _), Elpses), As),
+    findall(B, member(elps(_, [_, B, _], _), Elpses), Bs),
+    findall(C, member(elps(_, [_, _, C], _), Elpses), Cs),
+    findall(Col, member(elps(_, _, Col), Elpses), Colors),
+    average(Centers, Cen),    
+    average(As, Av), average(Bs, Bv), average(Cs, Cv),
+    Param = [Av, Bv, Cv],
+    mode(Colors, Color), !.
+    
+
+%%%%%%%%% segment-wise evaluation %%%%%%%%%
+eval_segs(_, _, [], _, _, [], []):-
+    !.
+% class BG
+eval_segs(Imgseq, Frm, [_-0 | Css], Cents, N, [0 | Res], VSs):-
+    eval_segs(Imgseq, Frm, Css, Cents, N, Res, VSs),
+    !.
+% level-0: success
+eval_segs(Imgseq, Frm, [S-C | Css], Cents, 0, [1 | Res], VSs):-
+    C =\= 0,
+    cross_num(TL), sample_grid_lines_cross_seg_2d(S, TL, Ls),
+    cross_seg_classes(Imgseq, S, Cents, Ls, Crossed_SCs),
+    findall(Seg, member(Seg-C, Crossed_SCs), NBGs),
+    length(NBGs, Lnbg), length(Crossed_SCs, Total),
+    Prob is Lnbg/Total,
+    cross_eval_thresh(TE),
+    Prob >= TE,
+    eval_segs(Imgseq, Frm, Css, Cents, 0, Res, VSs), !.
+% level-0: failed
+eval_segs(Imgseq, Frm, [_ | Css], Cents, 0, [0 | Res], VSs):-
+    eval_segs(Imgseq, Frm, Css, Cents, 0, Res, VSs), !.
+eval_segs(Imgseq, Frm, [S-C | Css], Cents, N, [Re | Res], [VSegs | VSs]):-
+    N > 0, C =\= 0,
+    cross_num(TL),
+    sample_grid_lines_cross_seg_2d(S, TL, Ls),
+    cross_seg_classes(Imgseq, S, Cents, Ls, Crossed_SCs),
+    N1 is N - 1,
+    eval_segs(Imgseq, Frm, Crossed_SCs, Cents, N1, Re1, VSegs1),
+    length(Re1, Total), sum_list(Re1, Valid),
+    Prob is Valid/Total,
+    cross_eval_thresh(TE),
+    % (Prob >= TE ->
+    %      (Re = 1,          
+    %       append(VSegs1, VSegs),
+    %       eval_segs(Imgseq, Frm, Css, Cents, N, Res, VSs), !);
+    %  (Re = 0,
+    %   eval_segs(Imgseq, Frm, Css, Cents, N, Res, [VSegs | VSs]), !)
+    % ).
+    Prob >= TE,
+    Re = 1,
+    mask_select(Re1, VSegs1, VSegs2),
+    pairs_keys(Crossed_SCs, Crossed_Segs),
+    mask_select(Re1, Crossed_Segs, VSegs3),
+    %append(VSegs1, VSegs2),
+    append(VSegs2, VSegs4),
+    append(VSegs3, VSegs4, VSegs),
+    eval_segs(Imgseq, Frm, Css, Cents, N, Res, VSs), !.
+eval_segs(Imgseq, Frm, [_-C | Css], Cents, N, [0 | Res], [[] | VSs]):-
+    C =\= 0,
+    eval_segs(Imgseq, Frm, Css, Cents, N, Res, VSs), !.

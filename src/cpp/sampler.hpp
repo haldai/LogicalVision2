@@ -888,8 +888,8 @@ void opencv_fit_ellipse(vector<Scalar> points, Scalar& centre, Scalar& param) {
     centre = Scalar(round(box.center.x),
                     round(box.center.y), frame);
     // width, height, and rotate angle of ellipse
-    cout << "width and height: "
-         << box.size.width << ", " << box.size.height << endl;
+    //cout << "width and height: "
+    //     << box.size.width << ", " << box.size.height << endl;
     param = Scalar(round(box.size.width/2), // we need radius = half of them
                    round(box.size.height/2),
                    box.angle);

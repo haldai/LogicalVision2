@@ -6,6 +6,17 @@
 
 :- ensure_loaded('../utils/geometry.pl').
 
+product(V1, V2, V3):-
+    V3 is V1 * V2.
+sum(V1, V2, V3):-
+    V3 is V1 + V2.
+minus(V1, V2, V3):-
+    V3 is V1 - V2.
+divide(_, 0, _):-
+    fail.
+divide(V1, V2, V3):-
+    V3 is V1 / V2.
+
 % generate temporary variables
 temp_vars(0, Return, Temp):-
     Return = Temp, !.
@@ -37,35 +48,57 @@ group_pairs_by_numbers(Pairs, N, [N-G | Groups]):-
     group_pairs_by_numbers(Pairs, N1, Groups).
 
 % difference between two vector, C = A - B
-vec_diff([], [], []):-
-    !.
-vec_diff([A | As], [B | Bs], [C | Cs]):-
-    C is A - B,
-    vec_diff(As, Bs, Cs).
+vec_diff(A, B, C):-
+    maplist(minus, A, B, C).
 
-vec_sum([], [], []):-
-    !.
-vec_sum([A | As], [B | Bs], [C | Cs]):-
-    C is A + B,
-    vec_sum(As, Bs, Cs).
+vec_sum(A, B, C):-
+    maplist(sum, A, B, C).
 
-vec_neg([], []):-
-    !.
-vec_neg([A | As], [B | Bs]):-
-    B is -A,
-    vec_neg(As, Bs).
+vec_neg(A, B):-
+    maplist(product(-1), A, B).    
 
-vec_multiply(_, [], []):-
+vec_multiply(V, A, B):-
+    maplist(product(V), A, B).
+
+vec_divide(_, 0, []):-
     !.
-vec_multiply(V, [A | As], [B | Bs]):-
-    B is V*A,
-    vec_multiply(V, As, Bs).
+vec_divide(A, V, B):-
+    length(A, L),
+    init_vec(L, V, V1),
+    maplist(divide, A, V1, B).
 
 % vector absolute value B = |A|
 vec_abs([], []).
 vec_abs([A | As], [B | Bs]):-
     B is abs(A),
     vec_abs(As, Bs).
+
+% sum of vector list
+sum_vec_list([], 0):-
+    !.
+sum_vec_list(Vec, Sum):-
+    Vec = [V | _],
+    length(V, L),
+    zeros(L, Temp),
+    sum_vec_list(Vec, Temp, Sum).
+sum_vec_list([], Sum, Sum):-
+    !.
+sum_vec_list([V | Vs], Temp, Sum):-
+    vec_sum(V, Temp, Temp1),
+    sum_vec_list(Vs, Temp1, Sum).
+
+% initialize a list of zeros
+init_vec(0, _, []):-
+    !.
+init_vec(Length, Value, [Value | Vecs]):-
+    L is Length - 1,
+    init_vec(L, Value, Vecs).
+
+zeros(0, []):-
+    !.
+zeros(N, [0 | V]):-
+    N1 is N - 1,
+    zeros(N1, V).
 
 % vector indices which exceeds a threshold
 vec_thresh_idx(V, T, R):-
@@ -82,6 +115,48 @@ vec_thresh_idx([V | Vs], [_ | Is], T, [R | Rs]):-
     V < T,
     vec_thresh_idx(Vs, Is, T, [R | Rs]), !.
 
+% average of list
+average([], 0):-
+    !.
+average(A, B):-
+    A = [E | _], number(E), % list of numbers
+    sum_list(A, S),
+    length(A, L),
+    B is S/L,
+    !.
+% average of vectors
+average(A, B):-
+    A = [E | _], is_list(E), % list of vectors
+    sum_vec_list(A, Sum),
+    length(A, L),
+    vec_divide(Sum, L, B),
+    !.
+
+% mode of list
+% Daniel Lyons@http://stackoverflow.com/questions/14691479/how-to-find-the-mode-of-a-list-in-prolog
+count_of([], _,  0).
+count_of([H|Rest], E, N1):- 
+  equality_reified(H, E, Bool),
+  count_of(Rest, E, N0),
+  (Bool == true -> N1 is N0 + 1 ; N1 = N0).
+
+frequency(L, I, N):-
+  sort(L, LSorted),
+  member(I, LSorted),
+  count_of(L, I, N).
+
+equality_reified(X, Y, R) :- X == Y, !, R = true.
+equality_reified(X, Y, R) :- ?=(X, Y), !, R = false. % syntactically different
+equality_reified(X, Y, R) :- X \= Y, !, R = false. % semantically different
+equality_reified(X, X, true).
+equality_reified(X, Y, false) :-
+   dif(X, Y).
+
+mode(L, X):-
+  frequency(L, X, NMax),
+  \+ (frequency(L, _, NBigger),
+      NMax < NBigger).
+
 %=================
 % switch control
 %=================
@@ -90,12 +165,6 @@ switch(X, [Val:Goal | Cases]):-
          (call(Goal), !);
      switch(X, Cases)
     ).
-
-%============
-% primitives
-%============
-prim(P):-
-    primitives(P).
 
 %==========================
 % Peano number operations
@@ -294,6 +363,20 @@ combination(N, List, Combs):-
 	     index_select(Comb_idx, List, Comb_element)),
 	    Combs).
 
+% cartesian product of two lists
+cartesian_product([], _, []):-
+    !.
+cartesian_product([A | As], B, Re):-
+    cartesian_product(As, B, Re1),
+    set_product(A, B, Re2),
+    append(Re2, Re1, Re),
+    !.
+set_product(_, [], []):-
+    !.
+set_product(A, [B | Bs], [[A, B] | Re]):-
+    set_product(A, Bs, Re),
+    !.
+    
 % index of element in list
 indexof(Index, Item, List):-
     nth1(Index, List, Item).
