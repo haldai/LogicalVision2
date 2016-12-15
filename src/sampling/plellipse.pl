@@ -45,3 +45,4 @@ ellipse(Imgseq, [[X, Y, F], [A, B, ALPHA]], VAR_THRESH, P_THRESH, Pos, PTS):-
     R is N_Pos / Total,
     write(R), nl,
     (R >= P_THRESH; true), !.
+

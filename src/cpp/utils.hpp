@@ -61,16 +61,16 @@ PlTerm empty_list();
 
 /* transformation between 3D-scalar vector and prolog list */
 template <class Type>
-vector<Scalar> scalar_list2vec(PlTerm term, int size = -1);
+vector<Scalar> scalar_list2vec(PlTerm term, int size = -1, int dim = 3);
 template <class Type>
-PlTerm scalar_vec2list(vector<Scalar> list, int size = -1);
+PlTerm scalar_vec2list(vector<Scalar> list, int size = -1, int dim = 3);
 
 /* transformation between vector of point coordinates and prolog list
  * @term: prolog term of list, [[x1, y1, z1], [x2, y2, z2], ...]
  * @list: vector of scalar, each scalar is a point coordinate
  */
-vector<Scalar> point_list2vec(PlTerm term);
-PlTerm point_vec2list(vector<Scalar> list);
+vector<Scalar> point_list2vec(PlTerm term, int size = -1, int dim = 3);
+PlTerm point_vec2list(vector<Scalar> list, int size = -1, int dim = 3);
 
 /* reassign data points into lists of groups according to clustering results
  * @points: data points (vector of feature vectors)
@@ -261,7 +261,7 @@ PlTerm empty_list() {
 }
 
 template <class Type>
-PlTerm scalar_vec2list(vector<Scalar> list, int size) {
+PlTerm scalar_vec2list(vector<Scalar> list, int size, int dim) {
     static_assert((is_same<Type, long>::value)
                   || (is_same<Type, double>::value),
                   "Wrong template type for list2vec!");
@@ -281,8 +281,8 @@ PlTerm scalar_vec2list(vector<Scalar> list, int size) {
             term_t point_ref = PL_new_term_ref();
             PlTerm point_term(point_ref); // PlTerm for insertion
             PlTail coord_list(point_term);
-            for (int dim = 0; dim < 3; dim++)
-                coord_list.append((Type) pt[dim]);
+            for (int dim_ = 0; dim_ < dim; dim_++)
+                coord_list.append((Type) pt[dim_]);
             coord_list.close();
             term_list.append(point_term);
         }
@@ -294,7 +294,7 @@ PlTerm scalar_vec2list(vector<Scalar> list, int size) {
 }
 
 template <class Type>
-vector<Scalar> scalar_list2vec(PlTerm term, int size) {
+vector<Scalar> scalar_list2vec(PlTerm term, int size, int dim) {
     static_assert((is_same<Type, int>::value)
                   || (is_same<Type, long>::value)
                   || (is_same<Type, double>::value),
@@ -308,9 +308,9 @@ vector<Scalar> scalar_list2vec(PlTerm term, int size) {
                 PlTail coord_list(point_term);
                 PlTerm coord_term;
                 Scalar pt(-1, -1, -1);
-                for (int dim = 0; dim < 3; dim++) {
+                for (int dd = 0; dd < dim; dd++) {
                     coord_list.next(coord_term);
-                    pt[dim] = (Type) coord_term;
+                    pt[dd] = (Type) coord_term;
                 }
                 vec.push_back(pt);
             }
@@ -321,9 +321,9 @@ vector<Scalar> scalar_list2vec(PlTerm term, int size) {
                 PlTail coord_list(point_term);
                 PlTerm coord_term;
                 Scalar pt(-1, -1, -1);
-                for (int dim = 0; dim < 3; dim++) {
+                for (int dd = 0; dd < dim; dd++) {
                     coord_list.next(coord_term);
-                    pt[dim] = (Type) coord_term;
+                    pt[dd] = (Type) coord_term;
                 }
                 vec.push_back(pt);                
             }
@@ -334,12 +334,12 @@ vector<Scalar> scalar_list2vec(PlTerm term, int size) {
     return vec;
 }
 
-PlTerm point_vec2list(vector<Scalar> list) {
-    return scalar_vec2list<long>(list);
+PlTerm point_vec2list(vector<Scalar> list, int size, int dim) {
+    return scalar_vec2list<long>(list, size, dim);
 }
 
-vector<Scalar> point_list2vec(PlTerm term) {
-    return scalar_list2vec<int>(term);
+vector<Scalar> point_list2vec(PlTerm term, int size, int dim) {
+    return scalar_list2vec<int>(term, size, dim);
 }
 
 template <typename T>

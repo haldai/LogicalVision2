@@ -15,7 +15,7 @@
 
 #define BLACK Scalar(0, 128, 128)
 #define BLUE Scalar(0, 128, 0)
-#define GREEN Scalar(255, 0, 255)
+#define GREEN Scalar(128, 0, 255)
 #define RED Scalar(128, 255, 255)
 #define YELLOW Scalar(255, 128, 255)
 #define WHITE Scalar(255, 128, 128)

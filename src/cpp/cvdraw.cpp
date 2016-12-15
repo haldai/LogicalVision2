@@ -98,8 +98,8 @@ PREDICATE(draw_rect, 4) {
     vector<Mat> *seq = str2ptr<vector<Mat>>(add_seq);
     vector<int> center = list2vec<int>(A2, 3);
     vector<int> radius = list2vec<int>(A3, 3);
-    Scalar c(center[0], center[1], -1);
-    Scalar r(radius[0], radius[1], -1);
+    Scalar c(center[0], center[1], 0);
+    Scalar r(radius[0], radius[1], 0);
     Scalar color = term2color(A4); // color
     // get start and end frame
     int T = seq->size() - 1;
@@ -112,7 +112,7 @@ PREDICATE(draw_rect, 4) {
     return TRUE;
 }
 
-/* draw_rect_2d(+IMG, +CENTER, +RADIUS)
+/* draw_rect_2d(+IMG, +CENTER, +RADIUS, +COLOR)
  * @SEQ: img sequence
  * @CENTER: rectangle center [X, Y, Z]
  * @RADIUS: rectangle radius [RX, RY, RZ]
@@ -123,10 +123,10 @@ PREDICATE(draw_rect_2d, 4) {
     char *p1 = (char*) A1;
     const string add_img(p1); // address
     Mat *img = str2ptr<Mat>(add_img);
-    vector<int> center = list2vec<int>(A2, 3);
-    vector<int> radius = list2vec<int>(A3, 3);
-    Scalar c(center[0], center[1], -1);
-    Scalar r(radius[0], radius[1], -1);
+    vector<int> center = list2vec<int>(A2, 2);
+    vector<int> radius = list2vec<int>(A3, 2);
+    Scalar c(center[0], center[1], 0);
+    Scalar r(radius[0], radius[1], 0);
     Scalar color = term2color(A4); // color
     // draw
     cv_draw_rect(*img, c, r, color);

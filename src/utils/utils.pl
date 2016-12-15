@@ -6,6 +6,7 @@
 
 :- ensure_loaded('../utils/geometry.pl').
 
+% arithmetic functions
 product(V1, V2, V3):-
     V3 is V1 * V2.
 sum(V1, V2, V3):-
@@ -16,6 +17,11 @@ divide(_, 0, _):-
     fail.
 divide(V1, V2, V3):-
     V3 is V1 / V2.
+predecessor(N, M):-
+    M is N - 1.
+successor(N, M):-
+    M is N + 1.
+
 
 % generate temporary variables
 temp_vars(0, Return, Temp):-
@@ -131,6 +137,23 @@ average(A, B):-
     length(A, L),
     vec_divide(Sum, L, B),
     !.
+
+% 2 norm of an vector
+norm_2(Vec, N):-
+    norm_2_sum(Vec, Sum),
+    N is sqrt(Sum).
+norm_2_sum([], 0):-
+    !.
+norm_2_sum([X | Xs], Sum):-
+    norm_2_sum(Xs, Sum1),
+    Sum is Sum1 + X**2.
+
+% mid point of two vectors (points)
+mid_point([], [], []):-
+    !.
+mid_point([X | Xs], [Y | Ys], [Z | Zs]):-
+    Z is round((X + Y)/2),
+    mid_point(Xs, Ys, Zs), !.
 
 % mode of list
 % Daniel Lyons@http://stackoverflow.com/questions/14691479/how-to-find-the-mode-of-a-list-in-prolog

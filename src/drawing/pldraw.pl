@@ -30,7 +30,7 @@ draw_line_segs_2d(Img, [[S, E] | Ss], Color):-
     draw_line_segs_2d(Img, Ss, Color).
 
 %==================
-% draw ellipses
+% draw ellipses (2D)
 %==================
 draw_elpses(_, []):-
     !.
@@ -45,3 +45,24 @@ draw_elpses(Img, [elps(Cen, Para, C) | Elpses]):-
     !,
     draw_points_2d(Img, Pts, Col),
     draw_elpses(Img, Elpses).
+
+%=================
+% draw rectangles
+%=================
+draw_rects(_, [], _):-!.
+draw_rects(Imgseq, [R | Rs], Color):-
+    R = [Cen, Rad],
+    draw_rect(Imgseq, Cen, Rad, Color),
+    draw_rects(Imgseq, Rs, Color).
+
+draw_rects_2d(_, [], _):-!.
+draw_rects_2d(Img, [R | Rs], Color):-
+    R = [Cen, Rad],
+    draw_rect_2d(Img, Cen, Rad, Color),
+    draw_rects_2d(Img, Rs, Color).
+
+draw_squares_2d(_, [], _):-!.
+draw_squares_2d(Img, [S | Ss], Color):-
+    S = [Cen, R],
+    draw_rect_2d(Img, Cen, [R, R], Color),
+    draw_squares_2d(Img, Ss, Color).

@@ -32,51 +32,97 @@ seg_length(S, L):-
     S = [X, Y],
     eu_dist(X, Y, L), !.
 
-% direction of vector P1P2 and P1P3, it is a determination of P1P3 and P1P2
-vector_direction(P1, P2, P3, D):-
+%===================
+% vector angle (RAD)
+%===================
+vec_angle(V1, V2, Ang):-
+    dot(V1, V2, D),
+    norm_2(V1, N1), norm_2(V2, N2),
+    N1 =\= 0, N2 =\= 0,
+    A is round((D / (N1 * N2)) * 10e6) / 10e6,
+    Ang is acos(A) / pi,
+    !.
+vec_angle(_, _, 0):-
+    !.
+
+%==========================
+% point in/out box (rectangle)
+%==========================
+% point3 is in the box of [P1, P2]. P1 & P2 are ends of diagonal line segment.
+in_box([P1, P2], P3):-
     P1 = [X1, Y1],
     P2 = [X2, Y2],
     P3 = [X3, Y3],
-    D is (X3 - X1)*(Y2 - Y1) - (Y3 - Y1)*(X2 - X1).
+    (X1 < X2 -> (X_min = X1, X_max = X2, !); (X_min = X2, X_max = X1, !)),
+    (Y1 < Y2 -> (Y_min = Y1, Y_max = Y2, !); (Y_min = Y2, Y_max = Y1, !)),
+    X3 >= X_min,
+    X3 =< X_max,
+    Y3 >= Y_min,
+    Y3 =< Y_max.
 
-% point is on segment
-on_segment(P1, P2, P3):-
-    P1 = [X1, Y1],
-    P2 = [X2, Y2],
-    P3 = [X3, Y3],
-    (X1 < X2 -> (X_min = X1, X_max = X2); (X_min = X2, X_max = X1)),
-    (Y1 < Y2 -> (Y_min = Y1, Y_max = Y2); (Y_min = Y2, Y_max = Y1)),
-    \+(X3 < X_min; X3 > X_max; Y3 < Y_min; Y3 > Y_max).
-
-on_segment(P1, P2, P3):-
+in_box([P1, P2], P3):-
     P1 = [X1, Y1, Z1],
     P2 = [X2, Y2, Z2],
     P3 = [X3, Y3, Z3],
-    (X1 < X2 -> (X_min = X1, X_max = X2); (X_min = X2, X_max = X1)),
-    (Y1 < Y2 -> (Y_min = Y1, Y_max = Y2); (Y_min = Y2, Y_max = Y1)),
-    (Z1 < Z2 -> (Z_min = Z1, Z_max = Z2); (Z_min = Z2, Z_max = Z1)),
-    \+(X3 < X_min; X3 > X_max;
-       Y3 < Y_min; Y3 > Y_max;
-       Z3 < Z_min; Z3 > Z_max).
+    (X1 < X2 -> (X_min = X1, X_max = X2, !); (X_min = X2, X_max = X1, !)),
+    (Y1 < Y2 -> (Y_min = Y1, Y_max = Y2, !); (Y_min = Y2, Y_max = Y1, !)),
+    (Z1 < Z2 -> (Z_min = Z1, Z_max = Z2, !); (Z_min = Z2, Z_max = Z1, !)),
+    X3 >= X_min,
+    X3 =< X_max,
+    Y3 >= Y_min,
+    Y3 =< Y_max,
+    Z3 >= Z_min,
+    Z3 =< Z_max.
 
-% inersection of two line segments
-intersected_seg(S1, S2):-
+% out of box
+%out_box(Box, Point)
+out_box([W, H], [X, Y]):-
+    (X > W - 1;
+     Y > H - 1;
+     X < 0;
+     Y < 0),
+    !.
+
+out_box([W, H, D], [X, Y, Z]):-
+    (X > W - 1;
+     Y > H - 1;
+     Z > D - 1;
+     X < 0;
+     Y < 0;
+     Z < 0),
+    !.
+
+% count number of points in box
+points_in_box(_, [], 0):-
+    !.
+points_in_box(Box, [P | Ps], N):-
+    in_box(Box, P),
+    points_in_box(Box, Ps, N1),
+    N is N1 + 1, !.
+points_in_box(Box, [_ | Ps], N):-
+    points_in_box(Box, Ps, N), !.
+
+%===================
+% interesection 2d
+%===================
+% inersection of two 2d line segments
+intersected_seg_2d(S1, S2):-
     S1 = [P1, P2],
     S2 = [P3, P4],
-    vector_direction(P3, P4, P1, D1),
-    vector_direction(P3, P4, P2, D2),
-    vector_direction(P1, P2, P3, D3),
-    vector_direction(P1, P2, P4, D4),
+    intersect_det(P3, P4, P1, D1),
+    intersect_det(P3, P4, P2, D2),
+    intersect_det(P1, P2, P3, D3),
+    intersect_det(P1, P2, P4, D4),
     ((D1*D2 < 0, D3*D4 < 0, !);
-     (D1 =:= 0, on_segment(P3, P4, P1), !);
-     (D2 =:= 0, on_segment(P3, P4, P2), !);
-     (D3 =:= 0, on_segment(P1, P2, P3), !);
-     (D4 =:= 0, on_segment(P1, P2, P4), !)
+     (D1 =:= 0, in_box([P3, P4], P1), !);
+     (D2 =:= 0, in_box([P3, P4], P2), !);
+     (D3 =:= 0, in_box([P1, P2], P3), !);
+     (D4 =:= 0, in_box([P1, P2], P4), !)
     ).
 
 % return intersected point
-intersected_seg(S1, S2, Points):-
-    intersected_seg(S1, S2) ->
+intersected_seg_2d(S1, S2, Points):-
+    intersected_seg_2d(S1, S2) ->
 	(line_parameters(S1, A1, B1, C1),
 	 line_parameters(S2, A2, B2, C2),
 	 D is A1*B2 - A2*B1,
@@ -97,6 +143,15 @@ intersected_seg(S1, S2, Points):-
 	 !
 	);
     (Points = [], !).
+
+% determination of P1P3 and P1P2
+intersect_det(P1, P2, P3, D):-
+    P1 = [X1, Y1],
+    P2 = [X2, Y2],
+    P3 = [X3, Y3],
+    D is (X3 - X1)*(Y2 - Y1) - (Y3 - Y1)*(X2 - X1).
+
+
 %==============================================
 % David Eberly's Segment intersection algorithm
 %==============================================
@@ -363,3 +418,84 @@ intsct_seg_elps([S, E], [Center, Param], Bound, Intsct):-
      (Pts3 = [A], point_in_ellipse(E, [Center, Param], Bound), Intsct = [A, E]);
      (Pts3 = [A, B], Intsct = [A, B])),
     !.
+
+%=========================
+% random 2d lines sampling
+%=========================
+% randomly sample multiple lines
+rand_sample_2d_lines(_, _, 0, []):-
+    !.
+rand_sample_2d_lines(Frame, [W, H], N, [[C, Dir] | CDs]):-
+    W1 is W - 1, H1 is H - 1,
+    random_between(0, W1, X), random_between(0, H1, Y),
+    C = [X, Y, Frame],
+    rand_2d_angle_vec([XX, YY]),
+    Dir = [XX, YY, 0],
+    N1 is N - 1,
+    rand_sample_2d_lines(Frame, [W, H], N1, CDs).
+
+rand_sample_2d_lines(_, 1, []):-
+    !.
+rand_sample_2d_lines([W, H], N, [[C, Dir] | CDs]):-
+    W1 is W - 1, H1 is H - 1,
+    random_between(0, W1, X), random_between(0, H1, Y),
+    C = [X, Y],
+    rand_2d_angle_vec([XX, YY]),
+    Dir = [XX, YY],
+    N1 is N - 1,
+    rand_sample_2d_lines([W, H], N1, CDs).
+
+% horizontally sample multiple lines (uniform distributed)
+% sample_xxx_lines(+Frame, +[Width, Height], -Lines).
+sample_horizon_lines(Frame, [_, H], N, Lines):-
+    P is H / N,
+    sample_horizon_lines(Frame, [_, H], N, P, Lines), !.
+
+% horizontally sample multiple lines (uniform distributed)
+% sample_xxx_lines(+Frame, +[Width, Height], -Lines).
+sample_horizon_lines(Frame, [_, H], N, Lines):-
+    P is H / N,
+    sample_horizon_lines(Frame, [_, H], N, P, Lines), !.
+sample_horizon_lines(_, _, 0, _, []):-
+    !.
+sample_horizon_lines(Frame, [_, H], N, P, [[[0, Y, Frame], [1, 0]] | Lines]):-
+    Y is ceil(N * P),
+    Y =\= 0,
+    \+ minus(H, 1, Y),
+    N1 is N - 1,
+    sample_horizon_lines(Frame, [_, H], N1, P, Lines).
+sample_horizon_lines(Frame, [_, H], N, P, Lines):-
+    N1 is N - 1,
+    sample_horizon_lines(Frame, [_, H], N1, P, Lines).
+
+% vertically sample multiple lines (uniform distributed)
+sample_vertical_lines(Frame, [W, _], N, Lines):-
+    P is W / N,
+    sample_vertical_lines(Frame, [W, _], N, P, Lines), !.
+sample_vertical_lines(_, _, 0, _, []):-
+    !.
+sample_vertical_lines(Frame, [W, _], N, P, [[[X, 0, Frame], [0, 1]] | Lines]):-
+    X is ceil(N * P),
+    X =\= 0,
+    \+ minus(W, 1, X),
+    N1 is N - 1,
+    sample_vertical_lines(Frame, [W, _], N1, P, Lines).
+sample_vertical_lines(Frame, [W, _], N, P, Lines):-
+    N1 is N - 1,
+    sample_vertical_lines(Frame, [W, _], N1, P, Lines).
+
+%=======================================================
+% calculate the total length of a list of line segments
+%=======================================================
+total_seg_length([], 0):-
+    !.
+total_seg_length([[Start, End]-_ | Segs], Sum):-
+    eu_dist(Start, End, Dist),
+    total_seg_length(Segs, Sum1),
+    !,
+    Sum is Sum1 + Dist.
+total_seg_length([[Start, End] | Segs], Sum):-
+    eu_dist(Start, End, Dist),
+    total_seg_length(Segs, Sum1),
+    !,
+    Sum is Sum1 + Dist.

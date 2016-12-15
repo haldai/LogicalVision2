@@ -31,7 +31,10 @@ VideoCapture *cv_load_video(string path);
 // transform video as an image sequence and transform to Lab color
 vector<Mat> *cv_video2imgseq(VideoCapture *vid);
 vector<Mat> *cv_video2greyseq(VideoCapture *vid); // to greyscale
-
+// get subimages
+Mat* cv_get_subimage(Mat *img, Scalar roi);
+// resize image
+Mat* cv_resize_image(Mat *img, int width, int height);
 
 /*********** implementation ************/
 Mat* cv_load_img(string path) {
@@ -97,6 +100,28 @@ vector<Mat> *cv_video2greyseq(VideoCapture *vid) {
         ++frame_current;
     }
     return seq;
+}
+
+Mat* cv_get_subimage(Mat *img, Scalar roi) {
+    int x = roi[0];
+    int y = roi[1];
+    int rx = roi[2];
+    int ry = roi[3];
+    
+    x = (x - rx >= 0) ? (x - rx) : 0;
+    y = (x - ry >= 0) ? (x - ry) : 0;
+    int lx = 2*rx + 1;
+    int ly = 2*ry + 1;
+    
+    Rect r(x, y, lx, ly);
+    Mat *re = new Mat((*img)(r).clone());
+    return re;
+}
+
+Mat* cv_resize_image(Mat *img, int width, int height) {
+    Mat *re = new Mat(cv::Size(width, height), img->type());
+    cv::resize(*img, *re, re->size(), 0, 0, cv::INTER_AREA);
+    return re;
 }
 
 #endif

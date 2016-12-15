@@ -146,6 +146,24 @@ test_fit_elps(IMGSEQ, Center, [A, B, ALPHA], COLOR):-
     release_img(IMG2),
     test_write_done.
 
+test_fit_circle(IMGSEQ, [X, Y, R], COLOR):-
+    test_write_start('fit circle'),
+    seq_img(IMGSEQ, 0, IMG1),
+    clone_img(IMG1, IMG2),
+    size_3d(IMGSEQ, W, H, D),
+    circle_points([X, Y, 0, R], [W, H, D], PTS),
+    %index_select([1, 30, 50, 70, 90, 110, 130, 150, 170, 190], PTS, PTS2),
+    index_select([1, 30, 50], PTS, PTS2),
+    %PTS2 = PTS,
+    fit_circle(PTS2, Para2),
+    write('fit parameters: '), write(Para2), nl,
+    circle_points(Para2, [W, H, D], PTS3),
+    draw_points_2d(IMG2, PTS3, COLOR),
+    draw_points_2d(IMG2, PTS2, green),
+    showimg_win(IMG2, 'debug'),
+    release_img(IMG2),
+    test_write_done.
+
 % sample a line and its variance
 test_sample_line_var(Imgseq, Pts, Vars):-
     test_write_start('sample line variance'),
@@ -190,38 +208,7 @@ test_sample_line_color_L(Imgseq, Pts, L):-
     test_write_done.
 
 % sample a line and brightness gradient
-test_sample_line_L_grad(Imgseq, Pts, G):-
-    test_write_start('sample line gradient - brightness'),
-    % get points and brightness
-    sample_line_L_grad(Imgseq, [351, 147, 0], [-2, -1, 0], Pts, G),
-    print(Pts), nl,
-    print(G), nl,
-    items_key_geq_T(Pts, G, 2, HL), % highlight
-    items_key_less_T(Pts, G, -1, SHD), % shadow
-    seq_img(Imgseq, 0, IMG1),
-    clone_img(IMG1, IMG2),
-    draw_points_2d(IMG2, HL, red),
-    draw_points_2d(IMG2, SHD, blue),
-    showimg_win(IMG2, 'debug'),
-    release_img(IMG2),    
-    test_write_done.
-test_sample_line_L_grad(Imgseq, Pts, G):-
-    test_write_start('sample line gradient - brightness'),
-    % get points and brightness
-    sample_line_L_grad(Imgseq, [351, 147, 0], [-2, -1, 0], Pts, G),
-    print(Pts), nl,
-    print(G), nl,
-    items_key_geq_T(Pts, G, 2, HL), % highlight
-    items_key_less_T(Pts, G, -1, SHD), % shadow
-    seq_img(Imgseq, 0, IMG1),
-    clone_img(IMG1, IMG2),
-    draw_points_2d(IMG2, HL, red),
-    draw_points_2d(IMG2, SHD, blue),
-    showimg_win(IMG2, 'debug'),
-    release_img(IMG2),    
-    test_write_done.
-
-test_sample_line_L_grad(Imgseq, Point, Dir, Pts, G):-
+test_sample_line_L_grad(Imgseq, Point, Dir):-
     test_write_start('sample line gradient - brightness'),
     % get points and brightness
     sample_line_L_grad(Imgseq, Point, Dir, Pts, G),
@@ -232,11 +219,32 @@ test_sample_line_L_grad(Imgseq, Point, Dir, Pts, G):-
     Point = [_, _, Frame],
     seq_img(Imgseq, Frame, IMG1),
     clone_img(IMG1, IMG2),
+    draw_line_2d(IMG2, Point, Dir, white),
     draw_points_2d(IMG2, HL, red),
     draw_points_2d(IMG2, SHD, blue),
     showimg_win(IMG2, 'debug'),
     release_img(IMG2),    
     test_write_done.
+
+test_sample_parallel_lines_L_grad(Imgseq, Frame, Dir):-
+    test_write_start('sample parallel lines gradient - brightness'),
+    % from [0,0,F] to [639,0,F]
+    seq_img(Imgseq, Frame, IMG1),
+    clone_img(IMG1, IMG2),
+    test_sample_parallel_lines_L_grad_(Imgseq, IMG2, 639, Frame, Dir),
+    showimg_win(IMG2, 'parallel gradients'),
+    release_img(IMG2),
+    test_write_done.
+test_sample_parallel_lines_L_grad_(_, _, 0, _, _):-
+    !.
+test_sample_parallel_lines_L_grad_(Imgseq, IMG, X, Frame, Dir):-
+    sample_line_L_grad(Imgseq, [X, 0, Frame], Dir, Pts, G),
+    items_key_geq_T(Pts, G, 3, HL), % highlight
+    items_key_less_T(Pts, G, -2, SHD), % shadow
+    draw_points_2d(IMG, HL, red),
+    draw_points_2d(IMG, SHD, blue),
+    X1 is X - 1,
+    test_sample_parallel_lines_L_grad_(Imgseq, IMG, X1, Frame, Dir).
 
 % sample multiple lines and brightness gradients
 test_multiple_sample_line_L_grad(Imgseq):-
@@ -620,6 +628,32 @@ test_draw_elpses(Img, [elps(Cen, Para, C) | Elpses]):-
     draw_points_2d(Img, Pts, Col),
     test_draw_elpses(Img, Elpses).
 
+% test gradient points
+test_extrema(Imgseq, Point, Dir):-
+    test_write_start('test gradient zeropoint (extrema of brightness)'),
+    % get points and brightness    
+    sample_line_L_grad(Imgseq, Point, Dir, Pts, G),
+    %grad(G1, G), % second order derivative
+    print(Pts), nl,
+    %print(G1), nl,
+    print(G), nl,
+    items_key_geq_T(Pts, G, 2, HL), % highlight
+    items_key_less_T(Pts, G, -1, SHD), % shadow
+    pairs_keys_values(Pair, G, Pts),
+    zero_item(Pair, -1, ExtPts),
+    Point = [_, _, Frame],
+    seq_img(Imgseq, Frame, IMG1),
+    clone_img(IMG1, IMG2),
+    draw_points_2d(IMG2, HL, red),
+    draw_points_2d(IMG2, SHD, blue),    
+    draw_points_2d(IMG2, ExtPts, green),
+    showimg_win(IMG2, 'debug'),
+    release_img(IMG2),    
+    test_write_done.
+
+%test_extremas(Imgseq):-
+    
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % HERE GOES MAIN TEST
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -627,17 +661,23 @@ test_main:-
     test_load_imgseq(Imgseq),
     %test_show2imgs(Imgseq),
     %test_draw_elps(Imgseq, [[353, 143, 0], [37, 18, 110]], red),
+    test_fit_elps(Imgseq, [353, 143, 0], [37, 18, 110], red),
     %test_draw_line_2d(Imgseq, [100, 100, 0], [2, 7, 0], red),
     %test_draw_line_(Imgseq, [100, 100, 0], [2, 7, 0], red),
     %test_ellipse(Imgseq),
+    %test_fit_circle(Imgseq, [100, 100, 30], blue),
     %showseq_win(Imgseq, debug),
+    %test_sample_line_L_grad(Imgseq, [351, 147, 2000], [1, 1, 0]),
+    %test_sample_line_L_grad(Imgseq, [120, 0, 2000], [1, 1, 0]),
+    %test_extrema(Imgseq, [351, 147, 0], [1, 1, 0]),
+    %test_sample_parallel_lines_L_grad(Imgseq, 0, [1,1,0]),
     %test_line_scharr(Imgseq, [353, 133, 0], [1, 1, 0], 2),
     %test_line_scharr(Imgseq, [335, 133, 0], [1, 1, 0], 2),
     %test_compare_hist(Imgseq),
     %test_points_hist(Imgseq),
     %test_rand_sample_lines_scharrs(Imgseq, 1000),
     %test_sample_line_seg_hists(Imgseq),
-    test_cluster_rand_segs(Imgseq),
+    %test_cluster_rand_segs(Imgseq),
     %test_sample_cube_var_hist(Imgseq),
     %test_draw_cubes(Imgseq),
     %test_color_bg_nonbg(Imgseq, _),

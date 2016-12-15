@@ -52,6 +52,28 @@ PREDICATE(load_img, 2) {
         return LOAD_ERROR("load_img/2", 1, "PATH", "STRING");
 }
 
+/* save_img(ADD, PATH)
+ * save image from ADD to PATH
+ */
+PREDICATE(save_img, 2) {
+    char* p1;
+    char* p2;
+    if (!(p1 = (char*) A1) || !(p2 = (char*) A2))
+        return FALSE;
+    const string add_img(p1);
+    Mat *img = str2ptr<Mat>(add_img);
+    Mat frame = img->clone();
+    cvtColor(frame, frame, COLOR_Lab2BGR);
+    const string out_path(p2);
+    try {
+        imwrite(out_path, frame);
+    } catch (cv::Exception& ex) {
+        fprintf(stderr, "Exception converting image to PNG format: %s\n", ex.what());
+        return FALSE;
+    }
+    return TRUE;
+}
+
 /* load_video(PATH, ADD)
  * load a video into stack
  * also automaticall assert size_2d(ADD, width, height)
@@ -276,8 +298,8 @@ PREDICATE(showimg_win, 2) {
     char *p1;
     char *p2;
     if (PL_get_atom_chars(t1, &p1)) {
-        string add(p1);
-        Mat* img = str2ptr<Mat>(p1);
+        const string add(p1);
+        Mat* img = str2ptr<Mat>(add);
         if (PL_get_atom_chars(t2, &p2)) {
             string window_name(p2);
             namedWindow(window_name, WINDOW_AUTOSIZE);
@@ -540,5 +562,64 @@ PREDICATE(clone_seq, 2) {
     size_3d_atom[0] = PlCompound("size_3d", size_3d);        
     PlCall("assertz", size_2d_atom);
     PlCall("assertz", size_3d_atom);
+    return TRUE;
+}
+
+/* subimg_2d(Img1, [X, Y, RX, RY], Img2)
+ * get a sub image (Img2) from Img1
+ * @X,Y: center
+ * @RX,RY: radius
+ */
+PREDICATE(subimg_2d, 3) {
+    // source image
+    char *p1 = (char*) A1;
+    const string add_img(p1);
+    Mat *img = str2ptr<Mat>(add_img);
+    // ROI
+    vector<int> vec = list2vec<int>(A2, 4);
+    // get subimage
+    Mat *newimg = cv_get_subimage(img, Scalar(vec[0], vec[1], vec[2], vec[3]));
+    // convert returning
+    string add = ptr2str(newimg);
+    A3 = PlTerm(add.c_str());    
+    // assert size_2d
+    int col = newimg->cols;
+    int row = newimg->rows;
+    PlTermv size_2d_args(3);
+    size_2d_args[0] = A3;
+    size_2d_args[1] = col;
+    size_2d_args[2] = row;
+    PlTermv size_2d_atom(1);
+    size_2d_atom[0] = PlCompound("size_2d", size_2d_args);
+    PlCall("assertz", size_2d_atom);
+    return TRUE;
+}
+
+/* resize_img_2d(Img1, [Width, Height], Img2)
+ * get a sub image (Img2) from Img1
+ * @Width, Height: size of the resized image
+ */
+PREDICATE(resize_img_2d, 3) {
+    // source image
+    char *p1 = (char*) A1;
+    const string add_img(p1);
+    Mat *img = str2ptr<Mat>(add_img);
+    // size
+    vector<int> vec = list2vec<int>(A2, 2);
+    // get subimage
+    Mat *newimg = cv_resize_image(img, vec[0], vec[1]);
+    // convert returning
+    string add = ptr2str(newimg);
+    A3 = PlTerm(add.c_str());
+    // assert size_2d
+    int col = newimg->cols;
+    int row = newimg->rows;
+    PlTermv size_2d_args(3);
+    size_2d_args[0] = A3;
+    size_2d_args[1] = col;
+    size_2d_args[2] = row;
+    PlTermv size_2d_atom(1);
+    size_2d_atom[0] = PlCompound("size_2d", size_2d_args);
+    PlCall("assertz", size_2d_atom);
     return TRUE;
 }

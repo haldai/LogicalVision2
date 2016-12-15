@@ -18,13 +18,13 @@
 %    same_obj_1(B, C, N1).
 
 %% another hypothesis
-same_obj(A, B):-
-    same_obj_1(A, C),
-    same_obj_1(C, B).
-same_obj_1(A, B):-
-    sample_mid(A, B, C),
-    similar(A, C),
-    similar(B, C).
+% same_obj(A, B):-
+%     same_obj_1(A, C),
+%     same_obj_1(C, B).
+% same_obj_1(A, B):-
+%     sample_mid(A, B, C),
+%     similar(A, C),
+%     similar(B, C).
 
 %==================
 % primitives of BK
@@ -88,12 +88,6 @@ sample_mid(elps(A, _, _), elps(B, _, _), C):-
     ground(A), ground(B),
     mid_point(A, B, M),
     discover_obj(M, C).
-
-% mid point of two points (object centroids)
-mid_point([X1, Y1, F1], [X2, Y2, F2], [X3, Y3, F3]):-
-    X3 is round((X1 + X2)/2),
-    Y3 is round((Y1 + Y2)/2),
-    F3 is round((F1 + F2)/2).
 
 % discover objects given the position of one of its inner point
 discover_obj(Point, elps(Center, Parameter, Color)):-

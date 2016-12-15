@@ -4,18 +4,25 @@
  * Author: Wang-Zhou Dai <dai.wzero@gmail.com>
  */
 
-%=============================
-% sample variance of a cube
-%=============================
-sample_cube_var(Imgseq, Center, Radius, Var):-
-    size_3d(Imgseq, W, H, D),
-    in_cube_points(Center, Radius, [W, H, D], Pts),
-    pts_set_var(Imgseq, Pts, Var).
+spiral_regions_2d([X, Y | Z], [W, H | D], [A, B], [O, Step], Regions):-
+    spiral_points_2d([X, Y | Z], [W, H | D], [A, B], [O, Step], 0, [], Centers),
+    center_lists_to_regions_2d(Centers, LRegions),
+    append(LRegions, Regions).
 
-%===========================
-% color hist of a cube
-%===========================
-sample_cube_hist(Imgseq, Center, Radius, Hist):-
-    size_3d(Imgseq, W, H, D),
-    in_cube_points(Center, Radius, [W, H, D], Pts),
-    points_color_hist(Imgseq, Pts, Hist).
+center_lists_to_regions_2d([], []):- !.
+center_lists_to_regions_2d([L | Ls], [R | Rs]):-
+    centers_to_regions_2d(L, R),
+    center_lists_to_regions_2d(Ls, Rs).
+centers_to_regions_2d([_], []):- !.
+centers_to_regions_2d([C1, C2], [R1, R2]):-
+    C1 = [X1, Y1 | Z], C2 = [X2, Y2 | Z],
+    Radius1 is round(sqrt((X1 - X2)**2 + (Y1 - Y2)**2)/3),
+    (Radius1 =< 30 -> Radius = 30; Radius = Radius1), !,
+    R1 = [C1, Radius], R2 = [C2, Radius],
+    !.
+centers_to_regions_2d([C1, C2 | Cs], [R | Rs]):-
+    C1 = [X1, Y1 | Z], C2 = [X2, Y2 | Z],
+    Radius1 is round(sqrt((X1 - X2)**2 + (Y1 - Y2)**2)/3),
+    (Radius1 =< 30 -> Radius = 30; Radius = Radius1), !,
+    R = [C1, Radius],
+    centers_to_regions_2d([C2 | Cs], Rs).

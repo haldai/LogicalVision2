@@ -71,10 +71,27 @@ PREDICATE(sample_point_scharr, 3) {
     return A3 = PlTerm(var);
 }
 
-/* sample_point_color(IMGSEQ, [X, Y, Z], COLOR)
+/* sample_point_scharr_2d(IMG, [X, Y], GRAD)
+ * get scharr gradient of point [X, Y] in image IMG
+ */
+PREDICATE(sample_point_scharr_2d, 3) {
+    char *p1 = (char*) A1;
+    vector<int> vec = list2vec<int>(A2, 2);
+    Scalar point(vec[0], vec[1], 0.0); // coordinates scalar
+
+    // get image sequence and compute variance
+    const string add_img(p1);
+    Mat *img = str2ptr<Mat>(add_img);
+    double var = cv_img_point_scharr(img, point);
+
+    // return variance
+    return A3 = PlTerm(var);
+}
+
+/* point_color(IMGSEQ, [X, Y, Z], COLOR)
  * get LAB color of local area of point [X, Y, Z] in image sequence IMGSEQ
  */
-PREDICATE(sample_point_color, 3) {
+PREDICATE(point_color, 3) {
     char *p1 = (char*) A1;
     vector<int> vec = list2vec<int>(A2, 3);
     Scalar point(vec[0], vec[1], vec[2]); // coordinates scalar
@@ -89,11 +106,11 @@ PREDICATE(sample_point_color, 3) {
     return A3 = vec2list<double>(col_vec);
 }
 
-/* sample_point_color(IMGSEQ, [X, Y, Z], [RX, RY, RZ], COLOR)
+/* point_color(IMGSEQ, [X, Y, Z], [RX, RY, RZ], COLOR)
  * get average LAB color of point's neigborhood with radius [RX, RY, RZ]
  * local area
  */
-PREDICATE(sample_point_color, 4) {
+PREDICATE(point_color, 4) {
     char *p1 = (char*) A1;
     vector<int> vec = list2vec<int>(A2, 3);
     Scalar point(vec[0], vec[1], vec[2]); // coordinates scalar
@@ -109,6 +126,24 @@ PREDICATE(sample_point_color, 4) {
 
     // return variance
     return A4 = vec2list<double>(col_vec);
+}
+
+/* point_color_2d(IMG, [X, Y], COLOR)
+ * get LAB color of local area of point [X, Y, Z] in an image IMG
+ */
+PREDICATE(point_color_2d, 3) {
+    char *p1 = (char*) A1;
+    vector<int> vec = list2vec<int>(A2, 2);
+    Scalar point(vec[0], vec[1], 0); // coordinates scalar
+
+    // get image sequence and compute variance
+    const string add_img(p1);
+    Mat *img = str2ptr<Mat>(add_img);
+    Scalar col = cv_img_point_color_loc_2d(img, point);
+    vector<double> col_vec = {col[0], col[1], col[2]};
+
+    // return colors
+    return A3 = vec2list<double>(col_vec);
 }
 
 /* line_points(+POINT, +DIR, +BOUND, -PTS)
@@ -181,6 +216,24 @@ PREDICATE(ellipse_points, 4) {
     // get points
     vector<Scalar> pts = get_ellipse_points(centre, param, bound);
     return A4 = point_vec2list(pts);
+}
+
+/* circle_points(PARAM, BOUND, PTS)
+ * @PARAM = [X, Y, Frame, R]: [X, Y, Frame] is the center, R is the radius
+ * @BOUND = [W, H, D]: size limit of the video (width, height and duration),
+ *      usually obained from 'size_3d(VID, W, H, D)'
+ * @PTS: returned point list
+ */
+PREDICATE(circle_points, 3) {
+    // parameter coordinate scalar
+    vector<int> p_vec = list2vec<int>(A1, 4);
+    Scalar param(p_vec[0], p_vec[1], p_vec[2], p_vec[3]);
+    // boundary scalar
+    vector<int> bd_vec = list2vec<int>(A2, 3);
+    Scalar bound(bd_vec[0], bd_vec[1], bd_vec[2]);
+    // get points
+    vector<Scalar> pts = get_circle_points(param, bound);
+    return A3 = point_vec2list(pts);
 }
 
 /* in_cube_points(+CENTRE, +RADIUS, +BOUND, -PTS)
@@ -273,9 +326,27 @@ PREDICATE(pts_color, 3) {
     const string add_seq(p1);    
     vector<Mat> *seq = str2ptr<vector<Mat>>(add_seq);
     // point list
-    vector<Scalar> pts = point_list2vec(A2);
+    vector<Scalar> pts = point_list2vec(A2, -1, 2);
     // calculate variances
     vector<Scalar> colors = cv_imgs_points_color_loc(seq, pts);
+    return A3 = scalar_vec2list<double>(colors);
+}
+
+/* pts_color_2d(+IMG, +PTS, -COLORS)
+ * For a list of points, return their color
+ * @IMGSEQ: input image
+ * @PTS: point list, [[X1, Y1], ...]
+ * @VARS: color of each point, [[L,A,B], ...]
+ */
+PREDICATE(pts_color_2d, 3) {
+    // image sequence
+    char *p1 = (char*) A1;
+    const string add_img(p1);    
+    Mat *img = str2ptr<Mat>(add_img);
+    // point list
+    vector<Scalar> pts = point_list2vec(A2);
+    // calculate variances
+    vector<Scalar> colors = cv_img_points_color_loc_2d(img, pts);
     return A3 = scalar_vec2list<double>(colors);
 }
 
@@ -447,7 +518,7 @@ PREDICATE(line_seg_pts_var_geq_T, 6) {
 /* line_pts_scharr_geq_T(IMGSEQ, [PX, PY, PZ], [A, B, C], T_SCHARR, P_LIST)
  *     equation of the line to be sampled:
  *         (X-PX)/A=(Y-PY)/B=(Z-PZ)/C
- * @(PX, PY, PZ) is a point that it crossed
+ * @(PX, PY, PZ) is a point that it crosses
  * @(A, B, C) is the direction of the line
  * @T_SCHARR is the threshold of scharr gradient
  * @P_LIST is the returned points that exceed the variance threshold on the
@@ -470,6 +541,35 @@ PREDICATE(line_pts_scharr_geq_T, 5) {
     // sample a line and get all points that have high variance
     vector<Scalar> points = cv_line_pts_scharr_geq_T(seq, pt, dir, thresh);
     return A5 = point_vec2list(points);
+}
+
+/* line_pts_scharr_geq_T_2d(IMG, [PX, PY], [A, B], T_SCHARR, P_LIST)
+ *     equation of the line to be sampled:
+ *         (X-PX)/A=(Y-PY)/B=(Z-PZ)/C
+ * @(PX, PY) is a point that it crosses
+ * @(A, B) is the direction of the line
+ * @T_SCHARR is the threshold of scharr gradient
+ * @P_LIST is the returned points that exceed the variance threshold on the
+ *    line
+ * @TODO::::
+ */
+PREDICATE(line_pts_scharr_geq_T_2d, 5) {
+    char *p1 = (char*) A1;
+    // coordinates scalar
+    vector<int> pt_vec = list2vec<int>(A2, 2);
+    Scalar pt(pt_vec[0], pt_vec[1], 0.0);
+    // direction scalar
+    vector<double> dr_vec = list2vec<double>(A3, 2);
+    Scalar dir(dr_vec[0], dr_vec[1], 0.0);
+    // get image sequence and compute variance
+    const string add_img(p1);
+    Mat *img = str2ptr<Mat>(add_img);
+    // get threshold
+    double thresh = (double) A4;
+
+    // sample a line and get all points that have high variance
+    vector<Scalar> points = cv_line_pts_scharr_geq_T_2d(img, pt, dir, thresh);
+    return A5 = point_vec2list(points, -1, 2);
 }
 
 /* line_seg_pts_scharr_geq_T(IMGSEQ, [SX, SY, SZ], [EX, EY, EZ], T_SCHARR, P_LIST)
@@ -512,6 +612,10 @@ PREDICATE(line_seg_pts_scharr_geq_T, 5) {
  */
 PREDICATE(fit_elps, 3) {
     vector<Scalar> pts = point_list2vec(A1);
+    if (pts.size() < 5) {
+        cout << "[ERROR] At least 5 points are needed for fitting an ellipse." << endl;
+        return FALSE;
+    }
     // check if all points are on the same frame
     int frame = pts[0][2];
     for (auto it = pts.begin(); it != pts.end(); ++it) {
@@ -535,6 +639,40 @@ PREDICATE(fit_elps, 3) {
                               (long) param[2]};
     A2 = vec2list<long>(cen_vec);
     A3 = vec2list<long>(param_vec);
+    return TRUE;
+}
+
+/* fit_circle(PTS, PARAM)
+ * given a list (>=3) of points, fit a circle on a plane (the 3rd dimenstion
+ * is fixed)
+ * @PTS: points list 
+ * @PARAM = [X, Y, F, R]: center position (X, Y, Frame) and radius (R)
+ */
+PREDICATE(fit_circle, 2) {
+    vector<Scalar> pts = point_list2vec(A1);
+    if (pts.size() < 3) {
+        cout << "[ERROR] At least 3 points are needed for fitting a circle." << endl;
+        return FALSE;
+    }
+    // check if all points are on the same frame
+    int frame = pts[0][2];
+    for (auto it = pts.begin(); it != pts.end(); ++it) {
+        Scalar pt = *it;
+        if (frame != pt[2]) {
+            cout << "[ERROR] Points are not on the same frame!" << endl;
+            return FALSE;
+        }
+    }
+    // fit ellipse
+    Scalar param;
+    fit_circle_2d(pts, param);
+    //fit_ellipse(pts, cen, param);
+    // bind variables
+    vector<long> param_vec = {(long) param[0],
+                              (long) param[1],
+                              frame,
+                              (long) param[2]};
+    A2 = vec2list<long>(param_vec);
     return TRUE;
 }
 
