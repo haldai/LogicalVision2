@@ -35,6 +35,10 @@ std::vector<T> operator+(const std::vector<T> &A, const std::vector<T> &B);
 template <typename T>
 std::vector<T> &operator+=(std::vector<T> &A, const std::vector<T> &B);
 
+/* parse prolog key-value map   
+ */
+bool term_key_value(const PlTerm & term, PlTerm & key, PlTerm & value);
+
 /* list2vec
  * translate a PlTerm (list) into vector
  * @Type: c-type of terms in the list (int, long, double, wchar*, char*),
@@ -43,34 +47,36 @@ std::vector<T> &operator+=(std::vector<T> &A, const std::vector<T> &B);
  * @size: number of elements in list, -1 means all elements
  */
 template <class Type>
-vector<Type> list2vec(PlTerm term, int size = -1);
+vector<Type> list2vec(const PlTerm & term, int size = -1);
 template <class Type>
-PlTerm vec2list(vector<Type> list, int size = -1);
+PlTerm vec2list(const vector<Type> & list, int size = -1);
 template <class Type>
-vector<vector<Type>> list2vecvec(PlTerm term, int size_outer = -1,
+vector<vector<Type>> list2vecvec(const PlTerm & term, int size_outer = -1,
                                  int size_inner = -1);
 template <class Type>
-PlTerm vecvec2list(vector<vector<Type>> vec, int size_outer = -1,
+PlTerm vecvec2list(const vector<vector<Type>> & vec, int size_outer = -1,
                    int size_inner = -1);
 template <class Type>
-PlTerm arma_mat2list(arma::mat m, int size_outer = -1,
+PlTerm arma_mat2list(const arma::mat & m, int size_outer = -1,
                      int size_inner = -1);
+// prolog list of list to arma data, so all the elements have to be double
+arma::mat list_data2arma_mat(const PlTerm & pldata);
 
 /* Return an empty list */
 PlTerm empty_list();
 
 /* transformation between 3D-scalar vector and prolog list */
 template <class Type>
-vector<Scalar> scalar_list2vec(PlTerm term, int size = -1, int dim = 3);
+vector<Scalar> scalar_list2vec(const PlTerm & term, int size = -1, int dim = 3);
 template <class Type>
-PlTerm scalar_vec2list(vector<Scalar> list, int size = -1, int dim = 3);
+PlTerm scalar_vec2list(const vector<Scalar> & list, int size = -1, int dim = 3);
 
 /* transformation between vector of point coordinates and prolog list
  * @term: prolog term of list, [[x1, y1, z1], [x2, y2, z2], ...]
  * @list: vector of scalar, each scalar is a point coordinate
  */
-vector<Scalar> point_list2vec(PlTerm term, int size = -1, int dim = 3);
-PlTerm point_vec2list(vector<Scalar> list, int size = -1, int dim = 3);
+vector<Scalar> point_list2vec(const PlTerm & term, int size = -1, int dim = 3);
+PlTerm point_vec2list(const vector<Scalar> & list, int size = -1, int dim = 3);
 
 /* reassign data points into lists of groups according to clustering results
  * @points: data points (vector of feature vectors)
@@ -79,7 +85,7 @@ PlTerm point_vec2list(vector<Scalar> list, int size = -1, int dim = 3);
  * @returned: a Prolog term, list of groups of points. L = [[Grp1], ...],
  *    Grp = [Pt1, ...], Pt = [x1, x2, ...].
  */
-PlTerm group2lists(vector<vector<double>> points, int group_num, arma::Row<size_t> assignments);
+PlTerm group2lists(const vector<vector<double>> & points, int group_num, arma::Row<size_t> assignments);
 
 /* Assert and retract a fact (PlCompoud as a PlTerm) in Prolog Engine */
 void pl_assert(string pred, PlTerm args);
@@ -95,8 +101,17 @@ Type *element_ptr_in_vector(const vector<Type> *vec, int idx) {
     return (Type *) &((*vec)[idx]);
 }
 
+bool term_key_value(const PlTerm & term, PlTerm & key, PlTerm & value) {
+    std::string pred(term.name());
+    if (pred.compare("-"))
+        return false;
+    key = term[1];
+    value = term[2];
+    return true;
+}
+
 template <class Type>
-vector<Type> list2vec(PlTerm term, int size) {
+vector<Type> list2vec(const PlTerm & term, int size) {
     static_assert((is_same<Type, int>::value)
                   || (is_same<Type, long>::value)
                   || (is_same<Type, double>::value)
@@ -122,7 +137,7 @@ vector<Type> list2vec(PlTerm term, int size) {
     }
 }
 template <class Type>
-PlTerm vec2list(vector<Type> list, int size) {
+PlTerm vec2list(const vector<Type> & list, int size) {
     static_assert((is_same<Type, long>::value)
                   || (is_same<Type, double>::value)
                   || (is_same<Type, wchar_t*>::value)
@@ -151,7 +166,8 @@ PlTerm vec2list(vector<Type> list, int size) {
 }
 
 template <class Type>
-vector<vector<Type>> list2vecvec(PlTerm term, int size_outer, int size_inner) {
+vector<vector<Type>> list2vecvec(const PlTerm & term,
+                                 int size_outer, int size_inner) {
     static_assert((is_same<Type, int>::value)
                   || (is_same<Type, long>::value)
                   || (is_same<Type, double>::value)
@@ -183,7 +199,8 @@ vector<vector<Type>> list2vecvec(PlTerm term, int size_outer, int size_inner) {
 }
 
 template <class Type>
-PlTerm vecvec2list(vector<vector<Type>> vec, int size_outer, int size_inner) {
+PlTerm vecvec2list(const vector<vector<Type>> & vec,
+                   int size_outer, int size_inner) {
     static_assert((is_same<Type, long>::value)
                   || (is_same<Type, double>::value)
                   || (is_same<Type, wchar_t*>::value)
@@ -217,7 +234,7 @@ PlTerm vecvec2list(vector<vector<Type>> vec, int size_outer, int size_inner) {
 }
 
 template <class Type>
-PlTerm arma_mat2list(arma::mat m, int size_outer, int size_inner) {
+PlTerm arma_mat2list(const arma::mat & m, int size_outer, int size_inner) {
     static_assert((is_same<Type, long>::value)
                   || (is_same<Type, double>::value)
                   || (is_same<Type, wchar_t*>::value)
@@ -252,6 +269,38 @@ PlTerm arma_mat2list(arma::mat m, int size_outer, int size_inner) {
     return re_term;
 }
 
+arma::mat list_data2arma_mat(const PlTerm & pldata) {
+    arma::mat re;
+    vector<vector<double>> re_vec;
+    try {
+        PlTail data(pldata);
+        PlTerm instance;
+        while(data.next(instance)) {
+            PlTail feature(instance);
+            PlTerm e;
+            vector<double> inst;
+            while (feature.next(e))
+                inst.push_back((double) e);
+            re_vec.push_back(inst);
+        }
+    } catch (...) {
+        cout << "Parsing data to arma::mat failed!" << endl;
+        return re;
+    }
+    int n = re_vec.size();
+    int m = re_vec[0].size();
+    re = arma::mat(m, n);
+    try {
+        for (int i = 0; i < n; i++)
+            re.col(i) = arma::vec(re_vec[i]);
+    } catch (...) {
+        cout << "Cannot init data matrix, check the length of feature vectors."
+             << endl;
+        re.zeros();
+        return re;
+    }
+    return re;
+}
 
 PlTerm empty_list() {
     PlTerm re;
@@ -261,7 +310,7 @@ PlTerm empty_list() {
 }
 
 template <class Type>
-PlTerm scalar_vec2list(vector<Scalar> list, int size, int dim) {
+PlTerm scalar_vec2list(const vector<Scalar> & list, int size, int dim) {
     static_assert((is_same<Type, long>::value)
                   || (is_same<Type, double>::value),
                   "Wrong template type for list2vec!");
@@ -294,7 +343,7 @@ PlTerm scalar_vec2list(vector<Scalar> list, int size, int dim) {
 }
 
 template <class Type>
-vector<Scalar> scalar_list2vec(PlTerm term, int size, int dim) {
+vector<Scalar> scalar_list2vec(const PlTerm & term, int size, int dim) {
     static_assert((is_same<Type, int>::value)
                   || (is_same<Type, long>::value)
                   || (is_same<Type, double>::value),
@@ -334,11 +383,11 @@ vector<Scalar> scalar_list2vec(PlTerm term, int size, int dim) {
     return vec;
 }
 
-PlTerm point_vec2list(vector<Scalar> list, int size, int dim) {
+PlTerm point_vec2list(const vector<Scalar> & list, int size, int dim) {
     return scalar_vec2list<long>(list, size, dim);
 }
 
-vector<Scalar> point_list2vec(PlTerm term, int size, int dim) {
+vector<Scalar> point_list2vec(const PlTerm & term, int size, int dim) {
     return scalar_list2vec<int>(term, size, dim);
 }
 
@@ -373,7 +422,7 @@ void pl_retract(string pred, PlTerm args) {
     q.next_solution();
 }
 
-PlTerm group2lists(vector<vector<double>> items,
+PlTerm group2lists(const vector<vector<double>> & items,
                    int group_num,
                    arma::Row<size_t> assignments) {
     //[[seg1,seg2],[seg3,seg4],...], where each seg=[x1,x2,...]

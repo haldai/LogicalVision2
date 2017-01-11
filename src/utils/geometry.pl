@@ -45,6 +45,15 @@ vec_angle(V1, V2, Ang):-
 vec_angle(_, _, 0):-
     !.
 
+%===================
+% rectangle area
+%===================
+% [X1, Y1], [X2, Y2] are top-left and bottom-right points
+rect_area([[X1, Y1], [X2, Y2]], S):-
+    S is (X2 - X1) * (Y2 - Y1).
+rect_intsct_area([[X1, Y1], [X2, Y2]], [[X3, Y3], [X4, Y4]], S):-
+    S is max(0, min(X2, X4) - max(X1, X3)) * max(0, min(Y2, Y4) - max(Y1, Y3)).
+    
 %==========================
 % point in/out box (rectangle)
 %==========================
@@ -392,6 +401,18 @@ rand_2d_angle_vec([X, Y]):-
     random(R), Phi is R*2*pi,
     X is cos(Phi),
     Y is sin(Phi).
+
+%===================
+% random 2d point
+%===================
+rand_2d_point([X, Y], [W, H]):-
+    random(0, W, X),
+    random(0, H, Y).
+
+rand_3d_point([X, Y, Z], [W, H, D]):-
+    random(0, W, X),
+    random(0, H, Y),
+    random(0, D, Z).
 
 %======================
 % point inside ellipse

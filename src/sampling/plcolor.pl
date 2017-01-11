@@ -38,6 +38,7 @@ color(C, only(Color)):-
     Cls = [Color], !.
 all_colors(LAB, Colors):-
     findall(C, color(LAB, C), Colors).
+
 %===================
 % other operations
 %===================
@@ -52,7 +53,7 @@ colors([LAB | LABs], [C | Cs]):-
 get_colors_list_2d(_, [], []):-
     !.
 get_colors_list_2d(Img, [S | Segs], [C | Cs]):-
-    print_list(S),    
+    %print_list(S),    
     pts_color_2d(Img, S, LABs),
     colors(LABs, C),
     get_colors_list_2d(Img, Segs, Cs).

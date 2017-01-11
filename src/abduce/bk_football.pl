@@ -119,7 +119,7 @@ gen_ball_train(Path, Pos_exs, Neg_exs):-
     Neg_exs =.. ['neg', Neg_list],
     release_img(Img).
 
-gen_ball_train:-
+gen_ball_train_pts:-
     ['/home/daiwz/Myprojects/LogicalVision2/data/MobileRobotAndBall1/football.pl'],
     OutPath = '/home/daiwz/Myprojects/LogicalVision2/data/ball_train/',
     forall(gen_ball_train(Path, Pos_exs, Neg_exs),

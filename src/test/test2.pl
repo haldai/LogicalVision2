@@ -4,24 +4,20 @@
  * Author: Wang-Zhou Dai <dai.wzero@gmail.com>
  */
 
-:- ensure_loaded(['../abduce/plabduce.pl',
+:- ensure_loaded(['../io/plio.pl',
+                  '../sampling/plsampling.pl',
+                  '../drawing/pldraw.pl',
+                  '../stats/plstats.pl',
+                  '../abduce/plabduce.pl',
                   '../abduce/bk_light.pl',
                   '../abduce/bk_ellipse.pl',
                   '../abduce/bk_polygon.pl',
                   '../abduce/bk_football.pl',
-                  '../io/plio.pl',
-                  '../sampling/plsampling.pl',
+                  '../stats/ball_region.pl',
                   '../sampling/plregion.pl',
-                  '../drawing/pldraw.pl',
                   '../utils/utils.pl',
-                  '../learning/pllearning.pl']).
-
-% test utilities
-test_write_start(Name):-
-    write('[TEST] '), write(Name), write('.'), nl.
-test_write_done:-
-    write('[DONE]'), nl,
-    write('================'), nl.
+                  '../learning/pllearning.pl',
+                  'test.pl']).
 
 % test load image
 test_load_img(A):-
@@ -84,7 +80,7 @@ test_edge_conj(Img):-
     sample_edge_pts_2d(Img, Ls, EPs, []),
     new_conjs(EPs, EPs, Conj),
     conjecture_edge_2d(Img, EPs, Conj, Edges),
-    print_list(Edges),
+    %print_list(Edges),
     clone_img(Img, Img1),
     draw_line_segs_2d(Img1, Edges, red),
     showimg_win(Img1, 'debug'),
@@ -118,7 +114,7 @@ test_sample_color_change_pts(Img, [Start, Direct]):-
 
 test_sample_GNG_pts(Img, [Start, Direct]):-
     test_write_start('sample green/non-green points'),
-    sample_GNG_points_2d(Img, [Start, Direct], GNGs),
+    sample_line_GNG_points_2d(Img, [Start, Direct], GNGs),
     pts2segs(GNGs, GNG_Segs),
     print_list(GNG_Segs),    
     findall(BW, (member(BW, GNG_Segs), bw_seg_2d(Img, BW)), BW_Segs),
@@ -153,30 +149,30 @@ test_fit_circle(Img, [X, Y, R]):-
 test_spiral(Img):-
     test_write_start('test get spiral points.'),
     consult('../../data/MobileRobotAndBall1/football.pl'),
-    %football('/home/daiwz/Myprojects/LogicalVision2/data/MobileRobotAndBall1/raw_images/65.jpg', Box),
-    football('/home/daiwz/Myprojects/LogicalVision2/data/MobileRobotAndBall1/raw_images/1485.jpg', Box),
+    football('/home/daiwz/Myprojects/LogicalVision2/data/MobileRobotAndBall1/raw_images/65.jpg', Box),
+    %football('/home/daiwz/Myprojects/LogicalVision2/data/MobileRobotAndBall1/raw_images/1485.jpg', Box),
     size_2d(Img, W, H),
     time(rand_spiral_sampling([W, H], [0, 0.5], 1, Spiral_Segs)),
     % print_list_ln(Spiral_Segs),
     append(Spiral_Segs, Spiral_Pts),
     time(get_GNG_seg_lists(Img, Spiral_Segs, GNGSegs)),
-    gen_ball_instances(Box, GNGSegs, Pos, Neg),
-    get_colors_list_2d(Img, Pos, P_List),
-    get_colors_list_2d(Img, Neg, N_List),
+    time(gen_ball_instances(Box, GNGSegs, Pos, Neg)),
+    time(get_colors_list_2d(Img, Pos, P_List)),
+    time(get_colors_list_2d(Img, Neg, N_List)),
     %print_list(QQQQ),
-    writeln("POS:"),
-    print_list_ln(P_List),
-    writeln("NEG:"),
-    print_list_ln(N_List),
+    % writeln("POS:"),
+    % print_list_ln(P_List),
+    % writeln("NEG:"),
+    % print_list_ln(N_List),
     %A = [[257,492],[253,484],[250,475],[247,467],[245,458],[243,450]],
-    append(GNGSegs, GNGPts),
-    clone_img(Img, Img2),
-    draw_points_2d(Img2, Spiral_Pts, red),
-    draw_points_2d(Img2, GNGPts, blue),
-    %draw_points_2d(Img2, A, blue),
-    showimg_win(Img2, 'debug'),
-    save_img(Img2, '../../tmp/spiral_segs_2.png'),
-    release_img(Img2),
+    %append(GNGSegs, GNGPts),
+    %clone_img(Img, Img2),
+    %draw_points_2d(Img2, Spiral_Pts, red),
+    %draw_points_2d(Img2, GNGPts, blue),
+    %%draw_points_2d(Img2, A, blue),
+    %showimg_win(Img2, 'debug'),
+    %save_img(Img2, '../../tmp/spiral_segs_2.png'),
+    %release_img(Img2),
     unload_file('../../data/MobileRobotAndBall1/football.pl'),
     test_write_done.
 
@@ -193,16 +189,97 @@ test_gen_ball_train_2:-
 test_spiral_region(Img):-
     test_write_start('test spiral regions sampling.'),
     size_2d(Img, W, H),
-    time(spiral_regions_2d([300, 500], [W, H], [1,1], [1.5, 5e-1], Regions)),
+    % samples the regions/lines
+    time(spiral_regions_2d([300, 500], [W, H], [1, 1], [1.5, 1], Regions)),
+    print_list_ln(Regions),
+    % 
     clone_img(Img, Img2),
     draw_squares_2d(Img2, Regions, red),
     showimg_win(Img2, 'debug'),
     test_write_done.
 
+test_color_hist(Img):-
+    test_write_start('test stats module, color histogram'),
+    color_hist_rect_2d(Img, [300, 300], [20, 20], H1),
+    color_hist_rect_2d(Img, [253, 464], [16, 26], H2),
+    print_list(H1),
+    print_list(H2),
+    test_write_done.
+
+test_ball_adaboost_1:-
+    test_write_start('test adaboost model for ball recon'),
+    % labeled bounding boxes
+    consult('../../data/MobileRobotAndBall1/football.pl'),
+    %Path = '/home/daiwz/Myprojects/LogicalVision2/data/MobileRobotAndBall1/raw_images/1485.jpg',
+    Path = '/home/daiwz/Myprojects/LogicalVision2/data/MobileRobotAndBall1/raw_images/65.jpg',
+    writeln('Training: '),
+    gen_ball_region_data(Path, 50, 0.5, Reg_Train, Data_Labels),
+    pairs_keys_values(Data_Labels, _, L),
+    pairs_keys_values(PP, L, Reg_Train),
+    findall(TrPos, member(1-TrPos, PP), PPos),
+    load_img(Path, Img0),
+    draw_squares_2d(Img0, PPos, red),
+    showimg_win(Img0, 'Train Pos'),
+    release_img(Img0),
+    %print_list_ln(Data_Labels),
+    train_adaboost(Data_Labels, Model),
+    write("Model: "), writeln(Model),
+    writeln('\nTesting: '),
+    gen_ball_region_data(Path, 5, 1.0, Regions, Test_Data_Labels),
+    pairs_keys_values(Test_Data_Labels, Test_Data, Test_Labels),    
+    pairs_keys_values(PTe, Test_Labels, Regions),
+    findall(TeP, member(1-TeP, PTe), TePos),
+    load_img(Path, Img1),
+    draw_squares_2d(Img1, TePos, red),
+    showimg_win(Img1, 'Test Pos'),
+    release_img(Img1),
+    write("Predition: "),
+    time(predict_adaboost(Model, Test_Data, Predicted)),
+    %print_list(Test_Labels),
+    %print_list(Predicted),
+    writeln("Evaluation: "),
+    eval_bin_acc(Test_Labels, Predicted, Acc),
+    eval_bin_precision(Test_Labels, Predicted, Prec),
+    eval_bin_recall(Test_Labels, Predicted, Recall),
+    write("Prediction accuracy: "), write(Acc), writeln('.'),
+    write("Prediction precision: "), write(Prec), writeln('.'),
+    write("Prediction recall: "), write(Recall), writeln('.'),
+    release_model_ada(Model),
+    % have a look on the results
+    pairs_keys_values(Pairs, Predicted, Regions),
+    findall(PreP, member(1-PreP, Pairs), Pos),
+    load_img(Path, Img),
+    draw_squares_2d(Img, Pos, red),
+    showimg_win(Img, 'Pred Pos'),
+    release_img(Img),
+    unload_file(['../../data/MobileRobotAndBall1/football.pl']),
+    test_write_done.
+
+test_ball_adaboost:-
+    test_write_start('test adaboost model for ball recon'),
+    writeln('Training: '),
+    gen_ball_train_region(50, 0.5, Data_Labels),
+    train_adaboost(Data_Labels, Model),
+    write("Model: "), writeln(Model),
+    writeln('\nTesting: '),
+    gen_ball_train_region(5, 1.0, Test_Data_Labels),
+    pairs_keys_values(Test_Data_Labels, Test_Data, Test_Labels),
+    write("Predition: "),
+    time(predict_adaboost(Model, Test_Data, Predicted)),
+    writeln("Evaluation: "),
+    eval_bin_acc(Test_Labels, Predicted, Acc),
+    eval_bin_precision(Test_Labels, Predicted, Prec),
+    eval_bin_recall(Test_Labels, Predicted, Recall),
+    write("Prediction accuracy: "), write(Acc), writeln('.'),
+    write("Prediction precision: "), write(Prec), writeln('.'),
+    write("Prediction recall: "), write(Recall), writeln('.'),
+    release_model_ada(Model),
+    test_write_done.
+    
 %===========
 % test_main
 %===========
-test_main:-
+test_main_2:-
     test_load_img(Img),
     %test_subimg(Img, [100, 100, 50, 300]),
     %test_resize_img(Img, [200, 400]),
@@ -213,12 +290,15 @@ test_main:-
     %test_sample_line_2d(Img),
     %test_sample_color_change_pts(Img, [[26, 26], [1, 2.5]]),
     %test_sample_color_change_pts(Img, [[257, 477], [-1, 10]]),
-    %test_sample_GNG_pts(Img, [[257, 477], [-1, 10]]),
+    test_sample_GNG_pts(Img, [[257, 477], [-1, 10]]),
     %test_fit_circle(Img, [100, 100, 30]),
     %test_edge_conj(Img),
     %test_spiral(Img),
     %test_gen_ball_train,
-    test_gen_ball_train_2,
+    %test_gen_ball_train_2,
     %test_spiral_region(Img),
+    %test_color_hist(Img),
+    %test_ball_adaboost_1,
+    %test_ball_adaboost,
     test_rel_img(Img).
 

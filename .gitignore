@@ -38,5 +38,19 @@
 temp.*
 temp*
 
+# Tarballs
+*.tar.bz2
+*.tar.gz
+*.zip
+*.rar
+*.7z
+
+# Data
+data/ball_train
+data/ball_train_2
+data/KB
+data/MobileRobotAndBall1
+data/football.mp4
+
 # do not ignore
 !libs/

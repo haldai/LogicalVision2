@@ -313,6 +313,24 @@ PREDICATE(pts_scharr, 3) {
     return A3 = vec2list(vars);
 }
 
+/* pts_scharr_2d(+IMG, +PTS, -VARS)
+ * For a list of points, return their scharr gradients
+ * @IMGSEQ: input images
+ * @PTS: point list, [[X1, Y1, Z1], ...]
+ * @GRADS: gradients of each point, [G1, ...]
+ */
+PREDICATE(pts_scharr_2d, 3) {
+    // image sequence
+    char *p1 = (char*) A1;
+    const string add_seq(p1);    
+    Mat *img = str2ptr<Mat>(add_seq);
+    // point list
+    vector<Scalar> pts = point_list2vec(A2);
+    // calculate variances
+    vector<double> vars = cv_img_points_scharr(img, pts);
+    return A3 = vec2list(vars);
+}
+
 
 /* pts_color(+IMGSEQ, +PTS, -COLORS)
  * For a list of points, return their color
@@ -551,7 +569,6 @@ PREDICATE(line_pts_scharr_geq_T, 5) {
  * @T_SCHARR is the threshold of scharr gradient
  * @P_LIST is the returned points that exceed the variance threshold on the
  *    line
- * @TODO::::
  */
 PREDICATE(line_pts_scharr_geq_T_2d, 5) {
     char *p1 = (char*) A1;
@@ -613,7 +630,8 @@ PREDICATE(line_seg_pts_scharr_geq_T, 5) {
 PREDICATE(fit_elps, 3) {
     vector<Scalar> pts = point_list2vec(A1);
     if (pts.size() < 5) {
-        cout << "[ERROR] At least 5 points are needed for fitting an ellipse." << endl;
+        cout << "[ERROR] At least 5 points are needed for fitting an ellipse."
+             << endl;
         return FALSE;
     }
     // check if all points are on the same frame
@@ -676,26 +694,6 @@ PREDICATE(fit_circle, 2) {
     return TRUE;
 }
 
-/* compare_hist(+IMGSEQ, +PTS_1, +PTS_2, -DIST)
- * compare color histograms of two sets of points to decide whether
- * their distribution is identical.
- * @PTS_1/2: two set of point positions
- * @DIST: distance of histograms (quadratic mean of KL divergence
- *        in 3 channels).
- */
-PREDICATE(compare_hist, 4) {
-    // image sequence    
-    char *p1 = (char*) A1;
-    const string add_seq(p1);
-    vector<Mat> *seq = str2ptr<vector<Mat>>(add_seq);
-    // point lists
-    vector<Scalar> pts_1 = point_list2vec(A2);
-    vector<Scalar> pts_2 = point_list2vec(A3);
-    // calculate histogram difference
-    double d = compare_hist(seq, pts_1, pts_2);
-    return A4 = d;
-}
-
 /* points_color_hist(+IMGSEQ, +PTS, -HIST)
  * compute the color histogram vector of given point list
  * @IMG_SEQ: image sequence
@@ -755,4 +753,47 @@ PREDICATE(hist_diff, 3) {
     // quadratic mean of 3 channels
     double kl = sqrt((kls[0]*kls[0] + kls[1]*kls[1] + kls[2]*kls[2])/3);
     return A3 = kl;
+}
+
+/* color_hist_rect_2d(+Img, +Center, +Radius, -HistVector)
+ * Img: pointer to image
+ * Center: [X, Y], the center of the rectangle to be sampled
+ * Radius: [RX, RY], the radius of the rectangle to be sampled
+ * HistVector: histogram vector, a 96-dim vector
+ */
+PREDICATE(color_hist_rect_2d, 4) {
+    // image
+    char *p1 = (char*) A1;
+    const string add_img(p1);
+    cv::Mat *img = str2ptr<cv::Mat>(add_img);
+    // parameters
+    vector<int> cen_vec = list2vec<int>(A2, 2);
+    Scalar cen(cen_vec[0], cen_vec[1]);
+    vector<int> rad_vec = list2vec<int>(A3, 2);
+    Scalar rad(rad_vec[0], rad_vec[1]);
+    //
+    vector<double> hist = cv_rect_masked_color_hist_2d(img, cen, rad);
+    return A4 = vec2list<double>(hist);
+}
+
+/* color_L_hist_rect_2d(+Img, +Center, +Radius, -HistVector)
+ * ONLY CALCULATE HISTOGRAM OF BRIGHTNESS
+ * Img: pointer to image
+ * Center: [X, Y], the center of the rectangle to be sampled
+ * Radius: [RX, RY], the radius of the rectangle to be sampled
+ * HistVector: histogram vector, a 96-dim vector
+ */
+PREDICATE(color_L_hist_rect_2d, 4) {
+    // image
+    char *p1 = (char*) A1;
+    const string add_img(p1);
+    cv::Mat *img = str2ptr<cv::Mat>(add_img);
+    // parameters
+    vector<int> cen_vec = list2vec<int>(A2, 2);
+    Scalar cen(cen_vec[0], cen_vec[1]);
+    vector<int> rad_vec = list2vec<int>(A3, 2);
+    Scalar rad(rad_vec[0], rad_vec[1]);
+    //
+    vector<double> hist = cv_rect_masked_L_hist_2d(img, cen, rad);
+    return A4 = vec2list<double>(hist);
 }

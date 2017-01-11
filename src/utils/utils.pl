@@ -13,15 +13,21 @@ sum(V1, V2, V3):-
     V3 is V1 + V2.
 minus(V1, V2, V3):-
     V3 is V1 - V2.
+divide(0, 0, 0):-
+    !.
 divide(_, 0, _):-
-    fail.
+    fail, !.
 divide(V1, V2, V3):-
-    V3 is V1 / V2.
+    V3 is V1 / V2, !.
 predecessor(N, M):-
     M is N - 1.
 successor(N, M):-
     M is N + 1.
-
+% for labeling
+greater_than_zero(A, 1):-
+    A > 0, !.
+greater_than_zero(A, 0):-
+    A =< 0, !.
 
 % generate temporary variables
 temp_vars(0, Return, Temp):-
@@ -179,6 +185,125 @@ mode(L, X):-
   frequency(L, X, NMax),
   \+ (frequency(L, _, NBigger),
       NMax < NBigger).
+
+%===========================
+% difference/gradient
+%===========================
+% grad(+List, -Grad)
+% compute gradient of a list of numbers, the first gradient is always 0
+% e.g. grad([1, 2, 3, 5, 7], [0, 1, 1, 2, 2]).
+grad(List, Grad):-
+    grad(List, Grad, start).
+grad([], [], _):-
+    !.
+grad([L | Ls], [0 | Gs], start):-
+    grad(Ls, Gs, L), !.
+grad([L | Ls], [G | Gs], P):-
+    G is L - P,
+    grad(Ls, Gs, L), !.
+
+% grad_column(+Column, +List_of_LAB, -Grad)
+grad_column(Col, List_of_Vec, Grad):-
+    column(Col, List_of_Vec, Column),
+    grad(Column, Grad).
+
+% gradient of histograms
+grad_KL(Hists, Grad):-
+    grad_KL(Hists, Grad, start).
+grad_KL([], [], _):-
+    !.
+grad_KL([L | Ls], [0 | Gs], start):-
+    grad_KL(Ls, Gs, L).
+grad_KL([L | Ls], [G | Gs], P):-
+    compare_hist(P, L, G),
+    grad_KL(Ls, Gs, L).
+
+
+%=============================================
+% zero item: return the items that key is 0.0
+%=============================================
+zero_item(L, Re):-
+    extrema_thresh(T), zero_item(L, T, Re).
+
+zero_item([_, _], _, []):-!.
+zero_item([K1-I, K2-I2 | Pairs], T, [I | Is]):-
+    K1*K2 < T,
+    zero_item([K2-I2 | Pairs], T, Is).
+zero_item([K1-_, Z1-I, K2-I2 | Pairs], T, [I | Is]):-
+    K1*K2 < T,
+    Z1 =:= 0,
+    zero_item([K2-I2 | Pairs], T, Is), !.
+zero_item([K1-_, Z1-I, Z2-_, K2-I2 | Pairs], T, [I | Is]):-
+    K1*K2 < T,
+    Z1 =:= 0, Z2 =:= 0,
+    zero_item([K2-I2 | Pairs], T, Is), !.
+zero_item([K1-_, Z1-_, Z2-I, Z3-_, K2-I2 | Pairs], T, [I | Is]):-
+    K1*K2 < T,
+    Z1 =:= 0, Z2 =:= 0, Z3 =:= 0,
+    zero_item([K2-I2 | Pairs], T, Is), !.
+zero_item([K1-_, Z1-_, Z2-I, Z3-_, Z4-_, K2-I2 | Pairs], T, [I | Is]):-
+    K1*K2 < T,
+    Z1 =:= 0, Z2 =:= 0, Z3 =:= 0, Z4 =:= 0,
+    zero_item([K2-I2 | Pairs], T, Is), !.
+zero_item([K1-_, Z1-_, Z2-_, Z3-I, Z4-_, Z5-_, K2-I2 | Pairs], T, [I | Is]):-
+    K1*K2 < T,
+    Z1 =:= 0, Z2 =:= 0, Z3 =:= 0, Z4 =:= 0, Z5 =:= 0,
+    zero_item([K2-I2 | Pairs], T, Is), !.
+zero_item([_-_, K-I | Pairs], T, Is):-
+    zero_item([K-I | Pairs], T, Is), !.
+
+%=================================================================
+% get items whose keys are greater/less than threshold,
+%     i.e. the map of points and gradients (G-[X, Y, Z]).
+%=================================================================
+items_key_geq_T(Items, Keys, Thresh, Return):-
+    idx_element_geq_T(Keys, Thresh, Indices),
+    index_select(Indices, Items, Return).
+
+items_key_less_T(Items, Keys, Thresh, Return):-
+    idx_element_less_T(Keys, Thresh, Indices),
+    index_select(Indices, Items, Return).
+
+% element_idx_geq_T(+List, +Thresh, -Indices)
+idx_element_geq_T(List, Thresh, Indices):-
+    idx_element_geq_T(List, Thresh, Indices, 1).
+
+% index start from 1
+idx_element_geq_T([], _, [], _):-
+    !.
+idx_element_geq_T([E | Es], Thresh, [N | Ns], N):-
+    E >= Thresh,
+    N1 is N + 1,
+    idx_element_geq_T(Es, Thresh, Ns, N1), !.
+idx_element_geq_T([E | Es], Thresh, Ns, N):-
+    E < Thresh,
+    N1 is N + 1,
+    idx_element_geq_T(Es, Thresh, Ns, N1), !.
+
+% element_idx_geq_T(+List, +Thresh, -Indices)
+idx_element_less_T(List, Thresh, Indices):-
+    idx_element_less_T(List, Thresh, Indices, 1), !.
+
+% index start from 1
+idx_element_less_T([], _, [], _):-
+    !.
+idx_element_less_T([E | Es], Thresh, [N | Ns], N):-
+    E < Thresh,
+    N1 is N + 1,
+    idx_element_less_T(Es, Thresh, Ns, N1), !.
+idx_element_less_T([E | Es], Thresh, Ns, N):-
+    E >= Thresh,
+    N1 is N + 1,
+    idx_element_less_T(Es, Thresh, Ns, N1), !.
+
+%=================================================================
+% sort a mapping
+%     i.e. the map of points and gradients (G-[X, Y, Z]).
+%=================================================================
+mapsort(Keys, Values, S_Keys, S_Values):-
+    pairs_keys_values(Pairs, Keys, Values),
+    keysort(Pairs, S_Pairs),
+    pairs_keys_values(S_Pairs, S_Keys, S_Values).
 
 %=================
 % switch control
@@ -512,3 +637,4 @@ varnumbers_(T0, T, F, N1, Vars, I) :-
             varnumbers_(T0, T, F, N1, Vars, J)
 	;   varnumbers_(A0, AAAA, F, N1, Vars)
     ).
+

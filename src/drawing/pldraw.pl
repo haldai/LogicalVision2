@@ -66,3 +66,17 @@ draw_squares_2d(Img, [S | Ss], Color):-
     S = [Cen, R],
     draw_rect_2d(Img, Cen, [R, R], Color),
     draw_squares_2d(Img, Ss, Color).
+
+%=========================
+% draw points with label
+%=========================
+draw_points_with_label_2d(_, []):-
+    !.
+draw_points_with_label_2d(Img, [P-L | Pts]):-
+    draw_point_with_label_2d(Img, P-L),
+    draw_points_with_label_2d(Img, Pts).
+
+draw_point_with_label_2d(Img, Pt-0):-
+    draw_points_2d(Img, [Pt], blue), !.
+draw_point_with_label_2d(Img, Pt-1):-
+    draw_points_2d(Img, [Pt], red), !.

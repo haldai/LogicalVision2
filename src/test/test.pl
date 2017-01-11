@@ -661,7 +661,7 @@ test_main:-
     test_load_imgseq(Imgseq),
     %test_show2imgs(Imgseq),
     %test_draw_elps(Imgseq, [[353, 143, 0], [37, 18, 110]], red),
-    test_fit_elps(Imgseq, [353, 143, 0], [37, 18, 110], red),
+    %test_fit_elps(Imgseq, [353, 143, 0], [37, 18, 20], red),
     %test_draw_line_2d(Imgseq, [100, 100, 0], [2, 7, 0], red),
     %test_draw_line_(Imgseq, [100, 100, 0], [2, 7, 0], red),
     %test_ellipse(Imgseq),
@@ -682,7 +682,7 @@ test_main:-
     %test_draw_cubes(Imgseq),
     %test_color_bg_nonbg(Imgseq, _),
     %test_sample_line_get_seg_classes(Imgseq, [353, 133, 0], [1, 2, 0]),
-    %test_object_discover(Imgseq, 1000),
+    test_object_discover(Imgseq, 0),
     %debug(Imgseq),
     test_rel_s(Imgseq).    
     %learn(pairing).

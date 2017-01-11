@@ -56,8 +56,8 @@ PREDICATE(load_img, 2) {
  * save image from ADD to PATH
  */
 PREDICATE(save_img, 2) {
-    char* p1;
-    char* p2;
+    char *p1;
+    char *p2;
     if (!(p1 = (char*) A1) || !(p2 = (char*) A2))
         return FALSE;
     const string add_img(p1);
@@ -320,9 +320,9 @@ PREDICATE(showimg_win, 2) {
  * show 2 images in a window
  */
 PREDICATE(show2imgs_win, 3) {
-    char* p1 = (char*) A1;
-    char* p2 = (char*) A2;
-    char* p3 = (char*) A3;
+    char *p1 = (char*) A1;
+    char *p2 = (char*) A2;
+    char *p3 = (char*) A3;
 
     const string window_name(p3);
 
@@ -513,7 +513,7 @@ PREDICATE(clone_img, 2) {
     Mat *newimg = new Mat(img->clone());
     // convert returning
     string add = ptr2str(newimg);
-    A2 = PlTerm(add.c_str());    
+    A2 = PlTerm(add.c_str());
     // assert size_2d
     int col = img->cols;
     int row = img->rows;

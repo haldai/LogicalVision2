@@ -1,4 +1,5 @@
-:- ensure_loaded(['../sampling/plcolor.pl']).
+:- ensure_loaded(['../sampling/plcolor.pl',
+                  '../sampling/plsampling.pl']).
 
 % threshold of extrema value, it is the product of derivative
 %     before and after the extrema position.
@@ -58,24 +59,12 @@ sample_line_color(Imgseq, Start, Direct, Points, Colors):-
     line_points(Start, Direct, [W, H, D], Points),
     pts_color(Imgseq, Points, Colors).
 
-sample_line_color_2d(Img, Start, Direct, Points, Colors):-
-    size_2d(Img, W, H),
-    Start = [SX, SY | _], Direct = [DX, DY | _],
-    line_points([SX, SY, 0], [DX, DY, 0], [W, H, 1], Points),
-    pts_color_2d(Img, Points, Colors).
-
 % sample_line_seg_color(+Imgseq, +Start, +End, -Points, -Colors)
 % sample a line segment to get its points and cooresponding color
 sample_line_seg_color(Imgseq, Start, End, Points, Colors):-
     size_3d(Imgseq, W, H, D),
     line_seg_points(Start, End, [W, H, D], Points),
     pts_color(Imgseq, Points, Colors).
-
-sample_line_seg_color_2d(Img, Start, End, Points, Colors):-
-    size_2d(Img, W, H),
-    Start = [SX, SY | _], End = [DX, DY | _],
-    line_seg_points([SX, SY, 0], [DX, DY, 0], [W, H, 1], Points),
-    pts_color_2d(Img, Points, Colors).
 
 % sample_line_color_L(+Imgseq, +Start, +Direct, -Points, -Lchannel)
 % sample a line to get its points and cooresponding brightness
@@ -92,19 +81,6 @@ sample_line_seg_color_L(Imgseq, Start, End, Points, Lchannel):-
     line_seg_points(Start, End, [W, H, D], Points),
     pts_color(Imgseq, Points, Colors),
     column(1, Colors, Lchannel).
-
-%================================================
-% sample a line and get points with color changing
-%================================================
-% sample a line with direction, get the color of points on line and
-% find the points that separates two colors
-% colors are defined in plcolor.pl
-sample_line_color_change_2d(Img, [Pt, Dir], Color1, Color2, Chgd):-
-    sample_line_color_2d(Img, Pt, Dir, Pts, LABs), % get LAB value of each point
-    color_change_points(Color1, Color2, Pts, LABs, Chgd).
-sample_line_seg_color_change_2d(Img, [Start, End], Color1, Color2, Chgd):-
-    sample_line_seg_color_2d(Img, Pts, Start, End, LABs),
-    color_change_points(Color1, Color2, Pts, LABs, Chgd).
 
 %====================
 % sample gradients
@@ -170,122 +146,49 @@ sample_lines_L_grad_extrema(Imgseq, [L | Lines], [P | Pts]):-
     sample_line_L_grad_extrema(Imgseq, Point, Dir, P),
     sample_lines_L_grad_extrema(Imgseq, Lines, Pts), !.
 
-%================================
-% 1d Gradients for sampled lines
-%================================
-% grad_l/a/b(+List_of_LAB, -Grad)
-% given a set of LAB colors, return the gradient of brightness channel
-grad_l(List_of_LAB, Grad):-
-    grad_column(1, List_of_LAB, Grad).
-grad_a(List_of_LAB, Grad):-
-    grad_column(2, List_of_LAB, Grad).
-grad_b(List_of_LAB, Grad):-
-    grad_column(3, List_of_LAB, Grad).
+%=====================
+% 2d line sampling
+%=====================
+% sample_line_color_L_2d(+Img, +Start, +Direct, -Points, -Lchannel)
+% sample a line to get its points and cooresponding brightness
+sample_line_color_L_2d(Img, Start, Direct, Points, Lchannel):-
+    size_2d(Img, W, H),
+    line_points_2d(Start, Direct, [W, H], Points),
+    pts_color_2d(Img, Points, Colors),
+    column(1, Colors, Lchannel). % nth1 starts with index 1
 
-% grad(+List, -Grad)
-% compute gradient of a list of numbers, the first gradient is always 0
-% e.g. grad([1, 2, 3, 5, 7], [0, 1, 1, 2, 2]).
-grad(List, Grad):-
-    grad(List, Grad, start).
-grad([], [], _):-
-    !.
-grad([L | Ls], [G | Gs], start):-
-    G = 0,
-    grad(Ls, Gs, L), !.
-grad([L | Ls], [G | Gs], P):-
-    G is L - P,
-    grad(Ls, Gs, L), !.
+% sample_line_seg_color_L_2d(+Img, +Start, +End, -Points, -Lchannel)
+% sample a line segment to get its points and cooresponding brightness
+sample_line_seg_color_L_2d(Img, Start, End, Points, Lchannel):-
+    size_2d(Img, W, H),
+    line_seg_points(Start, End, [W, H], Points),
+    pts_color_2d(Img, Points, Colors),
+    column(1, Colors, Lchannel).
 
-% grad_column(+Column, +List_of_LAB, -Grad)
-grad_column(Col, List_of_Vec, Grad):-
-    column(Col, List_of_Vec, Column),
-    grad(Column, Grad).
+sample_line_color_2d(Img, Start, Direct, Points, Colors):-
+    size_2d(Img, W, H),
+    Start = [SX, SY | _], Direct = [DX, DY | _],
+    line_points_2d([SX, SY], [DX, DY], [W, H], Points),
+    pts_color_2d(Img, Points, Colors).
 
-%=============================================
-% zero item: return the items that key is 0.0
-%=============================================
-zero_item(L, Re):-
-    extrema_thresh(T), zero_item(L, T, Re).
+sample_line_seg_color_2d(Img, Start, End, Points, Colors):-
+    size_2d(Img, W, H),
+    Start = [SX, SY | _], End = [DX, DY | _],
+    line_seg_points_2d([SX, SY], [DX, DY], [W, H], Points),
+    pts_color_2d(Img, Points, Colors).
 
-zero_item([_, _], _, []):-!.
-zero_item([K1-I, K2-I2 | Pairs], T, [I | Is]):-
-    K1*K2 < T,
-    zero_item([K2-I2 | Pairs], T, Is).
-zero_item([K1-_, Z1-I, K2-I2 | Pairs], T, [I | Is]):-
-    K1*K2 < T,
-    Z1 =:= 0,
-    zero_item([K2-I2 | Pairs], T, Is), !.
-zero_item([K1-_, Z1-I, Z2-_, K2-I2 | Pairs], T, [I | Is]):-
-    K1*K2 < T,
-    Z1 =:= 0, Z2 =:= 0,
-    zero_item([K2-I2 | Pairs], T, Is), !.
-zero_item([K1-_, Z1-_, Z2-I, Z3-_, K2-I2 | Pairs], T, [I | Is]):-
-    K1*K2 < T,
-    Z1 =:= 0, Z2 =:= 0, Z3 =:= 0,
-    zero_item([K2-I2 | Pairs], T, Is), !.
-zero_item([K1-_, Z1-_, Z2-I, Z3-_, Z4-_, K2-I2 | Pairs], T, [I | Is]):-
-    K1*K2 < T,
-    Z1 =:= 0, Z2 =:= 0, Z3 =:= 0, Z4 =:= 0,
-    zero_item([K2-I2 | Pairs], T, Is), !.
-zero_item([K1-_, Z1-_, Z2-_, Z3-I, Z4-_, Z5-_, K2-I2 | Pairs], T, [I | Is]):-
-    K1*K2 < T,
-    Z1 =:= 0, Z2 =:= 0, Z3 =:= 0, Z4 =:= 0, Z5 =:= 0,
-    zero_item([K2-I2 | Pairs], T, Is), !.
-zero_item([_-_, K-I | Pairs], T, Is):-
-    zero_item([K-I | Pairs], T, Is), !.
-
-%=================================================================
-% get items whose keys are greater/less than threshold,
-%     i.e. the map of points and gradients (G-[X, Y, Z]).
-%=================================================================
-items_key_geq_T(Items, Keys, Thresh, Return):-
-    idx_element_geq_T(Keys, Thresh, Indices),
-    index_select(Indices, Items, Return).
-
-items_key_less_T(Items, Keys, Thresh, Return):-
-    idx_element_less_T(Keys, Thresh, Indices),
-    index_select(Indices, Items, Return).
-
-% element_idx_geq_T(+List, +Thresh, -Indices)
-idx_element_geq_T(List, Thresh, Indices):-
-    idx_element_geq_T(List, Thresh, Indices, 1).
-
-% index start from 1
-idx_element_geq_T([], _, [], _):-
-    !.
-idx_element_geq_T([E | Es], Thresh, [N | Ns], N):-
-    E >= Thresh,
-    N1 is N + 1,
-    idx_element_geq_T(Es, Thresh, Ns, N1), !.
-idx_element_geq_T([E | Es], Thresh, Ns, N):-
-    E < Thresh,
-    N1 is N + 1,
-    idx_element_geq_T(Es, Thresh, Ns, N1), !.
-
-% element_idx_geq_T(+List, +Thresh, -Indices)
-idx_element_less_T(List, Thresh, Indices):-
-    idx_element_less_T(List, Thresh, Indices, 1), !.
-
-% index start from 1
-idx_element_less_T([], _, [], _):-
-    !.
-idx_element_less_T([E | Es], Thresh, [N | Ns], N):-
-    E < Thresh,
-    N1 is N + 1,
-    idx_element_less_T(Es, Thresh, Ns, N1), !.
-idx_element_less_T([E | Es], Thresh, Ns, N):-
-    E >= Thresh,
-    N1 is N + 1,
-    idx_element_less_T(Es, Thresh, Ns, N1), !.
-
-%=================================================================
-% sort a mapping
-%     i.e. the map of points and gradients (G-[X, Y, Z]).
-%=================================================================
-mapsort(Keys, Values, S_Keys, S_Values):-
-    pairs_keys_values(Pairs, Keys, Values),
-    keysort(Pairs, S_Pairs),
-    pairs_keys_values(S_Pairs, S_Keys, S_Values).
+%================================================
+% sample a line and get points with color changing
+%================================================
+% sample a line with direction, get the color of points on line and
+% find the points that separates two colors
+% colors are defined in plcolor.pl
+sample_line_color_change_2d(Img, [Pt, Dir], Color1, Color2, Chgd):-
+    sample_line_color_2d(Img, Pt, Dir, Pts, LABs), % get LAB value of each point
+    color_change_points(Color1, Color2, Pts, LABs, Chgd).
+sample_line_seg_color_change_2d(Img, [Start, End], Color1, Color2, Chgd):-
+    sample_line_seg_color_2d(Img, Pts, Start, End, LABs),
+    color_change_points(Color1, Color2, Pts, LABs, Chgd).
 
 %===========================================================================
 % Sample many radial lines.
@@ -302,3 +205,57 @@ radial_line_2d(Point, Start_deg, End_deg, Step, Ray):-
     Ang mod Step =:= 0,
     angle2dir_2d(Ang, Dir),
     Ray = [Point, Dir].
+
+%===============
+% random lines
+%===============
+rand_line_2d([W, H], [X, Y], [DX, DY]):-
+    rand_2d_point([X, Y], [W, H]), rand_2d_angle_vec([DX, DY]).
+% many lines
+rand_lines_2d(_, 0, []):-
+    !.
+rand_lines_2d([W, H], N, [[[X, Y], [DX, DY]] | Lines]):-
+    rand_2d_point([X, Y], [W, H]), rand_2d_angle_vec([DX, DY]),
+    N1 is N - 1,
+    rand_lines_2d([W, H], N1, Lines).
+
+%====================================
+% sample line and get color hists
+%====================================
+sample_line_color_hist_2d(Img, Pt, Dir, Pts, Hists):-
+    size_2d(Img, W, H),
+    line_points_2d(Pt, Dir, [W, H], Pts),
+    pts_color_hists_2d(Img, Pts, Hists).
+
+sample_line_color_L_hist_2d(Img, Pt, Dir, Pts, Hists):-
+    size_2d(Img, W, H),
+    line_points_2d(Pt, Dir, [W, H], Pts),
+    pts_color_L_hists_2d(Img, Pts, Hists).
+
+sample_lines_color_L_hist_2d(_, [], [], []):-
+    !.
+sample_lines_color_L_hist_2d(Img, [[Pt, Dir] | Lines], Pts, Hists):-
+    sample_line_color_L_hist_2d(Img, Pt, Dir, P1, H1),
+    sample_lines_color_L_hist_2d(Img, Lines, P2, H2),
+    append(P1, P2, Pts),
+    append(H1, H2, Hists).
+
+%===============================================================
+% sample a line and get color histogram changing (KL-divergence)
+%===============================================================
+sample_line_color_L_hist_change_2d(Img, Pt, Dir, Pts, Hist_Chg):-
+    sample_line_color_hist_2d(Img, Pt, Dir, Pts, Hists),
+    grad_KL(Hists, Hist_Chg).
+
+%================================
+% 1d Gradients for sampled lines
+%================================
+% grad_l/a/b(+List_of_LAB, -Grad)
+% given a set of LAB colors, return the gradient of brightness channel
+grad_l(List_of_LAB, Grad):-
+    grad_column(1, List_of_LAB, Grad).
+grad_a(List_of_LAB, Grad):-
+    grad_column(2, List_of_LAB, Grad).
+grad_b(List_of_LAB, Grad):-
+    grad_column(3, List_of_LAB, Grad).
+
