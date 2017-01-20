@@ -36,6 +36,7 @@ class SVM {
 public:
     // constructor
     SVM(const SVM & c);
+    SVM(const string path); // constructor by loading from file
     SVM(const arma::mat & data,
         const arma::Row<size_t> & labels,
         const struct svm_parameter & param);
@@ -44,6 +45,9 @@ public:
 
     // accessor
     struct svm_model get_model();
+
+    // saving model
+    void save_model(const string & path);
 
     // predictor
     vector<double> predict(const arma::mat & data) const;
@@ -98,6 +102,26 @@ SVM::SVM(const SVM & c) {
     model = modelcpy(tmp);
 }
 
+SVM::SVM(const string path) {
+    svm_model *tmp = svm_load_model(path.c_str());
+    model = modelcpy(tmp);
+
+    // clean up
+    delete [] tmp->SV;
+    
+    for(auto i = 0; i < tmp->nr_class - 1; i++)
+        delete [] tmp->sv_coef[i];
+    
+    delete [] tmp->sv_coef;
+    delete tmp->rho;
+    delete [] tmp->label;
+    delete tmp->probA;
+    delete tmp->probB;
+    delete tmp->nSV;
+    delete tmp;
+
+}
+
 SVM::SVM(const arma::mat & data,
          const arma::Row<size_t> & labels,
          const struct svm_parameter & param) {
@@ -145,6 +169,10 @@ SVM::~SVM() {
 
 struct svm_model SVM::get_model() {
     return model;
+}
+
+void SVM::save_model(const string & path) {
+    svm_save_model(path.c_str(), &(this->model));
 }
 
 vector<double> SVM::predict(const arma::mat & data) const {
@@ -378,8 +406,12 @@ struct svm_parameter pl_parse_svm_parameter(PlTerm term) {
 
 double compare_hist(const vector<double> & hist1,
                     const vector<double> & hist2) {
-    cout << ((cv::InputArray) hist1).type() << endl;
-    return compareHist(hist1, hist2, CV_COMP_KL_DIV);
+    vector<float> h1(hist1.size()), h2(hist1.size());
+    for (uint i = 0; i < hist1.size(); i++) {
+        h1[i] = static_cast<float>(hist1[i]);
+        h2[i] = static_cast<float>(hist2[i]);
+    }
+    return compareHist(h1, h2, CV_COMP_KL_DIV);
 }
 
 #endif

@@ -206,19 +206,6 @@ radial_line_2d(Point, Start_deg, End_deg, Step, Ray):-
     angle2dir_2d(Ang, Dir),
     Ray = [Point, Dir].
 
-%===============
-% random lines
-%===============
-rand_line_2d([W, H], [X, Y], [DX, DY]):-
-    rand_2d_point([X, Y], [W, H]), rand_2d_angle_vec([DX, DY]).
-% many lines
-rand_lines_2d(_, 0, []):-
-    !.
-rand_lines_2d([W, H], N, [[[X, Y], [DX, DY]] | Lines]):-
-    rand_2d_point([X, Y], [W, H]), rand_2d_angle_vec([DX, DY]),
-    N1 is N - 1,
-    rand_lines_2d([W, H], N1, Lines).
-
 %====================================
 % sample line and get color hists
 %====================================
@@ -227,9 +214,29 @@ sample_line_color_hist_2d(Img, Pt, Dir, Pts, Hists):-
     line_points_2d(Pt, Dir, [W, H], Pts),
     pts_color_hists_2d(Img, Pts, Hists).
 
+sample_ray_color_hist_2d(Img, Pt, Dir, Pts, Hists):-
+    size_2d(Img, W, H),
+    ray_points_2d(Pt, Dir, [W, H], Pts),
+    pts_color_hists_2d(Img, Pts, Hists).
+
 sample_line_color_L_hist_2d(Img, Pt, Dir, Pts, Hists):-
     size_2d(Img, W, H),
     line_points_2d(Pt, Dir, [W, H], Pts),
+    pts_color_L_hists_2d(Img, Pts, Hists).
+
+sample_ray_color_L_hist_2d(Img, Pt, Dir, Pts, Hists):-
+    size_2d(Img, W, H),
+    ray_points_2d(Pt, Dir, [W, H], Pts),
+    pts_color_L_hists_2d(Img, Pts, Hists).
+
+sample_line_seg_color_hist_2d(Img, Pt, Dir, Pts, Hists):-
+    size_2d(Img, W, H),
+    line_seg_points_2d(Pt, Dir, [W, H], Pts),
+    pts_color_hists_2d(Img, Pts, Hists).
+
+sample_line_seg_color_L_hist_2d(Img, Pt, Dir, Pts, Hists):-
+    size_2d(Img, W, H),
+    line_seg_points_2d(Pt, Dir, [W, H], Pts),
     pts_color_L_hists_2d(Img, Pts, Hists).
 
 sample_lines_color_L_hist_2d(_, [], [], []):-
@@ -244,7 +251,19 @@ sample_lines_color_L_hist_2d(Img, [[Pt, Dir] | Lines], Pts, Hists):-
 % sample a line and get color histogram changing (KL-divergence)
 %===============================================================
 sample_line_color_L_hist_change_2d(Img, Pt, Dir, Pts, Hist_Chg):-
+    sample_line_color_L_hist_2d(Img, Pt, Dir, Pts, Hists),
+    grad_KL(Hists, Hist_Chg).
+
+sample_line_color_hist_change_2d(Img, Pt, Dir, Pts, Hist_Chg):-
     sample_line_color_hist_2d(Img, Pt, Dir, Pts, Hists),
+    grad_KL(Hists, Hist_Chg).
+
+sample_line_seg_color_L_hist_change_2d(Img, Pt, Dir, Pts, Hist_Chg):-
+    sample_line_seg_color_L_hist_2d(Img, Pt, Dir, Pts, Hists),
+    grad_KL(Hists, Hist_Chg).
+
+sample_line_seg_color_hist_change_2d(Img, Pt, Dir, Pts, Hist_Chg):-
+    sample_line_seg_color_hist_2d(Img, Pt, Dir, Pts, Hists),
     grad_KL(Hists, Hist_Chg).
 
 %================================

@@ -12,12 +12,17 @@
                   '../sampling/plspiral.pl',
                   '../sampling/plline.pl']).
 
-pixel_neighbor_size(5).
+pixel_neighbor_size(10).
+
 %============================================
 % 2d version geometric primitives
 %============================================
 line_points_2d([X, Y | _], [DX, DY | _], [W, H | _], Pts):-
     line_points([X, Y, 0], [DX, DY, 0], [W, H, 1], Pts1),
+    trim_2d(Pts1, Pts).
+
+ray_points_2d([X, Y | _], [DX, DY | _], [W, H | _], Pts):-
+    ray_points([X, Y, 0], [DX, DY, 0], [W, H, 1], Pts1),
     trim_2d(Pts1, Pts).
 
 line_seg_points_2d([SX, SY | _], [EX, EY | _], [W, H | _], Pts):-
@@ -31,6 +36,11 @@ fit_elps_2d(Pts, Center, Param):-
 fit_circle_2d(Pts, [X, Y, R]):-
     ext_3d(Pts, Pts3),
     fit_circle(Pts3, [X, Y, 0, R]).
+test_fit_elps_2d(Pts, Center, Param):-
+    ext_3d(Pts, Pts3),
+    test_fit_elps(Pts3, [X, Y, 0], Param),
+    Center = [X, Y].
+
 
 ellipse_points_2d([X, Y | _], Param, [W, H | _], Pts):-
     ellipse_points([X, Y, 0], Param, [W, H, 1], Pts3),

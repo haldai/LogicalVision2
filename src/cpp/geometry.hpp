@@ -19,6 +19,7 @@ using namespace std;
 using namespace cv;
 
 #define SWAP(a, b) {a = a + b; b = a - b; a = a - b;}
+#define PI 3.14159265358979323846
 
 enum { XY_SHIFT = 16,
        XY_ONE = 1 << XY_SHIFT,
@@ -31,6 +32,7 @@ enum { XY_SHIFT = 16,
  * @return: all points on the line
  */
 vector<Scalar> get_line_points(Scalar point, Scalar direction, Scalar bound);
+vector<Scalar> get_ray_points(Scalar point, Scalar direction, Scalar bound);
 
 /* get all points on a line segment
  * @start: position of a point on the line
@@ -63,13 +65,15 @@ vector<Scalar> get_in_cube_points(Scalar centre, Scalar param, Scalar bound);
 
 /* fits a set of points with an ellipse on an 2d image
  * Based on:
- *   Fitzgibbon, A.W., Pilu, M., and Fischer R.B., Direct least squares
- *   fitting of ellipsees, Proc. of the 13th Internation Conference on Pattern
- *   Recognition, pp 253–257, Vienna, 1996.
+ * NUMERICALLY STABLE DIRECT LEAST SQUARES FITTING OF ELLIPSES
+ *  Radim Halir and Jan Flusser, WSCG98
  * @points: points for fitting
  * @centre: center of the ellipse
  * @param: other parameters (long/short axis length and axis angle)
  */
+int fit_ellipse_2d(const vector<Scalar> & points,
+                    Scalar & center,
+                    Scalar & param);
 void opencv_fit_ellipse(const vector<Scalar> & points,
                         Scalar & centre,
                         Scalar & param);
@@ -79,6 +83,19 @@ void opencv_fit_ellipse(const vector<Scalar> & points,
  * @param: parameter of the circle (centerX, centerY, radius)
  */
 void fit_circle_2d(const vector<Scalar> & points, Scalar& param);
+
+/* Pseudocode for robustly computing the closest ellipse point and
+ * distance to a query point. It is required that e0 >= e1 > 0, y0 >= 0,
+ * and y1 >= 0.
+ * Ref: https://www.geometrictools.com/Documentation/DistancePointEllipseEllipsoid.pdf
+ * @e0, e1: ellipse dimension 0 and 1, where 0 is greater and both are positive.
+ * @y0, y1: initial point on ellipse axis (center of ellipse is 0,0)
+ * @x0, x1: intersection point
+ */
+double GetRoot (double r0, double z0, double z1, double g);
+double DistancePointEllipse(cv::Point point,
+                            cv::Point2i center, Scalar param,
+                            cv::Point & closest);
 
 /* bresenham's line algorithm
  * @current: starting point to be extended
@@ -135,10 +152,120 @@ void opencv_fit_ellipse(const vector<Scalar> & points,
     // width, height, and rotate angle of ellipse
     //cout << "width and height: "
     //     << box.size.width << ", " << box.size.height << endl;
-    param = Scalar(round(box.size.width/2), // we need radius = half of them
-                   round(box.size.height/2),
-                   box.angle);
+    // we need radius = half of them
+    int a = round(box.size.width/2), b = round(box.size.height/2);
+    int alpha = round(box.angle);
+    if (a < b) {
+        SWAP(a, b);
+        alpha -= 90;
+    }
+    
+    param = Scalar(a, b, alpha);
 }
+
+int fit_ellipse_2d(const vector<Scalar> & points,
+                    Scalar & center,
+                    Scalar & param) {
+    arma::vec x(points.size()), y(points.size());
+
+    for (size_t i = 0; i < points.size(); i++) {
+        x.at(i) = points[i][0];
+        y.at(i) = points[i][1];
+    }
+    //double mean_x = mean(x), mean_y = mean(y); // mean?
+    //x = x - mean_x;
+    //y = y - mean_y;
+    arma::vec xx = x % x;
+    arma::vec xy = x % y;
+    arma::vec yy = y % y;
+    arma::vec o(points.size());
+    o.ones();
+    arma::mat d1 = arma::join_rows(arma::join_rows(xx, xy), yy);
+    arma::mat d2 = arma::join_rows(arma::join_rows(x, y), o);
+
+    arma::mat s1 = d1.t()*d1;
+    arma::mat s2 = d1.t()*d2;
+    arma::mat s3 = d2.t()*d2;
+    arma::mat t = - solve(s3, s2.t());
+    arma::mat m = s1 + s2*t;
+    arma::rowvec m1 = m.row(2)/2;
+    arma::rowvec m2 = - m.row(1);
+    arma::rowvec m3 = m.row(0)/2;
+    m = arma::join_cols(arma::join_cols(m1, m2), m3);
+
+    arma::cx_vec eigval;
+    arma::cx_mat eigvec;
+    // solving eigen problem
+    try {
+        eig_gen(eigval, eigvec, m);
+    } catch (...) {
+        cout << "[fit_ellipse_2d] Solving eigen value failed!" << endl;
+        center = Scalar(0, 0, 0);
+        param = Scalar(100, 100, 0); // show error by display
+        return 0;
+    }
+    
+    arma::vec eval = real(eigval);
+    arma::mat evec = real(eigvec);
+
+    arma::rowvec cond = 4*(evec.row(0)%evec.row(2)) - evec.row(1)%evec.row(1);
+    arma::uvec q = find(cond > 0);
+    arma::mat a1 = evec.cols(q); // sometimes a1 = []
+    arma::mat a_vec = arma::join_cols(a1, t*a1);
+    if (a_vec.is_empty()) {
+        cout << "[fit_ellipse_2d] Degenerated result!" << endl;        
+        center = Scalar(0, 0, 0);
+        param = Scalar(100, 100, 0); // show error by display
+        return 0;
+    }
+
+    double a = a_vec.at(0);
+    double b = a_vec.at(1)/2;
+    double c = a_vec.at(2);
+    double d = a_vec.at(3)/2;
+    double f = a_vec.at(4)/2;
+    double g = a_vec.at(5);
+
+    if (b*b - a*c == 0 || a == c) { // degenerated ellipse
+        cout << "[fit_ellipse_2d] Degenerated result!" << endl;        
+        center = Scalar(0, 0, 0);
+        param = Scalar(100, 100, 0); // show error by display
+        return 0;
+    }
+    
+    double x0 = (c*d - b*f)/(b*b - a*c);
+    double y0 = (a*f - b*d)/(b*b - a*c);
+
+    double axis_a = (2*(a*f*f + c*d*d + g*b*b - 2*b*d*f - a*c*g))
+        / ((b*b - a*c)*(sqrt((a - c)*(a - c) + 4*b*b) - (a + c)));
+    double axis_b = (2*(a*f*f + c*d*d + g*b*b - 2*b*d*f - a*c*g))
+        / ((b*b - a*c)*(- sqrt((a - c)*(a - c) + 4*b*b) - (a + c)));
+    axis_a = sqrt(axis_a);
+    axis_b = sqrt(axis_b);
+
+    
+    double phi; // degree
+    if (b == 0 && a < c)
+        phi = 0;
+    else if (b == 0 && a > c)
+        phi = 90;
+    else if (b != 0 && a < c)
+        phi = (0.5*atan(2*b/(a - c)))*180/PI;
+    else
+        phi = 90 + (0.5*atan(2*b/(a - c)))*180/PI;
+    /*
+    if (axis_a < axis_b) {
+        //SWAP(axis_a, axis_b);
+        phi = phi - 90;
+    }
+    */
+
+    center = Scalar(round(x0), round(y0), 0);
+    param = Scalar(round(axis_a), round(axis_b),
+                   round(phi));
+    return 1;
+}
+
 
 void fit_circle_2d(const vector<Scalar> & points,
                    Scalar& param) {
@@ -336,7 +463,8 @@ void bresenham(Scalar current, Scalar direction, Scalar inc,
 }
 
 // 3D Bresenham's line generation
-vector<Scalar> get_line_points(Scalar point, Scalar direction,
+vector<Scalar> get_line_points(Scalar point,
+                               Scalar direction,
                                Scalar bound) {
     // REMARK: all coordinate oders as "column, row, duration"
     vector<Scalar> re; // returned point list
@@ -368,6 +496,28 @@ vector<Scalar> get_line_points(Scalar point, Scalar direction,
     bresenham(point, direction, inc, bound, &re);
     reverse(re.begin(), re.end());
 
+    return re;
+}
+
+vector<Scalar> get_ray_points(Scalar point, Scalar direction, Scalar bound) {
+    // REMARK: all coordinate oders as "column, row, duration"
+    vector<Scalar> re; // returned point list
+
+    if (direction[0] == 0 &&
+        direction[1] == 0 &&
+        direction[2] == 0)
+        return re;
+    
+    // increment in each direction
+    int c_inc = direction[0] > 0 ? 1 : -1;
+    int r_inc = direction[1] > 0 ? 1 : -1;
+    int d_inc = direction[2] > 0 ? 1 : -1;
+    Scalar inc;
+    inc[0] = c_inc;
+    inc[1] = r_inc;
+    inc[2] = d_inc;
+    re.push_back(point); // insert itself
+    bresenham(point, direction, inc, bound, &re);
     return re;
 }
 
@@ -597,4 +747,111 @@ vector<Scalar> get_in_cube_points(Scalar centre, Scalar param, Scalar bound) {
     return re;
 }
 
+double GetRoot (double r0, double z0, double z1, double g) {
+    double n0 = r0*z0;
+    double s0 = z1 - 1;
+    double s1 = (g < 0 ? 0 : sqrt(n0*n0+z1*z1) - 1);
+    double s = 0;
+    for (int i = 0; i < 50; i++) {
+        s = (s0 + s1) / 2 ;
+        if (s == s0 || s == s1)
+            break;
+        double ratio0 = n0 /( s + r0 );
+        double ratio1 = z1 /( s + 1 );
+        g = ratio0*ratio0 + ratio1*ratio1 - 1;
+        if (g > 1e-5)
+            s0 = s;
+        else if (g < -1e-5)
+            s1 = s;
+        else
+            break;
+    }
+    return s;
+}
+
+double DistancePointEllipse(cv::Point point,
+                            cv::Point2i center, Scalar param,
+                            cv::Point & closest) {
+//    double e0, double e1, double y0, double y1,
+//                            double & x0, double & x1) {
+    double y0_ = (double) point.x, y1_ = (double) point.y;
+    double c0 = (double) center.x, c1 = (double) center.y;
+    double e0 = param[0], e1 = param[1];    
+    double x0, x1;
+    bool neg_x = false, neg_y = false;
+    // tilting and moving
+    double theta;
+    if (e0 < e1) {
+        SWAP(e0, e1);
+        theta = (param[2] + 90)*PI/180;
+    } else
+        theta = param[2]*PI/180;
+    double y0 = (y0_ - c0)*cos(theta) + (y1_ - c1)*sin(theta);
+    double y1 = - (y0_ - c0)*sin(theta) + (y1_ - c1)*cos(theta);
+
+    // change quadrant
+    if (abs(y0) < 1e-5)
+        y0 = 0.0;
+    if (abs(y1) < 1e-5)
+        y1 = 0.0;
+    if (y0 < 0) {
+        neg_x = true;
+        y0 = - y0;
+    };
+    if (y1 < 0) {
+        neg_y = true;
+        y1 = - y1;
+    };
+
+    double distance;
+    if (y1 > 0) {
+        if (y0 > 0) {
+            double z0 = y0 / e0; 
+            double z1 = y1 / e1; 
+            double g = z0*z0 + z1*z1 - 1;
+            if (g != 0) {
+                double r0 = (e0/e1)*(e0/e1);
+                double sbar = GetRoot(r0 , z0 , z1 , g);
+                x0 = r0*y0/(sbar + r0);
+                x1 = y1/(sbar + 1);
+                distance = sqrt((x0 - y0)*(x0 - y0) + (x1 - y1)*(x1 - y1));
+            } else {
+                x0 = y0; 
+                x1 = y1;
+                distance = 0;
+            }
+        } else {// y0 == 0
+            x0 = 0;
+            x1 = e1;
+            distance = abs(y1 - e1);
+        }
+    } else { // y1 == 0
+        double numer0 = e0*y0, denom0 = e0*e0 - e1*e1;
+        if (numer0 < denom0) {
+            double xde0 = numer0/denom0;
+            x0 = e0*xde0;
+            x1 = e1*sqrt(1 - xde0*xde0);
+            distance = sqrt( (x0-y0)*(x0-y0) + x1*x1);
+        } else {
+            x0 = e0; 
+            x1 = 0; 
+            distance = abs(y0 - e0);
+        }
+    }
+    // change quadrant
+    if (neg_x)
+        x0 = - x0;
+    if (neg_y)
+        x1 = - x1;
+
+    // tilt back
+    double x0_ = x0*cos(theta) - x1*sin(theta);
+    double x1_ = x0*sin(theta) + x1*cos(theta);
+    // moving
+    closest.x = round(x0_ + c0);
+    closest.y = round(x1_ + c1);
+    return distance;
+}
+
 #endif
+

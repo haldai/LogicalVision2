@@ -2,11 +2,21 @@
 % library for geometry
 %=====================
 
+% mid point of two vectors (points)
+mid_point([], [], []):-
+    !.
+mid_point([X | Xs], [Y | Ys], [Z | Zs]):-
+    Z is round((X + Y)/2),
+    mid_point(Xs, Ys, Zs), !.
+
 % cross/3: Cross product of two 3d vectors
 cross([A1, A2, A3], [B1, B2, B3], [X, Y, Z]):-
     X is A2*B3 - A3*B2,
     Y is A3*B1 - A1*B3,
     Z is A1*B2 - A2*B1.
+% cross/2 cross product of two 2d vector
+cross([X1, Y1], [X2, Y2], C):-
+    C is X1*Y2 - X2*Y1.
 
 % dot/3: Inner product of two lists (vectors)
 dot([], [], 0).
@@ -33,17 +43,40 @@ seg_length(S, L):-
     eu_dist(X, Y, L), !.
 
 %===================
-% vector angle (RAD)
+% vector angle (DEG)
 %===================
+vec_angle(V1, V2, 180.0):-
+    V1 = [X, Y], V2 = [U, V],
+    X =:= -U,
+    Y =:= -V,
+    !.
 vec_angle(V1, V2, Ang):-
     dot(V1, V2, D),
     norm_2(V1, N1), norm_2(V2, N2),
     N1 =\= 0, N2 =\= 0,
-    A is round((D / (N1 * N2)) * 10e6) / 10e6,
-    Ang is acos(A) / pi,
+    A is D / (N1 * N2),
+    Ang is round(((acos(A)*180) / pi)*1e5) / 1e5,
     !.
 vec_angle(_, _, 0):-
     !.
+% rotation angle, from 0 to 360 degree
+vec_rotate_angle(V1, V2, 180.0):-
+    V1 = [X, Y], V2 = [U, V],
+    X =:= -U,
+    Y =:= -V,
+    !.
+vec_rotate_angle(V1, V2, Ang):-
+    cross(V1, V2, C),
+    vec_angle(V1, V2, Ang1),
+    Ang is Ang1*sign(C),
+    !.
+
+vec_rotate_angle_clockwise(V1, V2, Ang):-
+    vec_rotate_angle(V1, V2, Ang1),
+    Ang1 < 0,
+    Ang is Ang1 + 360, !.
+vec_rotate_angle_clockwise(V1, V2, Ang):-
+    vec_rotate_angle(V1, V2, Ang), !.
 
 %===================
 % rectangle area
@@ -160,6 +193,31 @@ intersect_det(P1, P2, P3, D):-
     P3 = [X3, Y3],
     D is (X3 - X1)*(Y2 - Y1) - (Y3 - Y1)*(X2 - X1).
 
+%====================================
+% 2d direction turning (clockwise)
+%====================================
+turn_degree_2d(Dir1, Deg_, Dir2):-
+    Deg1 is round((Deg_ - truncate(Deg_/360)*360)*10)/10, % for robustness
+    Deg is (Deg1*pi)/180, % DEG to RAD
+    turn_degree_2d_(Dir1, Deg, Dir2), !.
+turn_degree_2d_([DX, DY], Deg, [DX2, DY2]):-
+    % Because in IMAGES, THE (0, 0) is on the TOP LEFT,
+    %   so in fact here Deg is treated as INVERSE CLOCKWISE angle
+    DX2 is round((DX*cos(Deg) - DY*sin(Deg))*10e6)/10e6,
+    DY2 is round((DX*sin(Deg) + DY*cos(Deg))*10e6)/10e6.
+    
+%===========================
+% perpendicular direction
+%===========================
+perpendicular([0, _], [1, 0]):- !.
+perpendicular([_, 0], [0, 1]):- !.
+perpendicular([X1, Y1], [10, Y2]):-
+    Y2 is -10*X1/Y1.
+
+perpendicular_bisect_line(Seg, Pt, Dir):-
+    Seg = [P1, P2], mid_point(P1, P2, Pt),
+    vec_diff(P1, P2, Dir0),
+    perpendicular(Dir0, Dir).
 
 %==============================================
 % David Eberly's Segment intersection algorithm
@@ -414,18 +472,56 @@ rand_3d_point([X, Y, Z], [W, H, D]):-
     random(0, H, Y),
     random(0, D, Z).
 
+%===============
+% random lines
+%===============
+rand_line_2d([W, H], [X, Y], [DX, DY]):-
+    rand_2d_point([X, Y], [W, H]), rand_2d_angle_vec([DX, DY]).
+% many lines
+rand_lines_2d(_, 0, []):-
+    !.
+rand_lines_2d([W, H], N, [[[X, Y], [DX, DY]] | Lines]):-
+    rand_2d_point([X, Y], [W, H]), rand_2d_angle_vec([DX, DY]),
+    N1 is N - 1,
+    rand_lines_2d([W, H], N1, Lines).
+
 %======================
 % point inside ellipse
 %======================
-point_in_ellipse(Pt, [Center, Param], [W, H, D]):-
-    line_seg_points(Pt, Center, [W, H, D], Pts1),
-    ellipse_points(Center, Param, [W, H, D], Pts2),
-    intersection(Pts1, Pts2, Pts3),
-    length(Pts3, L),
-    (member(Pt, Pts2);
-     L == 0),
+point_in_ellipse(Pt, [Center, Param], _):-
+    point_in_ellipse(Pt, [Center, Param]).
+point_in_ellipse(Pt, [Center, Param]):-
+    Pt = [X, Y],
+    Center = [XC, YC], Param = [A_, B_, ALPHA],
+    (A_ > B_ -> (A = A_, B = B_); (A = B_, B = A_)), !,
+    Th is pi*ALPHA/180,
+    U is cos(Th)*(X - XC) + sin(Th)*(Y - YC),
+    V is -sin(Th)*(X - XC) + cos(Th)*(Y - YC),
+    D is (U/A)**2 + (V/B)**2,
+    D =< 1.01.
+/*
+line_seg_points(Pt, Center, [W, H, D], Pts1),
+ellipse_points(Center, Param, [W, H, D], Pts2),
+intersection(Pts1, Pts2, Pts3),
+length(Pts3, L),
+(member(Pt, Pts2);
+L == 0),
+!.
+*/
+
+%==========================
+% point ellipse distance
+%==========================
+dist_elps_point_2d(Elps, Point, Dist):-
+    dist_point_elps_2d(Point, Elps, Dist).
+
+dist_point_elps_2d([], [_, _], 100000):-
     !.
-    
+dist_point_elps_2d(Point, [Cen, Param], Dist):-
+    dist_point_elps_2d(Point, [Cen, Param], Dist, _).
+dist_point_elps_2d(Point, [Cen, Param], Dist, Closest):-
+    dist_point_elps_2d(Point, Cen, Param, Dist, Closest).
+
 %==============================
 % segment ellipse intersection
 %==============================
@@ -520,3 +616,4 @@ total_seg_length([[Start, End] | Segs], Sum):-
     total_seg_length(Segs, Sum1),
     !,
     Sum is Sum1 + Dist.
+

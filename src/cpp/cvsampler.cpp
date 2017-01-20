@@ -169,6 +169,29 @@ PREDICATE(line_points, 4) {
     return A4 = point_vec2list(pts);
 }
 
+/* ray_points(+POINT, +DIR, +BOUND, -PTS)
+ * get a list of points that on line
+ * @POINT = [X, Y, Z]: starting point of the ray
+ * @DIR = [DX, DY, DZ]: direction of the ray
+ * @BOUND = [W, H, D]: size limit of the video (width, height and duration),
+ *                     usually obained from 'size_3d(VID, W, H, D)'
+ * @PTS: returned point list
+ */
+PREDICATE(ray_points, 4) {
+    // coordinates scalar
+    vector<int> pt_vec = list2vec<int>(A1, 3);
+    Scalar pt(pt_vec[0], pt_vec[1], pt_vec[2]);
+    // direction scalar
+    vector<double> dr_vec = list2vec<double>(A2, 3);
+    Scalar dir(dr_vec[0], dr_vec[1], dr_vec[2]);
+    // boundary scalar
+    vector<int> bd_vec = list2vec<int>(A3, 3);
+    Scalar bound(bd_vec[0], bd_vec[1], bd_vec[2]);
+    // get points
+    vector<Scalar> pts = get_ray_points(pt, dir, bound);
+    return A4 = point_vec2list(pts);
+}
+
 /* line_seg_points(START, END, BOUND, PTS)
  * get a list of points that on line segment [START, END]
  * @START = [X1, Y1, Z1]: start point of the line segment
@@ -257,6 +280,33 @@ PREDICATE(in_cube_points, 4) {
     // get points
     vector<Scalar> pts = get_in_cube_points(centre, param, bound);
     return A4 = point_vec2list(pts);
+}
+/* dist_point_elips_2d(+POINT, +CEN, +PARAM, -DIST, -CLOSEST)
+ * @POINT: [X, Y], the input point
+ * @CEN: [CX, CY], center of the ellipse
+ * @PARAM: [A, B, ALPHA], axes of ellipse and the tilt angle
+ * @DIST: distance between the point and the ellipse
+ * @CLOSEST: the closest point on ellipse to [X, Y]
+ */
+PREDICATE(dist_point_elps_2d, 5) {
+    // read in
+    vector<int> p_vec = list2vec<int>(A1, 2); // point
+    vector<int> c_vec = list2vec<int>(A2, 2); // center of ellipse
+    vector<double> para_vec = list2vec<double>(A3, 3); // parameter of ellipse
+    cv::Point2i point(p_vec[0], p_vec[1]);
+    cv::Point2i center(c_vec[0], c_vec[1]);
+    Scalar param(para_vec[0], para_vec[1], para_vec[2], 0.0);
+    cv::Point2i closest;
+    try {
+        double dist = DistancePointEllipse(point, center, param, closest);
+        A4 = PlTerm(dist);
+        vector<long> clst = {(long) closest.x, (long) closest.y};
+        A5 = vec2list<long>(clst);
+    } catch (...) {
+        cout << "Cannot compute the distance!" << endl;
+        return FALSE;
+    }
+    return TRUE;
 }
 
 /* pts_var(+IMGSEQ, +PTS, -VARS)
@@ -646,8 +696,10 @@ PREDICATE(fit_elps, 3) {
     // fit ellipse
     Scalar cen;
     Scalar param;
-    opencv_fit_ellipse(pts, cen, param);
-    //fit_ellipse(pts, cen, param);
+    //opencv_fit_ellipse(pts, cen, param);
+    if (!fit_ellipse_2d(pts, cen, param))
+        return FALSE;
+    
     // bind variables
     vector<long> cen_vec = {(long) cen[0],
                             (long) cen[1],
@@ -681,10 +733,10 @@ PREDICATE(fit_circle, 2) {
             return FALSE;
         }
     }
-    // fit ellipse
+    // fit circle
     Scalar param;
     fit_circle_2d(pts, param);
-    //fit_ellipse(pts, cen, param);
+
     // bind variables
     vector<long> param_vec = {(long) param[0],
                               (long) param[1],

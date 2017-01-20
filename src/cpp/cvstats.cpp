@@ -151,12 +151,12 @@ PREDICATE(train_svm, 3) {
  * @Labels: [Y1, Y2, ...] output labels
  */
 PREDICATE(predict_svm, 3) {
-    // predict
-    char *p1 = (char*) A1;
-    const string add_model(p1);
-    SVM *model = str2ptr<SVM>(add_model);
-    arma::mat data = list_data2arma_mat(A2);
     try {
+        // predict
+        char *p1 = (char*) A1;
+        const string add_model(p1);
+        SVM *model = str2ptr<SVM>(add_model);
+        arma::mat data = list_data2arma_mat(A2);
         if (!(A3 = pl_predict_svm(model, data))) {
             cout << "Prediction failed!" << endl;
             return FALSE;
@@ -166,6 +166,47 @@ PREDICATE(predict_svm, 3) {
         return FALSE;
     }
     return TRUE;
+}
+
+/* save_model_svm(+Model, +Path)
+ * save libSVM model into a binary file
+ * @Model: Model address
+ * @Path: File path for saving the model
+ */
+PREDICATE(save_model_svm, 2) {
+    char *p1 = (char*) A1;
+    const string add_model(p1);
+    SVM *model = str2ptr<SVM>(add_model);
+    char *p2 = (char*) A2;
+    const string path(p2);
+    try {
+        model->save_model(path);
+    } catch (...) {
+        cout << "Saving SVM model failed!" << endl;
+        return FALSE;
+    }
+    cout << "SVM model saved to: " << path << endl;
+    return TRUE;
+}
+
+/* load_model_svm(+Path, -Model)
+ * load libSVM model from a binary file
+ * @Path: File path for saving the model
+ * @Model: Model address 
+ */
+PREDICATE(load_model_svm, 2) {
+    char *p1 = (char*) A1;
+    const string path(p1);
+    SVM *model;
+    try {
+         model = new SVM(path); // call constructor by loading
+    } catch (...) {
+        cout << "Loading SVM model failed!" << endl;
+        return FALSE;
+    }
+    cout << "SVM model loaded from: " << path << endl;
+    string add = ptr2str(model);
+    return A2 = PlTerm(add.c_str());
 }
 
 PREDICATE(release_model_svm, 1) {

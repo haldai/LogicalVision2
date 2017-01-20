@@ -287,10 +287,16 @@ arma::mat list_data2arma_mat(const PlTerm & pldata) {
         cout << "Parsing data to arma::mat failed!" << endl;
         return re;
     }
-    int n = re_vec.size();
-    int m = re_vec[0].size();
-    re = arma::mat(m, n);
     try {
+        int n = re_vec.size();
+        if (re_vec.size() == 0) {
+            cout << "Cannot init data matrix, check the length of feature vectors." << endl;
+            re.zeros();
+            return re;
+        }
+        int m = re_vec[0].size();
+        re = arma::mat(m, n);
+
         for (int i = 0; i < n; i++)
             re.col(i) = arma::vec(re_vec[i]);
     } catch (...) {
@@ -357,11 +363,16 @@ vector<Scalar> scalar_list2vec(const PlTerm & term, int size, int dim) {
                 PlTail coord_list(point_term);
                 PlTerm coord_term;
                 Scalar pt(-1, -1, -1);
-                for (int dd = 0; dd < dim; dd++) {
-                    coord_list.next(coord_term);
+                int dd;
+                for (dd = 0; dd < dim; dd++) {
+                    if (!coord_list.next(coord_term))
+                        break;
                     pt[dd] = (Type) coord_term;
                 }
-                vec.push_back(pt);
+                if (dd == 0)
+                    continue;
+                else
+                    vec.push_back(pt);
             }
         } else {
             for (int i = 0; i < size; i++) {

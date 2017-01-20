@@ -6,12 +6,18 @@
 
 :- load_foreign_library(foreign('../../libs/cvdraw.so')).
 
+%=====================
+% draw one point 2d
+%=====================
+draw_point_2d(Img, P, Color):-
+    draw_points_2d(Img, [P], Color).
+
 %============================================
 % draw line (not line segment, no boundary)
 %============================================
 draw_line_2d(Image, Point, Dir, Color):-
     size_2d(Image, W, H),
-    line_points(Point, Dir, [W, H, 10e300], Pts),
+    line_points_2d(Point, Dir, [W, H], Pts),
     nth1(1, Pts, St), last(Pts, Lst), % get start and end points
     draw_line_seg_2d(Image, St, Lst, Color). % use opencv line drawing
     

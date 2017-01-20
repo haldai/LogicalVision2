@@ -10,6 +10,7 @@
                   '../stats/plstats.pl',
                   '../abduce/plabduce.pl',
                   '../abduce/bk_light.pl',
+                  '../abduce/bk_object.pl',
                   '../abduce/bk_ellipse.pl',
                   '../abduce/bk_polygon.pl',
                   '../abduce/bk_football.pl',
@@ -23,25 +24,36 @@
 
 test_load_img_3(A):-
     test_write_start('load image'),
-    %load_img('../../data/Protist0.png', A),
-    load_img('../../data/late.png', A),
+    load_img('../../data/Protist0.png', A),
+    %load_img('../../data/Protist_new.jpg', A),
+    %load_img('../../data/late.png', A),
     size_2d(A, X, Y),
     write('W x H: '),
     write(X), write(' x '), write(Y), nl,
     test_write_done.
 
-test_fit_elps_2d(Img, Center, [A, B, Alpha], Color):-
+test_fit_elps_2d(Img, Center, [A, B, Alpha], P, Color):-
     test_write_start('fit ellipse'),
     clone_img(Img, Img2),
     size_2d(Img, W, H),
     ellipse_points_2d(Center, [A, B, Alpha], [W, H], Pts),
-    index_select([1, 30, 50, 70, 90, 110, 130, 150, 170, 190], Pts, Pts2),
+    index_select1([1, 30, 50, 70, 90, 110, 130, 150, 170, 190], Pts, Pts2),
+    %Pts2 = [[214,205], [214,206], [195,228], [186,226], [183,216]],
+    print_list(Pts2),
     %Pts2 = Pts,
     fit_elps_2d(Pts2, Cen2, Para2),
     write('fit parameters: '), write(Cen2), write(', '), write(Para2), nl,
     ellipse_points_2d(Cen2, Para2, [W, H], Pts3),
+    (point_in_ellipse(P, [Cen2, Para2]) ->
+         writeln('In ellipse');
+     writeln('Not in ellipse')),
+    write('Compute distance & closest point: '),
+    time(dist_point_elps_2d(P, [Cen2, Para2], Dist, Closest)),
+    write('Distance: '), writeln(Dist),
     draw_points_2d(Img2, Pts3, Color),
     draw_points_2d(Img2, Pts2, green),
+    draw_point_2d(Img2, P, blue),
+    draw_point_2d(Img2, Closest, yellow),
     showimg_win(Img2, 'debug'),
     release_img(Img2),
     test_write_done.
@@ -65,9 +77,9 @@ test_train_stat_pts(Img):-
     writeln('Gen training data: '),
     time(gen_pts_train_data('../../data/Protist0.png',
                             '../../data/Protist0_fg.bmp',
-                            200, Data_Label_1)),
+                            100, Data_Label_1)),
     %print_list_ln(Data_Label),
-    subsample(1.0, 0.25, Data_Label_1, Data_Label),
+    subsample(1.0, 0.3, Data_Label_1, Data_Label),
     findall(N, member(N-0, Data_Label), Ns), length(Ns, Len_N),
     findall(P, member(P-1, Data_Label), Ps), length(Ps, Len_P),
     write('Neg num: '), writeln(Len_N),
@@ -92,7 +104,7 @@ test_train_stat_pts(Img):-
     size_2d(Img, W, H),
     time((
                 %sample_line_color_L_hist_2d(Img, [353, 133], [1, 1], Line_Pts, Line_Hist),
-                rand_lines_2d([W, H], 200, Lines),
+                rand_lines_2d([W, H], 5, Lines),
                 sample_lines_color_L_hist_2d(Img, Lines, Line_Pts, Line_Hist),
                 %sample_line_color_hist_2d(Img, [353, 133], [1, 1], Line_Pts, Line_Hist),
                 predict_svm(Model, Line_Hist, Line_Label))
@@ -107,16 +119,81 @@ test_train_stat_pts(Img):-
     %release_model_ada(Model),
     test_write_done.
 
-test_L_hist_change_2d(Img, Pt, Dir):-
+test_L_hist_change_2d(Img, Pt, Dir, T):-
     test_write_start('test color L histogram changing'),
-    sample_line_color_L_hist_change_2d(Img, Pt, Dir, _, Hist_Chg),
-    print_list(Hist_Chg),
+    %sample_line_color_L_hist_change_2d(Img, Pt, Dir, Pts, Hist_Chg),
+    sample_line_color_hist_change_2d(Img, Pt, Dir, Pts, Hist_Chg),
+    items_key_geq_T(Pts, Hist_Chg, T, Re),
+    print_list(Hist_Chg),    
+    clone_img(Img, Img2),
+    draw_points_2d(Img2, Pts, blue),
+    draw_points_2d(Img2, Re, red),
+    showimg_win(Img2, 'hist_change'),
+    release_img(Img2),
+    test_write_done.
+
+test_draw_perpendicular_lines(Img):-
+    test_write_start('test perpendicular lines'),
+    size_2d(Img, W, H),
+    rand_line_2d([W, H], P, D),
+    line_points_2d(P, D, [W, H], Pts),
+    nth1(1, Pts, St), last(Pts, Lst),
+    perpendicular_bisect_line([St, Lst], P2, D2),
+    clone_img(Img, Img2),
+    draw_line_2d(Img2, P, D, red),
+    draw_line_2d(Img2, P2, D2, blue),
+    showimg_win(Img2, 'perpendicular'),
+    release_img(Img2),
+    test_write_done.
+
+test_draw_turning_lines(Img, Deg):-
+    test_write_start('test 2d turning angles'),
+    size_2d(Img, W, H),
+    rand_line_2d([W, H], P, D),
+    line_points_2d(P, D, [W, H], Pts1), last(Pts1, E1),
+    turn_degree_2d(D, Deg, D2),
+    line_points_2d(P, D2, [W, H], Pts2), last(Pts2, E2),
+    clone_img(Img, Img2),
+    draw_line_seg_2d(Img2, P, E1, red),
+    draw_line_seg_2d(Img2, P, E2, blue),
+    showimg_win(Img2, 'turn clockwise'),
+    release_img(Img2),
+    test_write_done.
+
+test_save_and_load_model:-
+    test_write_start('test trainning, saving and loading stat model'),
+    train_stat_model(Model),
+    save_model_svm(Model, '../../tmp/SVM.model'),
+    load_model_svm('../../tmp/SVM.model', Model2),
+    release_model_svm(Model),
+    release_model_svm(Model2),
+    test_write_done.
+    
+test_sample_obj(Img):-
+    test_write_start('test sample object'),
+    %train_stat_model(Model),
+    load_model_svm('../../tmp/SVM.model', Model),
+    writeln('Abduce object: '),
+    time(abduce_object_elps(Img, Model, [], Obj)),
+    write("fitted ellipse: "), writeln(Obj),
+    clone_img(Img, Img2), Obj = elps(C, P),
+    size_2d(Img, W, H),
+    ellipse_points_2d(C, P, [W, H], Pts),
+    draw_points_2d(Img2, Pts, red),
+    showimg_win(Img2, 'fitted_ellipse'),
+    release_img(Img2),
+    release_model_svm(Model),
     test_write_done.
 
 test_main_3:-
     test_load_img_3(Img),
-    %test_fit_elps_2d(Img, [353, 143], [37, 18, 20], red),
+    %test_fit_elps_2d(Img, [353, 143], [37, 18, 20], [393, 143], red),
+    %test_fit_elps_2d(Img, [200, 200], [30, 50, -72], [230, 200], red),
     %test_line_scharr_2d(Img, [353, 133], [1, 1], 5),
+    %test_draw_perpendicular_lines(Img),
+    %test_draw_turning_lines(Img, -450.798),
     %test_train_stat_pts(Img),
-    test_L_hist_change_2d(Img, [353, 133], [1, 1]),
+    %test_L_hist_change_2d(Img, [353, 133], [1, -2], 0.05),
+    %test_save_and_load_model,
+    test_sample_obj(Img), 
     test_rel_img(Img).

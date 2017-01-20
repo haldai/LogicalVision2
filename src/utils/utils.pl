@@ -29,6 +29,15 @@ greater_than_zero(A, 1):-
 greater_than_zero(A, 0):-
     A =< 0, !.
 
+less_than(A, B):-
+    A < B.
+greater_than(A, B):-
+    A > B.
+leq(A, B):-
+    A =< B.
+geq(A, B):-
+    A >= B.
+
 % generate temporary variables
 temp_vars(0, Return, Temp):-
     Return = Temp, !.
@@ -62,6 +71,10 @@ group_pairs_by_numbers(Pairs, N, [N-G | Groups]):-
 % difference between two vector, C = A - B
 vec_diff(A, B, C):-
     maplist(minus, A, B, C).
+
+% B - A
+vec_neg_diff(A, B, C):-
+    maplist(minus, B, A, C).
 
 vec_sum(A, B, C):-
     maplist(sum, A, B, C).
@@ -154,13 +167,6 @@ norm_2_sum([X | Xs], Sum):-
     norm_2_sum(Xs, Sum1),
     Sum is Sum1 + X**2.
 
-% mid point of two vectors (points)
-mid_point([], [], []):-
-    !.
-mid_point([X | Xs], [Y | Ys], [Z | Zs]):-
-    Z is round((X + Y)/2),
-    mid_point(Xs, Ys, Zs), !.
-
 % mode of list
 % Daniel Lyons@http://stackoverflow.com/questions/14691479/how-to-find-the-mode-of-a-list-in-prolog
 count_of([], _,  0).
@@ -213,11 +219,10 @@ grad_KL(Hists, Grad):-
 grad_KL([], [], _):-
     !.
 grad_KL([L | Ls], [0 | Gs], start):-
-    grad_KL(Ls, Gs, L).
+    grad_KL(Ls, Gs, L), !.
 grad_KL([L | Ls], [G | Gs], P):-
     compare_hist(P, L, G),
-    grad_KL(Ls, Gs, L).
-
+    grad_KL(Ls, Gs, L), !.
 
 %=============================================
 % zero item: return the items that key is 0.0
@@ -423,16 +428,19 @@ list_complement(List_1, List_2, Return):-
     list_complement(List_1, List_2, Return, []).
 
 % get a list of set of elements according to a list of indices
-index_select(Index_list, List, Return):-
-    index_select(Index_list, List, Return, []).
-index_select(Index_list, List, Return, Temp_list):-
-    Index_list == [] ->
-	(Return = Temp_list, !);
-    (Index_list = [Idx | Tail],
-     nth1(Idx, List, Ele),
-     append(Temp_list, [Ele], Temp_list_),
-     index_select(Tail, List, Return, Temp_list_)
-    ).
+index_select(X, Y, Z):-
+    index_select1(X, Y, Z).
+index_select1([], _, []):-
+    !.
+index_select1([I | Idcs], List, [E | Elements]):-
+    nth1(I, List, E),
+    index_select1(Idcs, List, Elements), !.
+
+index_select0([], _, []):-
+    !.
+index_select0([I | Idcs], List, [E | Elements]):-
+    nth0(I, List, E),
+    index_select0(Idcs, List, Elements), !.
 
 mask_select(_, [], []):-
     !.
@@ -442,6 +450,13 @@ mask_select([1 | Ms], [E | Es], [E | Re]):-
     mask_select(Ms, Es, Re), !.
 mask_select([0 | Ms], [_ | Es], Re):-
     mask_select(Ms, Es, Re), !.
+
+% random select an item in list
+random_select([], []).
+random_select(List, Item):-
+    length(List, Len),
+    random(0, Len, Idx),
+    nth0(Idx, List, Item).
 
 % find the index of max number in list of numbers
 max_list_idx(List, Re):-

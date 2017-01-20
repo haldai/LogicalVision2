@@ -132,6 +132,7 @@ gen_ball_train_pts:-
             close(Out)
            )
           ).
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % generate sequences for Prof Muggleton
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
