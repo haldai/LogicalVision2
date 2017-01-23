@@ -9,6 +9,10 @@ min_error_prob(0.7).
 
 :- ensure_loaded(['../utils/utils.pl']).
 
+%====================
+% object abduction
+%====================
+% ellipses
 abduce_object_elps(Img, Model, Edge_Points, Obj):-
     length(Edge_Points, Num_Pts), Num_Pts =< 1,
     size_2d(Img, W, H),
@@ -164,7 +168,6 @@ positive_segs([P | Pts], [0 | Labels], in, Tmp_Start, [R | Re]):-
 positive_segs([_ | Pts], [1 | Labels], in, Tmp_Start, Re):-
     positive_segs(Pts, Labels, in, Tmp_Start, Re), !.
 
-
 %======================================
 % train statistical model for protist
 %======================================
@@ -176,6 +179,45 @@ train_stat_model(Model):-
     subsample(1.0, 0.3, Data_Label_1, Data_Label),
     train_svm(Data_Label, Model).
 
-%======================================================
-% cut object into 2 halves and calculate the contrast
-%======================================================
+%=========================
+% cut object into 2 halves
+%=========================
+% get the splited points
+% clock angle \in [0, 11]
+split_ellipse(Img, elps(Cen, Param), Clock_Ang, Front, Rear):-
+    size_2d(Img, W, H),
+    get_points_in_ellipse_2d([Cen, Param], [W, H], Points),
+    Theta is (Clock_Ang mod 12)*30*pi/180,
+    DX is cos(Theta), DY is sin(Theta),
+    findall(P,
+            (member(P, Points),
+             vec_diff(P, Cen, D),
+             cross([DX, DY], D, C),
+             C < 0),
+            Front
+           ),
+    findall(P,
+            (member(P, Points),
+             vec_diff(P, Cen, D),
+             cross([DX, DY], D, C),
+             C > 0),
+            Rear
+           ).
+
+%===================================
+% find largest contrast direction
+%===================================
+get_largest_contrast_angle(Img, Elps, Re):-
+    get_largest_contrast_angle(Img, Elps, 12, -1, -1000, Re).
+get_largest_contrast_angle(_, _, 0, Re, _, Re):-
+    !.
+get_largest_contrast_angle(Img, Elps, Ang, Tmp_Ang, Tmp, Re):-
+    Ang1 is Ang - 1,
+    split_ellipse(Img, Elps, Ang, Front, Rear),
+    pts_color_L_avg_2d(Img, Front, Bright_F),
+    pts_color_L_avg_2d(Img, Rear, Bright_R),
+    Diff is Bright_F - Bright_R,
+    (Diff > Tmp ->
+         (get_largest_contrast_angle(Img, Elps, Ang1, Ang, Diff, Re), !);
+     (get_largest_contrast_angle(Img, Elps, Ang1, Tmp_Ang, Tmp, Re), !)
+    ).

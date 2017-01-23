@@ -24,7 +24,9 @@
 
 test_load_img_3(A):-
     test_write_start('load image'),
-    load_img('../../data/Protist0.png', A),
+    %load_img('../../data/Protist0.png', A),
+    load_img('../../data/protist/09/09011.jpg', A),
+    %load_img('../../data/moon/06/06014.jpg', A),
     %load_img('../../data/Protist_new.jpg', A),
     %load_img('../../data/late.png', A),
     size_2d(A, X, Y),
@@ -183,17 +185,37 @@ test_sample_obj(Img):-
     showimg_win(Img2, 'fitted_ellipse'),
     release_img(Img2),
     release_model_svm(Model),
+    get_largest_contrast_angle(Img, Obj, Ang),
+    write("largest contrast angle: "), writeln(Ang),
+    test_write_done.
+
+test_split_obj(Img, Cen, Param, Ang):-
+    test_write_start('test split object'),
+    size_2d(Img, W, H),
+    time(split_ellipse(Img, elps(Cen, Param), Ang, Front, Rear)),
+    pts_color_L_avg_2d(Img, Front, Bright_F),
+    pts_color_L_avg_2d(Img, Rear, Bright_R),
+    Diff is Bright_F - Bright_R,
+    write('Brightness difference: '), writeln(Diff),
+    ellipse_points_2d(Cen, Param, [W, H], Edge),
+    clone_img(Img, Img2),
+    draw_points_2d(Img2, Front, red),
+    draw_points_2d(Img2, Rear, blue),
+    draw_points_2d(Img2, Edge, yellow),
+    showimg_win(Img2, 'ellipse'),
+    release_img(Img2),
     test_write_done.
 
 test_main_3:-
     test_load_img_3(Img),
     %test_fit_elps_2d(Img, [353, 143], [37, 18, 20], [393, 143], red),
     %test_fit_elps_2d(Img, [200, 200], [30, 50, -72], [230, 200], red),
-    %test_line_scharr_2d(Img, [353, 133], [1, 1], 5),
+    %test_line_scharr_2d(Img, [500, 500], [2, 1], 5),
     %test_draw_perpendicular_lines(Img),
     %test_draw_turning_lines(Img, -450.798),
     %test_train_stat_pts(Img),
-    %test_L_hist_change_2d(Img, [353, 133], [1, -2], 0.05),
+    %test_L_hist_change_2d(Img, [500, 500], [1, -2], 0.05),
     %test_save_and_load_model,
-    test_sample_obj(Img), 
+    test_sample_obj(Img),
+    %test_split_obj(Img, [100, 100], [30, 50, -45], 11),
     test_rel_img(Img).

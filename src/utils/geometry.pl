@@ -87,9 +87,9 @@ rect_area([[X1, Y1], [X2, Y2]], S):-
 rect_intsct_area([[X1, Y1], [X2, Y2]], [[X3, Y3], [X4, Y4]], S):-
     S is max(0, min(X2, X4) - max(X1, X3)) * max(0, min(Y2, Y4) - max(Y1, Y3)).
     
-%==========================
+%===============================
 % point in/out box (rectangle)
-%==========================
+%===============================
 % point3 is in the box of [P1, P2]. P1 & P2 are ends of diagonal line segment.
 in_box([P1, P2], P3):-
     P1 = [X1, Y1],
@@ -492,8 +492,7 @@ point_in_ellipse(Pt, [Center, Param], _):-
     point_in_ellipse(Pt, [Center, Param]).
 point_in_ellipse(Pt, [Center, Param]):-
     Pt = [X, Y],
-    Center = [XC, YC], Param = [A_, B_, ALPHA],
-    (A_ > B_ -> (A = A_, B = B_); (A = B_, B = A_)), !,
+    Center = [XC, YC], Param = [A, B, ALPHA],
     Th is pi*ALPHA/180,
     U is cos(Th)*(X - XC) + sin(Th)*(Y - YC),
     V is -sin(Th)*(X - XC) + cos(Th)*(Y - YC),
@@ -508,6 +507,23 @@ length(Pts3, L),
 L == 0),
 !.
 */
+
+%====================
+% points in ellipse
+%====================
+% get_points_in_ellipse_2d([Center, Parameters], Bound, Return).
+get_points_in_ellipse_2d([Cen, Param], [W, H], Return):-
+    ellipse_points_2d(Cen, Param, [W, H], Edge),
+    column(1, Edge, Xs), column(2, Edge, Ys),
+    min_list(Xs, Xmin), max_list(Xs, Xmax),
+    min_list(Ys, Ymin), max_list(Ys, Ymax),
+    findall([X, Y],
+            (between(Xmin, Xmax, X),
+             between(Ymin, Ymax, Y),
+             point_in_ellipse([X, Y], [Cen, Param])
+            ),
+            Return
+           ).
 
 %==========================
 % point ellipse distance

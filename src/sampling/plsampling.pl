@@ -120,3 +120,19 @@ pts_color_L_hists_2d(Img, [P | Pts], [H | Hists]):-
     pixel_neighbor_size(R),
     color_L_hist_square_2d(Img, [P, R], H),
     pts_color_L_hists_2d(Img, Pts, Hists).
+
+%========================================
+% points L channel (brightness) average
+%========================================
+pts_color_L_avg_2d(Img, Pts, Re):-
+    length(Pts, Len),
+    pts_color_L_sum_2d(Img, Pts, Sum),
+    Re is Sum/Len.
+
+pts_color_L_sum_2d(_, [], 0):-
+    !.
+pts_color_L_sum_2d(Img, [P | Pts], Sum):-
+    point_color_2d(Img, P, [L, _, _]),
+    pts_color_L_sum_2d(Img, Pts, Sum1),
+    Sum is Sum1 + L.
+    
