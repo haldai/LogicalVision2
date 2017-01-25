@@ -383,3 +383,6 @@ get_largest_contrast_angle(Img, circle(C, R), Ang, Tmp_Ang, Tmp, Re):-
      (get_largest_contrast_angle(Img, circle(C, R), Ang1, Tmp_Ang, Tmp, Re), !)
     ).
 
+%?- 10 =:= 2*5.
+%@ true.
+%@ true.

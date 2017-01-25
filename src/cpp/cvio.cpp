@@ -31,6 +31,19 @@ PREDICATE(load_img, 2) {
     if (PL_get_atom_chars(t1, &p1)) {
         const string path(p1);
         Mat* img = cv_load_img(path);
+        if (img->cols > 640 || img->rows > 640) {
+            double t = 0;
+            if (img->cols > img->rows)
+                t = 640.0/img->cols;
+            else
+                t = 640.0/img->rows;
+            Mat* rsz = cv_resize_image(img,
+                                       round(t*(img->cols)),
+                                       round(t*(img->rows)));
+            delete img;
+            img = rsz;
+            rsz = NULL;
+        }
         string add = ptr2str(img); // address of image in stack
         term_t t2 = PL_new_term_ref();
         if (PL_put_atom_chars(t2, add.c_str())) {
@@ -302,7 +315,7 @@ PREDICATE(showimg_win, 2) {
         Mat* img = str2ptr<Mat>(add);
         if (PL_get_atom_chars(t2, &p2)) {
             string window_name(p2);
-            namedWindow(window_name, WINDOW_AUTOSIZE);
+            namedWindow(window_name);//, CV_WINDOW_NORMAL);
             Mat frame = img->clone();
             cvtColor(frame, frame, COLOR_Lab2BGR);
             imshow(window_name, frame);
@@ -365,7 +378,7 @@ PREDICATE(showvid_win, 2) {
             long frame_end = frame_total - 1;
             double frame_rate = vid->get(CV_CAP_PROP_FPS);
             Mat frame;
-            namedWindow(window_name);
+            namedWindow(window_name);//, CV_WINDOW_NORMAL);
             int delay = 1000/frame_rate;
             bool stop = false;
             long frame_current = frame_start;
@@ -409,7 +422,7 @@ PREDICATE(showseq_win, 2) {
             long frame_end = frame_total;
             double frame_rate = 24;
             Mat frame;
-            namedWindow(window_name);
+            namedWindow(window_name);//, CV_WINDOW_NORMAL);
             int delay = 1000/frame_rate;
             bool stop = false;
             long frame_current = frame_start;

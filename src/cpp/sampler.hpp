@@ -717,6 +717,7 @@ vector<double> cv_points_color_hist(vector<Mat> *images,
 vector<double> cv_rect_masked_color_hist_2d(cv::Mat *image,
                                             cv::Scalar center,
                                             cv::Scalar radius) {
+    vector<double> re_vec;
     // create mask
     cv::Mat mask = cv::Mat::zeros(image->size(), CV_8U);
     int w = image->cols;
@@ -737,13 +738,14 @@ vector<double> cv_rect_masked_color_hist_2d(cv::Mat *image,
         lx = w - x - 1;
     if (y + ly >= h)
         ly = h - y - 1;
+    if (lx <= 0 || ly <= 0)
+        return re_vec;
     /*
     cout << x << ","
          << y << ","
          << lx << ","
          << ly << "," << endl;
     */
-
     Mat roi(mask, cv::Rect(x, y, lx, ly));
     roi = 1;
     /*
@@ -753,7 +755,7 @@ vector<double> cv_rect_masked_color_hist_2d(cv::Mat *image,
     imshow("roi", roiImg);
     cv::waitKey(0);
     */
-    vector<double> re_vec;
+
     // calculate historgram
     cv::Mat hist;
     int lsize = 4;
@@ -780,6 +782,7 @@ vector<double> cv_rect_masked_color_hist_2d(cv::Mat *image,
 vector<double> cv_rect_masked_L_hist_2d(cv::Mat *image,
                                         cv::Scalar center,
                                         cv::Scalar radius) {
+    vector<double> re_vec;
     // create mask
     cv::Mat mask = cv::Mat::zeros(image->size(), CV_8U);
     int w = image->cols;
@@ -800,13 +803,15 @@ vector<double> cv_rect_masked_L_hist_2d(cv::Mat *image,
         lx = w - x - 1;
     if (y + ly >= h)
         ly = h - y - 1;
+    if (lx <= 0 || ly <= 0)
+        return re_vec;
+
     /*
     cout << x << ","
          << y << ","
          << lx << ","
          << ly << "," << endl;
     */
-
     Mat roi(mask, cv::Rect(x, y, lx, ly));
     roi = 1;
     /*
@@ -816,7 +821,7 @@ vector<double> cv_rect_masked_L_hist_2d(cv::Mat *image,
     imshow("roi", roiImg);
     cv::waitKey(0);
     */
-    vector<double> re_vec;
+
     // calculate historgram
     cv::Mat hist;
     int lsize = 256;

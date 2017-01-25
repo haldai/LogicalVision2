@@ -25,8 +25,18 @@
 test_load_img_3(A):-
     test_write_start('load image'),
     %load_img('../../data/Protist0.png', A),
-    load_img('../../data/protist/09/09011.jpg', A),
-    %load_img('../../data/moon/06/06014.jpg', A),
+    %load_img('../../data/protist/09/09011.jpg', A),
+    %load_img('../../data/protist/12/12023.jpg', A),
+    load_img('../../data/protist/12/12030.jpg', A),
+    %load_img('../../data/moon/02/02001.jpg', A),
+    %load_img('../../data/moon/02/02027.jpg', A),
+    %load_img('../../data/moon/02/02011.jpg', A),
+    %load_img('../../data/moon/02/02021.jpg', A),
+    %load_img('../../data/moon/09/09017.jpg', A),  % too noisy
+    %load_img('../../data/moon/10/10010.jpg', A),
+    %load_img('../../data/moon/12/12016.jpg', A),
+    %load_img('../../data/moon/07/07014.jpg', A),
+    %load_img('../../data/moon/07/07012.jpg', A),
     %load_img('../../data/Protist_new.jpg', A),
     %load_img('../../data/late.png', A),
     size_2d(A, X, Y),
@@ -51,6 +61,32 @@ test_fit_elps_2d(Img, Center, [A, B, Alpha], P, Color):-
      writeln('Not in ellipse')),
     write('Compute distance & closest point: '),
     time(dist_point_elps_2d(P, [Cen2, Para2], Dist, Closest)),
+    write('Distance: '), writeln(Dist),
+    draw_points_2d(Img2, Pts3, Color),
+    draw_points_2d(Img2, Pts2, green),
+    draw_point_2d(Img2, P, blue),
+    draw_point_2d(Img2, Closest, yellow),
+    showimg_win(Img2, 'debug'),
+    release_img(Img2),
+    test_write_done.
+
+test_fit_circle_2d(Img, Center, Radius, P, Color):-
+    test_write_start('fit circle'),
+    clone_img(Img, Img2),
+    size_2d(Img, W, H),
+    circle_points_2d(Center, Radius, [W, H], Pts),
+    index_select1([1, 30, 50], Pts, Pts2),
+    %Pts2 = [[214,205], [214,206], [195,228], [186,226], [183,216], [100, 100]],
+    print_list(Pts2),
+    %Pts2 = Pts,
+    fit_circle_2d(Pts2, Cen2, Rad2),
+    write('fit parameters: '), write(Cen2), write(', '), write(Rad2), nl,
+    circle_points_2d(Cen2, Rad2, [W, H], Pts3),
+    (point_in_circle(P, [Cen2, Rad2]) ->
+         writeln('In circle');
+     writeln('Not in circle')),
+    write('Compute distance & closest point: '),
+    time(dist_point_circle_2d(P, [Cen2, Rad2], Dist, Closest)),
     write('Distance: '), writeln(Dist),
     draw_points_2d(Img2, Pts3, Color),
     draw_points_2d(Img2, Pts2, green),
@@ -162,19 +198,18 @@ test_draw_turning_lines(Img, Deg):-
     release_img(Img2),
     test_write_done.
 
-test_save_and_load_model:-
+test_train_model:-
     test_write_start('test trainning, saving and loading stat model'),
-    train_stat_model(Model),
-    save_model_svm(Model, '../../tmp/SVM.model'),
-    load_model_svm('../../tmp/SVM.model', Model2),
-    release_model_svm(Model),
+    %train_stat_model_protist(Model1),
+    train_stat_model_moon(Model2),
+    %release_model_svm(Model1),
     release_model_svm(Model2),
     test_write_done.
     
-test_sample_obj(Img):-
+test_sample_obj_protist(Img):-
     test_write_start('test sample object'),
     %train_stat_model(Model),
-    load_model_svm('../../tmp/SVM.model', Model),
+    load_model_svm('../../tmp/SVM_Protist.model', Model),
     writeln('Abduce object: '),
     time(abduce_object_elps(Img, Model, [], Obj)),
     write("fitted ellipse: "), writeln(Obj),
@@ -189,8 +224,26 @@ test_sample_obj(Img):-
     write("largest contrast angle: "), writeln(Ang),
     test_write_done.
 
-test_split_obj(Img, Cen, Param, Ang):-
-    test_write_start('test split object'),
+test_sample_obj_moon(Img):-
+    test_write_start('test sample object'),
+    %train_stat_model(Model),
+    load_model_svm('../../tmp/SVM_Moon.model', Model),
+    writeln('Abduce object: '),
+    time(abduce_object_circle(Img, Model, [], Obj)),
+    write("fitted circle: "), writeln(Obj),
+    clone_img(Img, Img2), Obj = circle(C, R),
+    size_2d(Img, W, H),
+    circle_points_2d(C, R, [W, H], Pts),
+    draw_points_2d(Img2, Pts, red),
+    showimg_win(Img2, 'fitted_circle'),
+    release_img(Img2),
+    release_model_svm(Model),
+    get_largest_contrast_angle(Img, Obj, Ang),
+    write("largest contrast angle: "), writeln(Ang),
+    test_write_done.
+
+test_split_ellipse(Img, Cen, Param, Ang):-
+    test_write_start('test split ellipse'),
     size_2d(Img, W, H),
     time(split_ellipse(Img, elps(Cen, Param), Ang, Front, Rear)),
     pts_color_L_avg_2d(Img, Front, Bright_F),
@@ -206,16 +259,36 @@ test_split_obj(Img, Cen, Param, Ang):-
     release_img(Img2),
     test_write_done.
 
+test_split_circle(Img, Cen, Radius, Ang):-
+    test_write_start('test split Radius'),
+    size_2d(Img, W, H),
+    time(split_circle(Img, circle(Cen, Radius), Ang, Front, Rear)),
+    pts_color_L_avg_2d(Img, Front, Bright_F),
+    pts_color_L_avg_2d(Img, Rear, Bright_R),
+    Diff is Bright_F - Bright_R,
+    write('Brightness difference: '), writeln(Diff),
+    circle_points_2d(Cen, Radius, [W, H], Edge),
+    clone_img(Img, Img2),
+    draw_points_2d(Img2, Front, red),
+    draw_points_2d(Img2, Rear, blue),
+    draw_points_2d(Img2, Edge, yellow),
+    showimg_win(Img2, 'ellipse'),
+    release_img(Img2),
+    test_write_done.
+
 test_main_3:-
     test_load_img_3(Img),
     %test_fit_elps_2d(Img, [353, 143], [37, 18, 20], [393, 143], red),
     %test_fit_elps_2d(Img, [200, 200], [30, 50, -72], [230, 200], red),
+    %test_fit_circle_2d(Img, [200, 200], 30, [210, 220], red),
     %test_line_scharr_2d(Img, [500, 500], [2, 1], 5),
     %test_draw_perpendicular_lines(Img),
     %test_draw_turning_lines(Img, -450.798),
     %test_train_stat_pts(Img),
     %test_L_hist_change_2d(Img, [500, 500], [1, -2], 0.05),
-    %test_save_and_load_model,
-    test_sample_obj(Img),
-    %test_split_obj(Img, [100, 100], [30, 50, -45], 11),
+    %test_train_model,
+    test_sample_obj_protist(Img),
+    %test_sample_obj_moon(Img),
+    %test_split_ellipse(Img, [100, 100], [30, 50, -45], 11),
+    %test_split_circle(Img, [100, 100], 30, 11),
     test_rel_img(Img).

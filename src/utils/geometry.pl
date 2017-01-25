@@ -508,6 +508,15 @@ L == 0),
 !.
 */
 
+%======================
+% point inside circle
+%======================
+point_in_circle(Pt, [Center, Radius], _):-
+    point_in_circle(Pt, [Center, Radius]).
+point_in_circle(Pt, [Center, Radius]):-
+    eu_dist(Pt, Center, D),
+    D =< Radius.
+
 %====================
 % points in ellipse
 %====================
@@ -525,18 +534,53 @@ get_points_in_ellipse_2d([Cen, Param], [W, H], Return):-
             Return
            ).
 
+%====================
+% points in circle
+%====================
+% get_points_in_circle_2d([Center, Radius], Bound, Return).
+get_points_in_circle_2d([Cen, Radius], [W, H], Return):-
+    circle_points_2d(Cen, Radius, [W, H], Edge),
+    column(1, Edge, Xs), column(2, Edge, Ys),
+    min_list(Xs, Xmin), max_list(Xs, Xmax),
+    min_list(Ys, Ymin), max_list(Ys, Ymax),
+    findall([X, Y],
+            (between(Xmin, Xmax, X),
+             between(Ymin, Ymax, Y),
+             point_in_circle([X, Y], [Cen, Radius])
+            ),
+            Return
+           ).
+
 %==========================
 % point ellipse distance
 %==========================
 dist_elps_point_2d(Elps, Point, Dist):-
     dist_point_elps_2d(Point, Elps, Dist).
-
 dist_point_elps_2d([], [_, _], 100000):-
     !.
 dist_point_elps_2d(Point, [Cen, Param], Dist):-
     dist_point_elps_2d(Point, [Cen, Param], Dist, _).
 dist_point_elps_2d(Point, [Cen, Param], Dist, Closest):-
     dist_point_elps_2d(Point, Cen, Param, Dist, Closest).
+
+%==========================
+% point circle distance
+%==========================
+dist_circle_point_2d(Circle, Point, Dist):-
+    dist_point_circle_2d(Point, Circle, Dist).
+
+dist_point_circle_2d([], [_, _], 100000):-
+    !.
+dist_point_circle_2d(Point, Circle, Dist):-
+    dist_point_circle_2d(Point, Circle, Dist, _).
+
+dist_point_circle_2d([PX, PY], [Cen, Radius], Dist, Closest):-
+    eu_dist([PX, PY], Cen, D),
+    Dist is abs(D - Radius),
+    Cen = [CX, CY],
+    X is round(CX + Radius*(PX - CX)/D),
+    Y is round(CY + Radius*(PY - CY)/D),
+    Closest = [X, Y].
 
 %==============================
 % segment ellipse intersection
@@ -633,3 +677,16 @@ total_seg_length([[Start, End] | Segs], Sum):-
     !,
     Sum is Sum1 + Dist.
 
+%====================================
+% closest point in a list of points
+%====================================
+closest_point_in_list(P, List, Re):-
+    closest_point_in_list(P, List, [-100, -100], 10000, Re).
+closest_point_in_list(_, [], Re, _, Re):-
+    !.
+closest_point_in_list(P, [I | L], _, Tmp_Dist, Re):-
+    eu_dist(P, I, D),
+    D < Tmp_Dist,
+    closest_point_in_list(P, L, I, D, Re), !.
+closest_point_in_list(P, [_ | L], Tmp, Tmp_Dist, Re):-
+    closest_point_in_list(P, L, Tmp, Tmp_Dist, Re), !.

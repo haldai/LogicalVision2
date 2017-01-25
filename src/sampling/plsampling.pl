@@ -33,20 +33,19 @@ fit_elps_2d(Pts, Center, Param):-
     ext_3d(Pts, Pts3),
     fit_elps(Pts3, [X, Y, 0], Param),
     Center = [X, Y].
-fit_circle_2d(Pts, [X, Y, R]):-
+fit_circle_2d(Pts, [X, Y], R):-
     ext_3d(Pts, Pts3),
-    fit_circle(Pts3, [X, Y, 0, R]).
+    fit_circle(Pts3, [X, Y, 0], R).
 test_fit_elps_2d(Pts, Center, Param):-
     ext_3d(Pts, Pts3),
     test_fit_elps(Pts3, [X, Y, 0], Param),
     Center = [X, Y].
 
-
 ellipse_points_2d([X, Y | _], Param, [W, H | _], Pts):-
     ellipse_points([X, Y, 0], Param, [W, H, 1], Pts3),
     trim_2d(Pts3, Pts).
-circle_points_2d([X, Y, R], [W, H | _], Pts):-
-    circle_points([X, Y, 0, R], [W, H, 1], Pts3),
+circle_points_2d([X, Y], R, [W, H | _], Pts):-
+    circle_points([X, Y, 0], R, [W, H, 1], Pts3),
     trim_2d(Pts3, Pts).
 
 %=========================
@@ -125,14 +124,17 @@ pts_color_L_hists_2d(Img, [P | Pts], [H | Hists]):-
 % points L channel (brightness) average
 %========================================
 pts_color_L_avg_2d(Img, Pts, Re):-
-    length(Pts, Len),
-    pts_color_L_sum_2d(Img, Pts, Sum),
-    Re is Sum/Len.
+    pts_color_L_sum_2d(Img, Pts, N, Sum),
+    Re is Sum/N.
 
-pts_color_L_sum_2d(_, [], 0):-
+pts_color_L_sum_2d(_, [], 0, 0):-
     !.
-pts_color_L_sum_2d(Img, [P | Pts], Sum):-
+pts_color_L_sum_2d(Img, [P | Pts], N, Sum):-
+    size_2d(Img, W, H), P = [X, Y],
+    X < W, Y < H, X >= 0, Y >= 0,
     point_color_2d(Img, P, [L, _, _]),
-    pts_color_L_sum_2d(Img, Pts, Sum1),
-    Sum is Sum1 + L.
-    
+    pts_color_L_sum_2d(Img, Pts, N1, Sum1),
+    N is N1 + 1,
+    Sum is Sum1 + L, !.
+pts_color_L_sum_2d(Img, [_ | Pts], N, Sum):-
+    pts_color_L_sum_2d(Img, Pts, N, Sum), !.

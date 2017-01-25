@@ -241,22 +241,24 @@ PREDICATE(ellipse_points, 4) {
     return A4 = point_vec2list(pts);
 }
 
-/* circle_points(PARAM, BOUND, PTS)
- * @PARAM = [X, Y, Frame, R]: [X, Y, Frame] is the center, R is the radius
+/* circle_points(+Center, +Radius, +BOUND, -PTS)
+ * @Center =[X, Y, Frame]: Center
+ * @Radius: the radius
  * @BOUND = [W, H, D]: size limit of the video (width, height and duration),
  *      usually obained from 'size_3d(VID, W, H, D)'
  * @PTS: returned point list
  */
-PREDICATE(circle_points, 3) {
+PREDICATE(circle_points, 4) {
     // parameter coordinate scalar
-    vector<int> p_vec = list2vec<int>(A1, 4);
-    Scalar param(p_vec[0], p_vec[1], p_vec[2], p_vec[3]);
+    vector<int> c_vec = list2vec<int>(A1, 3);
+    int rad = (int) A2;
     // boundary scalar
-    vector<int> bd_vec = list2vec<int>(A2, 3);
+    vector<int> bd_vec = list2vec<int>(A3, 3);
     Scalar bound(bd_vec[0], bd_vec[1], bd_vec[2]);
     // get points
+    Scalar param(c_vec[0], c_vec[1], c_vec[2], rad);
     vector<Scalar> pts = get_circle_points(param, bound);
-    return A3 = point_vec2list(pts);
+    return A4 = point_vec2list(pts);
 }
 
 /* in_cube_points(+CENTRE, +RADIUS, +BOUND, -PTS)
@@ -712,13 +714,14 @@ PREDICATE(fit_elps, 3) {
     return TRUE;
 }
 
-/* fit_circle(PTS, PARAM)
+/* fit_circle(+PTS, -CENTER, -RADIUS)
  * given a list (>=3) of points, fit a circle on a plane (the 3rd dimenstion
  * is fixed)
  * @PTS: points list 
- * @PARAM = [X, Y, F, R]: center position (X, Y, Frame) and radius (R)
+ * @CENTER = [X, Y, F]: center position (X, Y, Frame)
+ * @RADIUS: radius
  */
-PREDICATE(fit_circle, 2) {
+PREDICATE(fit_circle, 3) {
     vector<Scalar> pts = point_list2vec(A1);
     if (pts.size() < 3) {
         cout << "[ERROR] At least 3 points are needed for fitting a circle." << endl;
@@ -738,11 +741,11 @@ PREDICATE(fit_circle, 2) {
     fit_circle_2d(pts, param);
 
     // bind variables
-    vector<long> param_vec = {(long) param[0],
-                              (long) param[1],
-                              frame,
-                              (long) param[2]};
-    A2 = vec2list<long>(param_vec);
+    vector<long> center_vec = {(long) param[0],
+                               (long) param[1],
+                               frame};
+    A2 = vec2list<long>(center_vec);
+    A3 = PlTerm((long) param[2]);
     return TRUE;
 }
 
