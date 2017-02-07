@@ -26,7 +26,7 @@ ray_points_2d([X, Y | _], [DX, DY | _], [W, H | _], Pts):-
     trim_2d(Pts1, Pts).
 
 line_seg_points_2d([SX, SY | _], [EX, EY | _], [W, H | _], Pts):-
-    line_points([SX, SY, 0], [EX, EY, 0], [W, H, 1], Pts1),
+    line_seg_points([SX, SY, 0], [EX, EY, 0], [W, H, 1], Pts1),
     trim_2d(Pts1, Pts).
 
 fit_elps_2d(Pts, Center, Param):-
@@ -125,7 +125,7 @@ pts_color_L_hists_2d(Img, [P | Pts], [H | Hists]):-
 %========================================
 pts_color_L_avg_2d(Img, Pts, Re):-
     pts_color_L_sum_2d(Img, Pts, N, Sum),
-    Re is Sum/N.
+    divide0(Sum, N, Re).
 
 pts_color_L_sum_2d(_, [], 0, 0):-
     !.

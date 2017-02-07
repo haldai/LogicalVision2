@@ -25,18 +25,21 @@
 test_load_img_3(A):-
     test_write_start('load image'),
     %load_img('../../data/Protist0.png', A),
-    %load_img('../../data/protist/09/09011.jpg', A),
-    %load_img('../../data/protist/12/12023.jpg', A),
-    load_img('../../data/protist/12/12030.jpg', A),
-    %load_img('../../data/moon/02/02001.jpg', A),
-    %load_img('../../data/moon/02/02027.jpg', A),
-    %load_img('../../data/moon/02/02011.jpg', A),
-    %load_img('../../data/moon/02/02021.jpg', A),
-    %load_img('../../data/moon/09/09017.jpg', A),  % too noisy
-    %load_img('../../data/moon/10/10010.jpg', A),
-    %load_img('../../data/moon/12/12016.jpg', A),
-    %load_img('../../data/moon/07/07014.jpg', A),
-    %load_img('../../data/moon/07/07012.jpg', A),
+    %load_img('../../data/protist/train/09011.jpg', A),
+    %load_img('../../data/protist/train/01023.jpg', A),
+    %load_img('../../data/protist/train/12023.jpg', A),
+    %load_img('../../data/protist/test/12030.jpg', A),
+    %load_img('../../data/moon/train/02001.jpg', A),
+    %load_img('../../data/moon/train/02027.jpg', A),
+    %load_img('../../data/moon/train/02011.jpg', A),
+    %load_img('../../data/moon/train/02021.jpg', A),
+    %load_img('../../data/moon/train/09017.jpg', A),  % too noisy
+    %load_img('../../data/moon/train/10010.jpg', A),
+    %load_img('../../data/moon/test/12016.jpg', A),
+    %load_img('../../data/moon/train/07014.jpg', A),
+    %load_img('../../data/moon/train/07012.jpg', A),    
+    %load_img('../../data/moon/test/11018.jpg', A),
+    load_img('../../data/moon/test/01020.jpg', A),
     %load_img('../../data/Protist_new.jpg', A),
     %load_img('../../data/late.png', A),
     size_2d(A, X, Y),
@@ -200,9 +203,9 @@ test_draw_turning_lines(Img, Deg):-
 
 test_train_model:-
     test_write_start('test trainning, saving and loading stat model'),
-    %train_stat_model_protist(Model1),
+    train_stat_model_protist(Model1),
     train_stat_model_moon(Model2),
-    %release_model_svm(Model1),
+    release_model_svm(Model1),
     release_model_svm(Model2),
     test_write_done.
     
@@ -211,7 +214,7 @@ test_sample_obj_protist(Img):-
     %train_stat_model(Model),
     load_model_svm('../../tmp/SVM_Protist.model', Model),
     writeln('Abduce object: '),
-    time(abduce_object_elps(Img, Model, [], Obj)),
+    time(abduce_object_elps(Img, Model, [], Obj, 0)),
     write("fitted ellipse: "), writeln(Obj),
     clone_img(Img, Img2), Obj = elps(C, P),
     size_2d(Img, W, H),
@@ -222,6 +225,7 @@ test_sample_obj_protist(Img):-
     release_model_svm(Model),
     get_largest_contrast_angle(Img, Obj, Ang),
     write("largest contrast angle: "), writeln(Ang),
+    writeln(clock_angle(obj1, obj2, Ang)),
     test_write_done.
 
 test_sample_obj_moon(Img):-
@@ -229,7 +233,7 @@ test_sample_obj_moon(Img):-
     %train_stat_model(Model),
     load_model_svm('../../tmp/SVM_Moon.model', Model),
     writeln('Abduce object: '),
-    time(abduce_object_circle(Img, Model, [], Obj)),
+    time(abduce_object_circle(Img, Model, [], Obj, 0)),
     write("fitted circle: "), writeln(Obj),
     clone_img(Img, Img2), Obj = circle(C, R),
     size_2d(Img, W, H),
@@ -279,7 +283,9 @@ test_split_circle(Img, Cen, Radius, Ang):-
 test_main_3:-
     test_load_img_3(Img),
     %test_fit_elps_2d(Img, [353, 143], [37, 18, 20], [393, 143], red),
-    %test_fit_elps_2d(Img, [200, 200], [30, 50, -72], [230, 200], red),
+    %test_fit_elps_2d(Img, [100, 100], [30, 50, 0], [50, 20], red),
+    %eval_point_between(Img, hahah, elps([100, 100], [30, 50, -20]), [32,89], [77, 120], 0.5, 5),
+    %eval_point_between(Img, hahah, circle([100, 100], 50), [100, 150], [150, 100], 0.9, 5),
     %test_fit_circle_2d(Img, [200, 200], 30, [210, 220], red),
     %test_line_scharr_2d(Img, [500, 500], [2, 1], 5),
     %test_draw_perpendicular_lines(Img),
@@ -287,8 +293,8 @@ test_main_3:-
     %test_train_stat_pts(Img),
     %test_L_hist_change_2d(Img, [500, 500], [1, -2], 0.05),
     %test_train_model,
-    test_sample_obj_protist(Img),
-    %test_sample_obj_moon(Img),
+    %test_sample_obj_protist(Img),
+    test_sample_obj_moon(Img),
     %test_split_ellipse(Img, [100, 100], [30, 50, -45], 11),
     %test_split_circle(Img, [100, 100], 30, 11),
     test_rel_img(Img).

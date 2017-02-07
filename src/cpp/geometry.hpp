@@ -485,7 +485,8 @@ vector<Scalar> get_line_points(Scalar point,
     bresenham(point, direction, inc, bound, &re);
 
     reverse(re.begin(), re.end());
-    re.push_back(point); // insert itself
+    if (!out_of_canvas(point, bound))
+        re.push_back(point); // insert itself
     // grow in another direction
     c_inc = -1 * c_inc;
     r_inc = -1 * r_inc;
@@ -660,7 +661,8 @@ vector<Scalar> get_line_seg_points(Scalar start, Scalar end, Scalar bound) {
             }
         }
     }
-    re.push_back(Scalar(x2, y2, z2));
+    if (!out_of_canvas(Scalar(x2, y2, z2), bound))
+        re.push_back(Scalar(x2, y2, z2));
     return re;
 }
 

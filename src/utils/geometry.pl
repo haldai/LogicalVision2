@@ -54,7 +54,10 @@ vec_angle(V1, V2, Ang):-
     dot(V1, V2, D),
     norm_2(V1, N1), norm_2(V2, N2),
     N1 =\= 0, N2 =\= 0,
-    A is D / (N1 * N2),
+    A_ is D / (N1 * N2),
+    (A_ > 1 -> A = 1;
+     (A_ < -1 -> A = -1; A = A_)
+    ), !,
     Ang is round(((acos(A)*180) / pi)*1e5) / 1e5,
     !.
 vec_angle(_, _, 0):-
@@ -581,6 +584,69 @@ dist_point_circle_2d([PX, PY], [Cen, Radius], Dist, Closest):-
     X is round(CX + Radius*(PX - CX)/D),
     Y is round(CY + Radius*(PY - CY)/D),
     Closest = [X, Y].
+
+%======================================
+% point on ellipse/circle between P1 and P2
+%======================================
+arc_point_between(elps(Center, Param), P1, P2, Ratio, Point):-
+    % middle point
+    vec_diff(P1, Center, V1), vec_diff(P2, Center, V2),
+    vec_rotate_angle(V1, V2, Ang1), Ang is Ang1*Ratio,
+    turn_degree_2d(V1, Ang, Dir),
+    Dir = [DX, DY], not((abs(DX) + abs(DY)) =:= 0), % not [0, 0]
+
+    vec_rotate_angle_clockwise([1, 0], Dir, Beta),
+    Center = [CX, CY], Param = [A, B, Alpha],
+    Theta is Beta - Alpha,
+    R is (A*B)/sqrt((B*cos(Theta*pi/180))**2 + (A*sin(Theta*pi/180))**2),
+    PX is R*cos(Theta*pi/180),
+    PY is R*sin(Theta*pi/180),
+    SX is round(CX + PX*cos(Alpha*pi/180) - PY*sin(Alpha*pi/180)),
+    SY is round(CY + PX*sin(Alpha*pi/180) + PY*cos(Alpha*pi/180)),
+    Point = [SX, SY].
+
+arc_point_between(circle(Center, Rad), P1, P2, Ratio, Point):-
+    % middle point
+    vec_diff(P1, Center, V1), vec_diff(P2, Center, V2),
+    vec_rotate_angle(V1, V2, Ang1), Ang is Ang1*Ratio,
+    turn_degree_2d(V1, Ang, Dir),
+    Dir = [DX, DY], not((abs(DX) + abs(DY)) =:= 0), % not [0, 0]
+
+    vec_rotate_angle_clockwise([1, 0], Dir, Theta),
+    Center = [CX, CY],
+    PX is round(Rad*cos(Theta*pi/180) + CX),
+    PY is round(Rad*sin(Theta*pi/180) + CY),
+    Point = [PX, PY].
+
+arc_point_between_clockwise(elps(Center, Param), P1, P2, Ratio, Point):-
+    % middle point
+    vec_diff(P1, Center, V1), vec_diff(P2, Center, V2),
+    vec_rotate_angle_clockwise(V1, V2, Ang1), Ang is Ang1*Ratio,
+    turn_degree_2d(V1, Ang, Dir),
+    Dir = [DX, DY], not((abs(DX) + abs(DY)) =:= 0), % not [0, 0]
+
+    vec_rotate_angle_clockwise([1, 0], Dir, Beta),
+    Center = [CX, CY], Param = [A, B, Alpha],
+    Theta is Beta - Alpha,
+    R is (A*B)/sqrt((B*cos(Theta*pi/180))**2 + (A*sin(Theta*pi/180))**2),
+    PX is R*cos(Theta*pi/180),
+    PY is R*sin(Theta*pi/180),
+    SX is round(CX + PX*cos(Alpha*pi/180) - PY*sin(Alpha*pi/180)),
+    SY is round(CY + PX*sin(Alpha*pi/180) + PY*cos(Alpha*pi/180)),
+    Point = [SX, SY].
+
+arc_point_between_clockwise(circle(Center, Rad), P1, P2, Ratio, Point):-
+    % middle point
+    vec_diff(P1, Center, V1), vec_diff(P2, Center, V2),
+    vec_rotate_angle_clockwise(V1, V2, Ang1), Ang is Ang1*Ratio,
+    turn_degree_2d(V1, Ang, Dir),
+    Dir = [DX, DY], not((abs(DX) + abs(DY)) =:= 0), % not [0, 0]
+
+    vec_rotate_angle_clockwise([1, 0], Dir, Theta),
+    Center = [CX, CY],
+    PX is round(Rad*cos(Theta*pi/180) + CX),
+    PY is round(Rad*sin(Theta*pi/180) + CY),
+    Point = [PX, PY].
 
 %==============================
 % segment ellipse intersection

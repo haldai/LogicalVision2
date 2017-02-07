@@ -31,12 +31,12 @@ PREDICATE(load_img, 2) {
     if (PL_get_atom_chars(t1, &p1)) {
         const string path(p1);
         Mat* img = cv_load_img(path);
-        if (img->cols > 640 || img->rows > 640) {
+        if (img->cols > 320 || img->rows > 320) {
             double t = 0;
             if (img->cols > img->rows)
-                t = 640.0/img->cols;
+                t = 320.0/img->cols;
             else
-                t = 640.0/img->rows;
+                t = 320.0/img->rows;
             Mat* rsz = cv_resize_image(img,
                                        round(t*(img->cols)),
                                        round(t*(img->rows)));

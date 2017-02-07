@@ -178,18 +178,24 @@ PREDICATE(line_points, 4) {
  * @PTS: returned point list
  */
 PREDICATE(ray_points, 4) {
-    // coordinates scalar
-    vector<int> pt_vec = list2vec<int>(A1, 3);
-    Scalar pt(pt_vec[0], pt_vec[1], pt_vec[2]);
-    // direction scalar
-    vector<double> dr_vec = list2vec<double>(A2, 3);
-    Scalar dir(dr_vec[0], dr_vec[1], dr_vec[2]);
-    // boundary scalar
-    vector<int> bd_vec = list2vec<int>(A3, 3);
-    Scalar bound(bd_vec[0], bd_vec[1], bd_vec[2]);
-    // get points
-    vector<Scalar> pts = get_ray_points(pt, dir, bound);
-    return A4 = point_vec2list(pts);
+    try {
+        // coordinates scalar        
+        vector<int> pt_vec = list2vec<int>(A1, 3);
+        // direction scalar        
+        vector<double> dr_vec = list2vec<double>(A2, 3);
+        if (pt_vec.size() < 3 || dr_vec.size() < 3)
+            return FALSE;
+        Scalar pt(pt_vec[0], pt_vec[1], pt_vec[2]);
+        Scalar dir(dr_vec[0], dr_vec[1], dr_vec[2]);
+        // boundary scalar
+        vector<int> bd_vec = list2vec<int>(A3, 3);
+        Scalar bound(bd_vec[0], bd_vec[1], bd_vec[2]);
+        // get points
+        vector<Scalar> pts = get_ray_points(pt, dir, bound);
+        return A4 = point_vec2list(pts);
+    } catch (...) {
+        return FALSE;
+    }
 }
 
 /* line_seg_points(START, END, BOUND, PTS)

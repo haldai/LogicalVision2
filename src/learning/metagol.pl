@@ -13,6 +13,7 @@
     print_ordering/0,
     min_clauses/1,
     max_clauses/1,
+    max_inv_preds/1,
     metarule_next_id/1,
     interpreted_bk/2,
     user:prim/1,
@@ -25,8 +26,9 @@
     user:primcall/2.
 
 default(min_clauses(1)).
-default(max_clauses(6)).
+default(max_clauses(10)).
 default(metarule_next_id(1)).
+default(max_inv_preds(10)).
 
 learn(Pos1,Neg1,Prog):-
   maplist(atom_to_list,Pos1,Pos2),
@@ -103,9 +105,10 @@ prove_aux(Atom,FullSig,Sig1,MaxN,N1,N2,Prog1,Prog2):-
   succ(N1,N3),
   prove(Body,FullSig,Sig2,MaxN,N3,N2,[sub(Name,P,A,MetaSub)|Prog1],Prog2).
 
+
 select_lower(P,A,FullSig,_Sig1,Sig2):-
   nonvar(P),!,
-  ((append(_,[sym(P,A,_)|Sig2],FullSig),!);Sig2=[]).
+  append(_,[sym(P,A,_)|Sig2],FullSig),!.
 
 select_lower(P,A,_FullSig,Sig1,Sig2):-
   append(_,[sym(P,A,U)|Sig2],Sig1),
@@ -113,7 +116,7 @@ select_lower(P,A,_FullSig,Sig1,Sig2):-
 
 bind_lower(P,A,FullSig,_Sig1,Sig2):-
   nonvar(P),!,
-  ((append(_,[sym(P,A,_)|Sig2],FullSig),!);Sig2=[]).
+  append(_,[sym(P,A,_)|Sig2],FullSig),!.
 
 bind_lower(P,A,_FullSig,Sig1,Sig2):-
   append(_,[sym(P,A,U)|Sig2],Sig1),
@@ -138,8 +141,10 @@ iterator(N):-
 target_predicate([[P|Args]|_],P/A):-
   length(Args,A).
 
-invented_symbols(N,P/A,[sym(P,A,_U)|Sig]):-
-  succ(M,N),
+invented_symbols(MaxClauses,P/A,[sym(P,A,_U)|Sig]):-
+  NumSymbols is MaxClauses-1,
+  get_option(max_inv_preds(MaxInvPreds)),
+  M is min(NumSymbols,MaxInvPreds),
   findall(sym(InvSym,_Artiy,_Used),(between(1,M,I),atomic_list_concat([P,'_',I],InvSym)),Sig).
 
 pprint(Prog1):-
@@ -202,7 +207,7 @@ gen_metarule_id(Id):-
   succ(Id,IdNext),
   set_option(metarule_next_id(IdNext)).
 
-user:term_expansion(prim(P/A),[user:prim(P/A),user:(primcall(P,Args):-Call)]):-
+user:term_expansion(prim(P/A),[user:prim(P/A),user:(primcall(P,Args):-user:Call)]):-
   functor(Call,P,A),
   Call =.. [P|Args].
 
@@ -226,7 +231,6 @@ user:term_expansion(interpreted(P/A),L2):-
   functor(Head,P,A),
   findall((Head:-Body),user:clause(Head,Body),L1),
   maplist(convert_to_interpreted,L1,L2).
-  %% maplist(writeln,L2).
 
 get_asserts(Name,MetaSub,Clause,Asserts):-
   (var(Name)->gen_metarule_id(AssertName);AssertName=Name),
@@ -251,7 +255,7 @@ assert_prim(Prim):-
   prim_asserts(Prim,Asserts),
   maplist(assertz,Asserts).
 
-prim_asserts(P/A,[user:prim(P/A), user:(primcall(P,Args):-Call)]):-
+prim_asserts(P/A,[user:prim(P/A), user:(primcall(P,Args):-user:Call)]):-
   functor(Call,P,A),
   Call =.. [P|Args].
 

@@ -19,6 +19,10 @@ divide(_, 0, _):-
     fail, !.
 divide(V1, V2, V3):-
     V3 is V1 / V2, !.
+divide0(_, 0, 0):- % restrict x/0 = 0
+    !.
+divide0(X, Y, Z):-
+    divide(X, Y, Z).
 predecessor(N, M):-
     M is N - 1.
 successor(N, M):-
@@ -309,6 +313,13 @@ mapsort(Keys, Values, S_Keys, S_Values):-
     pairs_keys_values(Pairs, Keys, Values),
     keysort(Pairs, S_Pairs),
     pairs_keys_values(S_Pairs, S_Keys, S_Values).
+
+%========================================
+% count the most repeated item in list
+%  http://stackoverflow.com/a/13674376
+%========================================
+most_common_member(L, M):-
+    setof(I-E, C^(aggregate(count, member(E, L), C), I is -C), [_-M|_]).
 
 %=================
 % switch control

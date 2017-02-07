@@ -290,7 +290,7 @@ arma::mat list_data2arma_mat(const PlTerm & pldata) {
     try {
         int n = re_vec.size();
         if (re_vec.size() == 0) {
-            cout << "Cannot init data matrix, check the length of feature vectors." << endl;
+            cout << "Data matrix size 0, check the length of feature vectors." << endl;
             re.zeros();
             return re;
         }
