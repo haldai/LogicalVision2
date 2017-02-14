@@ -19,6 +19,8 @@ divide(_, 0, _):-
     fail, !.
 divide(V1, V2, V3):-
     V3 is V1 / V2, !.
+divide0(_, 0.0, 0):- % restrict x/0 = 0
+    !.
 divide0(_, 0, 0):- % restrict x/0 = 0
     !.
 divide0(X, Y, Z):-

@@ -30,8 +30,8 @@ show_protist_train(Turn, Name):-
     unload_file(File_Path), !.
 
 show_protist_test(Turn, Name):-
-    Path = '../../out/protist/test/',
-    Img_Path = '../../data/protist/test/',
+    Path = '../../out/protists/test_1/',
+    Img_Path = '../../data/protists/',
     atomic_concat(Name, '.pl', File),
     atomic_concat(Path, File, File_Path),
     atomic_concat(Name, '.jpg', Img_File),
@@ -65,7 +65,7 @@ show_moon_train(Turn, Name):-
 
 show_moon_test(Turn, Name):-
     Path = '../../out/moon/test/',
-    Img_Path = '../../data/moon/test/',
+    Img_Path = '../../data/moons/',
     atomic_concat(Name, '.pl', File),
     atomic_concat(Path, File, File_Path),
     atomic_concat(Name, '.jpg', Img_File),

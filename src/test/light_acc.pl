@@ -96,13 +96,13 @@ light_voted_eval_protist_train(Error):-
     Path = '../../out/protist/train/',
     light_voted_eval(Path, Error).
 light_voted_eval_protist_test(Error):-
-    Path = '../../out/protist/test/',
+    Path = '../../out/protists/test_1/',
     light_voted_eval(Path, Error).
 light_voted_eval_moon_train(Error):-
     Path = '../../out/moon/train/',
     light_voted_eval(Path, Error).
 light_voted_eval_moon_test(Error):-
-    Path = '../../out/moon/test/',
+    Path = '../../out/moons/test_4/',
     light_voted_eval(Path, Error).
 
 clock_angle_err(11, 12, 0).

@@ -42,15 +42,17 @@ seg_length(S, L):-
     S = [X, Y],
     eu_dist(X, Y, L), !.
 
-%===================
-% vector angle (DEG)
-%===================
+%========================
+% vector angle (DEG) 2D
+%========================
 vec_angle(V1, V2, 180.0):-
+    ground(V1), ground(V2),
     V1 = [X, Y], V2 = [U, V],
     X =:= -U,
     Y =:= -V,
     !.
 vec_angle(V1, V2, Ang):-
+    ground(V1), ground(V2), var(Ang),
     dot(V1, V2, D),
     norm_2(V1, N1), norm_2(V2, N2),
     N1 =\= 0, N2 =\= 0,
@@ -64,21 +66,31 @@ vec_angle(_, _, 0):-
     !.
 % rotation angle, from 0 to 360 degree
 vec_rotate_angle(V1, V2, 180.0):-
+    ground(V1), ground(V2),
     V1 = [X, Y], V2 = [U, V],
     X =:= -U,
     Y =:= -V,
     !.
 vec_rotate_angle(V1, V2, Ang):-
+    ground(V1), ground(V2), var(Ang),
     cross(V1, V2, C),
     vec_angle(V1, V2, Ang1),
     Ang is Ang1*sign(C),
     !.
 
 vec_rotate_angle_clockwise(V1, V2, Ang):-
+    V1 = [X, Y], var(V2), number(Ang),
+    X1 is round(X*cos(Ang*pi/180) - Y*sin(Ang*pi/180)),
+    Y1 is round(X*sin(Ang*pi/180) + Y*cos(Ang*pi/180)),
+    V2 = [X1, Y1], !.
+
+vec_rotate_angle_clockwise(V1, V2, Ang):-
+    ground(V1), ground(V2), var(Ang),
     vec_rotate_angle(V1, V2, Ang1),
     Ang1 < 0,
     Ang is Ang1 + 360, !.
 vec_rotate_angle_clockwise(V1, V2, Ang):-
+    ground(V1), ground(V2), var(Ang),
     vec_rotate_angle(V1, V2, Ang), !.
 
 %===================
@@ -499,6 +511,7 @@ point_in_ellipse(Pt, [Center, Param]):-
     Th is pi*ALPHA/180,
     U is cos(Th)*(X - XC) + sin(Th)*(Y - YC),
     V is -sin(Th)*(X - XC) + cos(Th)*(Y - YC),
+    A =\= 0, B =\= 0,
     D is (U/A)**2 + (V/B)**2,
     D =< 1.01.
 /*
@@ -580,16 +593,18 @@ dist_point_circle_2d(Point, Circle, Dist):-
 dist_point_circle_2d([PX, PY], [Cen, Radius], Dist, Closest):-
     eu_dist([PX, PY], Cen, D),
     Dist is abs(D - Radius),
+    D =\= 0,
     Cen = [CX, CY],
     X is round(CX + Radius*(PX - CX)/D),
     Y is round(CY + Radius*(PY - CY)/D),
-    Closest = [X, Y].
+    Closest = [X, Y], !.
+dist_point_circle_2d(P, _, 0, P):-
+    !.
 
 %======================================
 % point on ellipse/circle between P1 and P2
 %======================================
 arc_point_between(elps(Center, Param), P1, P2, Ratio, Point):-
-    % middle point
     vec_diff(P1, Center, V1), vec_diff(P2, Center, V2),
     vec_rotate_angle(V1, V2, Ang1), Ang is Ang1*Ratio,
     turn_degree_2d(V1, Ang, Dir),
@@ -606,7 +621,6 @@ arc_point_between(elps(Center, Param), P1, P2, Ratio, Point):-
     Point = [SX, SY].
 
 arc_point_between(circle(Center, Rad), P1, P2, Ratio, Point):-
-    % middle point
     vec_diff(P1, Center, V1), vec_diff(P2, Center, V2),
     vec_rotate_angle(V1, V2, Ang1), Ang is Ang1*Ratio,
     turn_degree_2d(V1, Ang, Dir),
@@ -619,7 +633,6 @@ arc_point_between(circle(Center, Rad), P1, P2, Ratio, Point):-
     Point = [PX, PY].
 
 arc_point_between_clockwise(elps(Center, Param), P1, P2, Ratio, Point):-
-    % middle point
     vec_diff(P1, Center, V1), vec_diff(P2, Center, V2),
     vec_rotate_angle_clockwise(V1, V2, Ang1), Ang is Ang1*Ratio,
     turn_degree_2d(V1, Ang, Dir),
@@ -636,7 +649,6 @@ arc_point_between_clockwise(elps(Center, Param), P1, P2, Ratio, Point):-
     Point = [SX, SY].
 
 arc_point_between_clockwise(circle(Center, Rad), P1, P2, Ratio, Point):-
-    % middle point
     vec_diff(P1, Center, V1), vec_diff(P2, Center, V2),
     vec_rotate_angle_clockwise(V1, V2, Ang1), Ang is Ang1*Ratio,
     turn_degree_2d(V1, Ang, Dir),

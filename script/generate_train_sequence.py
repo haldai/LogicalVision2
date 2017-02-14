@@ -4,6 +4,7 @@ import os
 import glob
 import random
 import shutil
+import copy
 
 if __name__ == "__main__":
     path = input("Directory path: ")
@@ -24,33 +25,33 @@ if __name__ == "__main__":
         pics3 = glob.glob(f3_str)
         pics4 = glob.glob(f41_str)
         pics4.extend(glob.glob(f42_str))
-        d_train1 = random.sample(pics1, 32)
-        d_test = list(set(pics1) - set(d_train1))
-        d_train2 = random.sample(pics2, 32)
+        d_train1 = copy.deepcopy(random.sample(pics1, 32))
+        d_test = copy.deepcopy(list(set(pics1) - set(d_train1)))
+        d_train2 = copy.deepcopy(random.sample(pics2, 32))
         d_test.extend(set(pics2) - set(d_train2))
-        d_train3 = random.sample(pics3, 32)
+        d_train3 = copy.deepcopy(random.sample(pics3, 32))
         d_test.extend(set(pics3) - set(d_train3))
-        d_train4 = random.sample(pics4, 32)
+        d_train4 = copy.deepcopy(random.sample(pics4, 32))
         d_test.extend(set(pics4) - set(d_train4))
 
         fexp = open(path + '/exp_' + str(i) + '.txt', 'w')
         for s in sizes:
             if (s >= 4):
-                d_train = random.sample(d_train1, s/4)
+                d_train = copy.deepcopy(random.sample(d_train1, s/4))
                 d_train.extend(random.sample(d_train2, s/4))
                 d_train.extend(random.sample(d_train3, s/4))
                 d_train.extend(random.sample(d_train4, s/4))
             elif (s == 2):
                 dd = [d_train1, d_train2, d_train3, d_train4]
-                dd_train = random.sample(dd, 2)
+                dd_train = copy.deepcopy(random.sample(dd, 2))
                 d_train = random.sample(dd_train[0], 1)
                 d_train.extend(random.sample(dd_train[1], 1))
             else:
-                d_train = d_train1
+                d_train = copy.deepcopy(d_train1)
                 d_train.extend(d_train2)
                 d_train.extend(d_train3)
                 d_train.extend(d_train4)
-                d_train = random.sample(d_train, s)
+                d_train = copy.deepcopy(random.sample(d_train, s))
             l = 'train #' + str(s) + '\t['
             for f in d_train:
                 f_str = '"' + f.split('/')[-1] + '"'

@@ -135,7 +135,9 @@ eval_object_circle(Img, Model, Edge_Points, [Center, Radius], Obj, Rep):-
          (Obj_ = circle(Center, Radius),
           Center = [X, Y],
           size_2d(Img, W, H),
-          ((X < W, X >= 0, Y < H, Y >= 0) ->
+          ((X < W, X >= 0, Y < H, Y >= 0,
+            % add the learned predicate reasonable_fit/3
+            reasonable_circle_fit(Img, Model, Obj_)) ->
                (Obj = Obj_, !);
            (abduce_object_circle(Img, Model, [], Obj, 0), !)
           ), !);
@@ -168,6 +170,7 @@ eval_fit(Img, circle(Center, _), _, 0.0):-
     (X < 0; Y < 0; X >= W; Y >= H), !.
 eval_fit(Img, circle(Center, Radius), Sampled, Rate):-
     concurrent_maplist(dist_circle_point_2d([Center, Radius]), Sampled, Distances),
+    Distances \= [],
     /*%% debug
     size_2d(Img, W, H),
     clone_img(Img, Img2),
@@ -184,7 +187,9 @@ eval_fit(Img, circle(Center, Radius), Sampled, Rate):-
     Err is sqrt(W**2 + H**2)*Err_R,
     findall(D, (member(D, Distances), greater_than(Err, D)), Ds),
     length(Ds, Len), length(Distances, Tot),
-    divide0(Len, Tot, Rate).
+    divide0(Len, Tot, Rate), !.
+eval_fit(_, _, _, 0):-
+    !.
 
 % recursive sample middlepoint
 rec_mid_point(_, _, _, Sampled, Sampled, 0):-
@@ -429,13 +434,27 @@ train_stat_model_moon(Model):-
     time(gen_pts_train_data('../../data/Moon5.jpg',
                             '../../data/Moon5_fg.bmp',
                             100, Data_Label_6)),
+    time(gen_pts_train_data('../../data/Moon6.jpg',
+                            '../../data/Moon6_fg.bmp',
+                            200, Data_Label_7)),
     %print_list_ln(Data_Label),
-    append([Data_Label_1, Data_Label_2, Data_Label_3, Data_Label_4, Data_Label_5, Data_Label_6], Data_Labels),
+    append([Data_Label_1, Data_Label_2, Data_Label_3, Data_Label_4, Data_Label_5, Data_Label_6, Data_Label_7], Data_Labels),
     subsample(1.0, 0.7, Data_Labels, Data_Label),
     write("Training SVM: "),
     time(train_svm(Data_Label, '-g 0.0039 -c 100000 -h 0', Model)),
     writeln("Training SVM complete!"),
     save_model_svm(Model, '../../tmp/SVM_Moon.model').
+
+train_stat_model_crater(Model):-
+    time(gen_pts_train_data('../../data/crater.png',
+                            '../../data/crater_fg.bmp',
+                            500, Data_Labels)),
+    subsample(1.0, 0.4, Data_Labels, Data_Label),
+    write("Training SVM: "),
+    time(train_svm(Data_Label, '-g 0.0039 -c 100000 -h 0', Model)),
+    writeln("Training SVM complete!"),
+    save_model_svm(Model, '../../tmp/SVM_crater.model').
+
 
 %=========================
 % cut object into 2 halves
@@ -469,6 +488,7 @@ split_circle(Img, circle(Cen, Rad), Clock_Ang, Front, Rear):-
     DX is cos(Theta), DY is sin(Theta),
     findall(P,
             (member(P, Points),
+             in_canvas(P, Img),
              vec_diff(P, Cen, D),
              cross([DX, DY], D, C),
              C < 0),
@@ -476,6 +496,7 @@ split_circle(Img, circle(Cen, Rad), Clock_Ang, Front, Rear):-
            ),
     findall(P,
             (member(P, Points),
+             in_canvas(P, Img),
              vec_diff(P, Cen, D),
              cross([DX, DY], D, C),
              C > 0),
@@ -515,82 +536,41 @@ get_largest_contrast_angle(Img, circle(C, R), Ang, Tmp_Ang, Tmp, Re):-
 %=============================================
 eval_point_between(Img, Model, Obj, P1, P2, Ratio, Range, Edge_Point):-
     arc_point_between(Obj, P1, P2, Ratio, Sampled),
-    Sampled = [SX, SY],
-
-    % normalize
-    %(Obj = elps(Center, Param); Obj = circle(Center, Rad)), !,
     (Obj = elps(Center, _); Obj = circle(Center, _)), !,
-    vec_diff(Sampled, Center, [DSX_, DSY_]),
-    DSX is DSX_/sqrt(DSX_**2 + DSY_**2),
-    DSY is DSY_/sqrt(DSX_**2 + DSY_**2),
-    
-    S1X is round(SX + Range*DSX),
-    S2X is round(SX - Range*DSX),
-    S1Y is round(SY + Range*DSY),
-    S2Y is round(SY - Range*DSY),
-
-    size_2d(Img, W, H),
-    line_seg_points_2d([S2X, S2Y], Sampled, [W, H], Seg1),
-    line_seg_points_2d(Sampled, [S1X, S1Y], [W, H], [_ |Seg2]),
-    append(Seg1, Seg2, Seg),
-
-    pts_color_L_hists_2d(Img, Seg, Hists),
-    predict_svm(Model, Hists, Labels),
-    has_edge_point_outward(Labels, Seg, Edge_Point),
-
-    /*%% debug
-    size_2d(Img, W, H),
-    clone_img(Img, Img2),
-    % ellipse_points_2d(Center, Param, [W, H], ELPS),
-    circle_points_2d(Center, Rad, [W, H], ELPS),
-    draw_points_2d(Img2, ELPS, red),
-    draw_points_2d(Img2, Seg1, blue),
-    draw_points_2d(Img2, Seg2, green),
-    draw_points_2d(Img2, [Sampled], yellow),    
-    showimg_win(Img2, 'debug'),
-    release_img(Img2),
-    %% end of debug.*/
-    true.
+    edge_point_in_dir_range(Img, Model, Center, Sampled, Range, Edge_Point).
 
 eval_point_between_clockwise(Img, Model, Obj, P1, P2,
                              Ratio, Range, Edge_Point):-
     arc_point_between_clockwise(Obj, P1, P2, Ratio, Sampled),
-    Sampled = [SX, SY],
-
-    % normalize
-    %(Obj = elps(Center, Param); Obj = circle(Center, Rad)), !,
     (Obj = elps(Center, _); Obj = circle(Center, _)), !,
-    vec_diff(Sampled, Center, [DSX_, DSY_]),
-    DSX is DSX_/sqrt(DSX_**2 + DSY_**2),
-    DSY is DSY_/sqrt(DSX_**2 + DSY_**2),
-    
-    S1X is round(SX + Range*DSX),
-    S2X is round(SX - Range*DSX),
-    S1Y is round(SY + Range*DSY),
-    S2Y is round(SY - Range*DSY),
+    edge_point_in_dir_range(Img, Model, Center, Sampled, Range, Edge_Point).
 
-    size_2d(Img, W, H),
-    line_seg_points_2d([S2X, S2Y], Sampled, [W, H], Seg1),
-    line_seg_points_2d(Sampled, [S1X, S1Y], [W, H], [_ |Seg2]),
-    append(Seg1, Seg2, Seg),
-
-    pts_color_L_hists_2d(Img, Seg, Hists),
-    predict_svm(Model, Hists, Labels),
-    has_edge_point_outward(Labels, Seg, Edge_Point),
-
-    /*%% debug
-    size_2d(Img, W, H),
-    clone_img(Img, Img2),
-    ellipse_points_2d(Center, Param, [W, H], ELPS),
-    %circle_points_2d(Center, Rad, [W, H], ELPS),
-    draw_points_2d(Img2, ELPS, red),
-    draw_points_2d(Img2, Seg1, blue),
-    draw_points_2d(Img2, Seg2, green),
-    draw_points_2d(Img2, [Sampled], yellow),    
-    showimg_win(Img2, 'debug'),
-    release_img(Img2),
-    %% end of debug.*/
-    true.
+edge_point_in_dir_range(Img, Model, Center, Point, Range, Edge_Point):-
+    Point = [SX, SY],
+    (not(in_canvas(Point, Img)) ->
+         (Edge_Point = [], !);
+     (vec_diff(Point, Center, [DSX_, DSY_]),
+      M is DSX_**2 + DSY_**2,
+      (M =:= 0 ->
+           (Edge_Point = [], !);
+       (DSX is DSX_/sqrt(M),
+        DSY is DSY_/sqrt(M),
+      
+        S1X is round(SX + Range*DSX),
+        S2X is round(SX - Range*DSX),
+        S1Y is round(SY + Range*DSY),
+        S2Y is round(SY - Range*DSY),
+        
+        size_2d(Img, W, H),
+        line_seg_points_2d([S2X, S2Y], Point, [W, H], Seg1),
+        line_seg_points_2d(Point, [S1X, S1Y], [W, H], [_ |Seg2]),
+        append(Seg1, Seg2, Seg),
+        
+        pts_color_L_hists_2d(Img, Seg, Hists),
+        predict_svm(Model, Hists, Labels),
+        has_edge_point_outward(Labels, Seg, Edge_Point)), !)
+      )
+    ), !.
 
 % has edge point
 has_edge_point_outward([_], _, []):-
@@ -610,3 +590,40 @@ has_edge_point_inward([_, X | Xs], [_, P | Ps], Re):-
 has_edge_point(Xs, Ps, Re):-
     (has_edge_point_inward(Xs, Ps, Re);
      has_edge_point_outward(Xs, Ps, Re)), !.
+
+%=======================================
+% reasonable circle fit, learned by MIL
+%=======================================
+reasonable_circle_fit(Img, Model, circle(Cent, Rad)):-
+    edge_point_proportion(Img, Model, circle(Cent, Rad), Prop),
+    %writeln(Prop),
+    Prop >= 0.4.
+edge_point_proportion(Img, Model, circle(Cent, Rad), Prop):-
+    eval_edge_points(Img, Model, circle(Cent, Rad), 36, EPs),
+    length(EPs, Len),
+    Prop is Len/36.
+
+eval_edge_points(_, _, circle(_, _), 0, []):-
+    !.
+eval_edge_points(Img, Model, circle(Cent, Rad), Num, [EP | EPs]):-
+    V0 = [100, 0], 
+    Sep is 10.0, Ang is Num*Sep,
+    vec_rotate_angle_clockwise(V0, V1, Ang),
+    vec_sum(V0, Cent, P0), vec_sum(V1, Cent, P1),
+    arc_point_between(circle(Cent, Rad), P0, P1, 1.0, P),
+    % has edge point on fitted edge
+    in_canvas(P, Img),
+    edge_point_in_dir_range(Img, Model, Cent, P, 5, EP),
+    EP \= [],
+    % continue
+    Num1 is Num - 1,
+    eval_edge_points(Img, Model, circle(Cent, Rad), Num1, EPs), !.
+eval_edge_points(Img, Model, circle(Cent, Rad), Num, EPs):-
+    Num1 is Num - 1,
+    eval_edge_points(Img, Model, circle(Cent, Rad), Num1, EPs), !.
+
+in_canvas(P, Img):-
+    size_2d(Img, W_, H_),
+    W is W_ - 1, H is H_ - 1,
+    in_box([[0, 0], [W, H]], P).
+

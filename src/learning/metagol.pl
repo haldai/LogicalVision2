@@ -120,7 +120,7 @@ bind_lower(P,A,FullSig,_Sig1,Sig2):-
 
 bind_lower(P,A,_FullSig,Sig1,Sig2):-
   append(_,[sym(P,A,U)|Sig2],Sig1),
-  (var(U)-> U = 1,!;true).
+  (var(U)-> U = 1,!;fail).
 
 check_new_metasub(Name,P,A,MetaSub,Prog):-
   memberchk(sub(Name,P,A,_),Prog),!,

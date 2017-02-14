@@ -64,6 +64,7 @@ abduce(A):-
 
 % TODO: What does Args look like? [[Args1], [Args2], ...]?
 
+/*
 solve(true, true) :-!.
 solve(not(A), not(ProofA)) :-
 	not(solve(A, ProofA)).
@@ -103,3 +104,4 @@ t(c).
 %?- nodebug.
 %?- assertz(abducible(xx)), assertz(samplable(ff)), abduce(a(X)).
 %?- abduce(a(X)).
+*/

@@ -1,74 +1,79 @@
-:-['../learning/metagol.pl'].
+:- ['metagol'].
 
-% prim(light_source/1).
-prim(observer/1).
-prim(convex/1).
-prim(reflector/1).
-prim(contains/2).
-prim(brighter/2).
-prim(light_path/2).
-% prim(clock_angle1/3).		% Abducible
+:- ensure_loaded(['../io/plio.pl',
+                  '../sampling/plsampling.pl',
+                  '../drawing/pldraw.pl',
+                  '../stats/plstats.pl',
+                  '../abduce/plabduce.pl',
+                  '../abduce/bk_object.pl',
+                  '../sampling/plpoints.pl',
+                  '../utils/utils.pl']).
 
-% metagol:functional.
-metagol:max_clauses(10).
+%% metagol parameters
+metagol:max_clauses(8).
+max_time(600000). % 10 min timeout
 
-%% target(bright). % name of target predicate
-%% max_time(600000). % 10 min timeout
+%% primitives
+prim(light_source_angle/3).
+prim(highlight/2).
+prim(opposite_angle/2).
 
-metarule(1,[P,A],([P,A]:-[]),_).
-metarule_init(1,[P,A],([P,A]:-[])).
-metarule(2,[P,A,B],([P,A,B]:-[]),_).
-metarule_init(2,[P,A,B],([P,A,B]:-[])).
-metarule(3,[P,A,B,C],([P,A,B,C]:-[]),_).
-metarule_init(3,[P,A,B,C],([P,A,B,C]:-[])).
+%% background knowledge
+highlight(obj1, obj2). % obj2 is obj1's highlight accroding to LogVis
 
-%% metarule([A, B], ([A, B]:-[])).
+% opposite angles in label
+opposite_angle(3, 9).
+opposite_angle(9, 3).
+opposite_angle(12, 6).
+opposite_angle(6, 12).
 
-%% user:metarule(Name,MetaSub,(Atom :- Body),Sig2),
-%% metarule([P,Q],([P,A,B]:-[[Q,A,B]])).
-% metarule(chain,[P,Q,R],([P,A,B]:-[[Q,A,C],[R,C,B]])).
-% metarule(tailrec,[P,Q,R],([P,A,B]:-[[Q,A,C],@term_gt(A,C),[P,C,B]])).
-% metarule(parallel,[P,Q,R],([P,A,B]:-[[Q,A,B],[R,A,B]])).
-% metarule(project,[P,Q,R],([P,A,A]:-[[Q,A]])).
-% metarule(euclid,[P,Q,R],([P,A]:-[[Q,A,B],[R,A,B]])).
-% metarule(independent,[P,Q,R],([P,A,B]:-[[Q,A],[R,B]])).
+% "obj1" is the abduced object, "obj2" is the highlight part
+logical_vision_light(Name, clock_angle(obj1, obj2, Ang)):-
+    Path = '../../data/protists/',
+    % Path = '../../data/moons/',
+    atomic_concat(Name, '.jpg', File),
+    atomic_concat(Path, File, File_Path),
+    load_img(File_Path, Img),
+    load_model_svm('../../tmp/SVM_Protist.model', Model),
+    % load_model_svm('../../tmp/SVM_Moon.model', Model),
+    write('Logical Vision running for:\t'), write(Name), write('\t'),
+    ((time(abduce_object_elps(Img, Model, [], Obj, 0)),
+      % time(abduce_object_circle(Img, Model, [], Obj, 0)),
+      write('Abduced object: '), writeln(Obj),
+      get_largest_contrast_angle(Img, Obj, Ang));
+     (Ang = 'nil')
+    ), !,
+    release_img(Img),
+    release_model_svm(Model).
 
-a(G):-
-  learn([clock_angle(obj1,obj2,11)],[],G),
-  pprint(G).
+% in training data, all light source are "light"
+name2label(Name, light_source_angle(obj1, light, Ang)):-
+    string_codes(Name, [D1, D2 | _]), string_codes(Code, [D1, D2]),
+    atom_number(Code, Ang0), % label
+    (((Ang0 == 11; Ang0 == 12; Ang0 == 1), !, Ang = 12);
+     ((Ang0 == 2; Ang0 == 3; Ang0 == 4), !, Ang = 3);
+     ((Ang0 == 5; Ang0 == 6; Ang0 == 7), !, Ang = 6);
+     ((Ang0 == 8; Ang0 == 9; Ang0 == 10), !, Ang = 9)), !.
 
-light_source(light).
-observer(observer).
-reflector(obj2).
-convex(obj1).
+%% metarules
+metarule(prop_obj1, [P,obj1], ([P,obj1]:-[])).
+metarule(prop_obj2, [P,obj2], ([P,obj2]:-[])).
+metarule(prop_light, [P,light], ([P,light]:-[])).
+metarule(parallel3, [P,Q,R], ([P,A,B,C]:-[[Q,A,B,C],[R,A,B,C]])).
+metarule(chain3_3_3, [P,Q,R], ([P,A,B,C]:-[[Q,A,B,D],[R,A,D,C]])).
+metarule(chain3_3_2, [P,Q,R], ([P,A,B,C]:-[[Q,A,B,D],[R,D,C]])).
+metarule(independent3_2_1_1, [P,Q,R,S], ([P,A,B,C]:-[[Q,A,B],[R,A],[S,C]])).
 
-% clock_angle1(obj1,light,11).
-
-contains(obj1,obj2).
-brighter(obj2,obj1).
-
-unobstructed(light,obj2).
-%% unobstructed(light,observer).
-unobstructed(obj2,observer).
-
-% Bright R observed by O in image
-
-interpreted(clock_angle/3).
-interpreted(highlight/2).
-
-%% background(([map,[],[],_F]:- [])).
-background(([clock_angle,O,H,A] :- [[highlight,O,H], [convex,O],
-	[light_source,L], [clock_angle1,O,L,A]])).
-background(([highlight,Obj,H] :- [[contains,Obj,H], [brighter,H,Obj],
-	[light_source,L], [light_path,L,H], [reflector,H],
-	[light_path,H,Obs], [observer,Obs]])).
-
-% clock_angle(O,H,A) :- highlight(O,H), convex(O), light_source(L),
-%                       clock_angle1(O,L,A).
-%
-% highlight(X,Y) :- contains(X,Y), brighter(Y,X),
-%                   light_source(L), light_path(L,R), reflector(R),
-%                   light_path(R,O), observer(O).
-
-light_path(X,X).
-light_path(X,Y) :- unobstructed(X,Z), light_path(Z,Y).
+%% learning
+a(Name):-
+    % use logical vision to abduce input example for MIL
+    name2label(Name, Fact),
+    logical_vision_light(Name, Example),
+    %% examples without LogVis for debugging
+    % Fact = light_source_angle(obj1, light, 12),
+    % Example = clock_angle(obj1, obj2, 12),
+    %Example = clock_angle(obj1, obj2, 6), % highlight opposite to light source
+    assertz(Fact),
+    learn([Example], [], P),
+    retract(Fact),
+    pprint(P).
