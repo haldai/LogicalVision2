@@ -1,3 +1,19 @@
+/*************************************************************************
+This file is part of Logical Vision 2.
+
+Logical Vision 2 is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Logical Vision 2 is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+************************************************************************/
 /* Test module - 3
  * ============================
  * Version: 2.0
@@ -28,7 +44,7 @@ test_load_img_3(A):-
     %load_img('../../data/protists/09011.jpg', A),
     %load_img('../../data/protists/01023.jpg', A),
     %load_img('../../data/protists/12023.jpg', A),
-    %load_img('../../data/protists/2030.jpg', A),
+    load_img('../../data/protists/02030.jpg', A),
     %load_img('../../data/moons/02001.jpg', A),
     %load_img('../../data/moons/02027.jpg', A),
     %load_img('../../data/moons/02011.jpg', A),
@@ -38,7 +54,7 @@ test_load_img_3(A):-
     %load_img('../../data/moons/12016.jpg', A),
     %load_img('../../data/moons/07014.jpg', A),
     %load_img('../../data/moons/07012.jpg', A),    
-    load_img('../../data/moons/11018.jpg', A),
+    %load_img('../../data/moons/11018.jpg', A),
     %load_img('../../data/moons/01020.jpg', A),
     %load_img('../../data/moons/11006.jpg', A),
     %load_img('../../data/Protist_new.jpg', A),
@@ -295,8 +311,8 @@ test_main_3:-
     %test_draw_turning_lines(Img, -450.798),
     %test_train_stat_pts(Img),
     %test_L_hist_change_2d(Img, [500, 500], [1, -2], 0.05),
-    test_train_model,
-    %test_sample_obj_protist(Img),
+    %test_train_model,
+    test_sample_obj_protist(Img),
     %test_sample_obj_moon(Img),
     %test_split_ellipse(Img, [100, 100], [30, 50, -45], 11),
     %test_split_circle(Img, [100, 100], 30, 11),

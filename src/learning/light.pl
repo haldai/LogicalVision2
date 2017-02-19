@@ -1,3 +1,19 @@
+/*************************************************************************
+This file is part of Logical Vision 2.
+
+Logical Vision 2 is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Logical Vision 2 is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+************************************************************************/
 :- ['metagol'].
 
 :- ensure_loaded(['../io/plio.pl',
@@ -29,16 +45,16 @@ opposite_angle(6, 12).
 
 % "obj1" is the abduced object, "obj2" is the highlight part
 logical_vision_light(Name, clock_angle(obj1, obj2, Ang)):-
-    Path = '../../data/protists/',
-    % Path = '../../data/moons/',
+    % Path = '../../data/protists/',
+    Path = '../../data/moons/',
     atomic_concat(Name, '.jpg', File),
     atomic_concat(Path, File, File_Path),
+    write('Load image: '), write(File_Path), nl,
     load_img(File_Path, Img),
-    load_model_svm('../../tmp/SVM_Protist.model', Model),
-    % load_model_svm('../../tmp/SVM_Moon.model', Model),
-    write('Logical Vision running for:\t'), write(Name), write('\t'),
-    ((time(abduce_object_elps(Img, Model, [], Obj, 0)),
-      % time(abduce_object_circle(Img, Model, [], Obj, 0)),
+    % load_model_svm('../../tmp/SVM_Protist.model', Model),
+    load_model_svm('../../tmp/SVM_Moon.model', Model),
+    ((% time(abduce_object_elps(Img, Model, [], Obj, 0)),
+      time(abduce_object_circle(Img, Model, [], Obj, 0)),
       write('Abduced object: '), writeln(Obj),
       get_largest_contrast_angle(Img, Obj, Ang));
      (Ang = 'nil')

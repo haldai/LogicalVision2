@@ -1,2 +1,0 @@
-% reset
-load_model_svm('../../tmp/SVM_Moon.model', Model),process_moon_circle(0x556a659ca6d0,['01008.jpg','02016.jpg','10017.jpg','07028.jpg','07024.jpg','10008.jpg','10023.jpg','12008.jpg','04023.jpg','04005.jpg','03012.jpg','02022.jpg','11013.jpg','07019.jpg','10028.jpg','06016.jpg','04018.jpg','12010.jpg','11024.jpg','10025.jpg','05014.jpg','01022.jpg','01020.jpg','09021.jpg'],'../../data/moon/test/','../../out/moon/test/',9,121).
