@@ -37,7 +37,7 @@ CXXFLAGS_MLPACK = -I$(MLPACK_HOME)/include
 LDFLAGS_MLPACK = -L$(MLPACK_HOME) -L$(LDFLAGS_ARMA) -lmlpack -lboost_serialization
 
 #all:cvcluster.so
-all:cvio.so cvsampler.so cvdraw.so cvcluster.so cvstats.so
+all:cvio.so cvsampler.so cvdraw.so cvstats.so
 
 cvio.so:cvio.o
 	$(CXX) -shared $(LIBS) cvio.o -o cvio.so $(LDFLAGS_CV) $(LDFLAGS_SWI) $(LDFLAGS_QT) $(LDFLAGS_MLPACK)
@@ -60,24 +60,17 @@ cvdraw.so:cvdraw.o
 cvdraw.o:
 	$(CXX) $(CXXFLAGS) $(CXXFLAGS_CV) $(CXXFLAGS_SWI) $(CXXFLAGS_QT) -c cvdraw.cpp
 
-cvcluster.so:cvcluster.o
-	$(CXX) -shared $(LIBS) cvcluster.o -o cvcluster.so $(LDFLAGS_MLPACK) $(LDFLAGS_CV)
-	mv cvcluster.so $(LIBSDIR)/
-
-cvcluster.o:
-	$(CXX) $(CXXFLAGS) $(CXXFLAGS_CV) $(CXXFLAGS_SWI) $(CXXFLAGS_QT) -c cvcluster.cpp
-
 cvstats.so:cvstats.o svm.o
-	$(CXX) -shared $(LIBS) cvstats.o svm.o -o cvstats.so $(LDFLAGS_MLPACK) $(LDFLAGS_CV)
+	$(CXX) -shared $(LIBS) cvstats.o stats/svm.o -o cvstats.so $(LDFLAGS_MLPACK) $(LDFLAGS_CV)
 	mv cvstats.so $(LIBSDIR)/
 
 cvstats.o:
 	$(CXX) $(CXXFLAGS) $(CXXFLAGS_CV) $(CXXFLAGS_SWI) $(CXXFLAGS_QT) -c cvstats.cpp
 
 svm.o:
-	$(CXX) $(CXXFLAGS) -c svm.cpp
+	cd stats && $(CXX) $(CXXFLAGS) -c svm.cpp
 
 clean:
-	rm -rf *.o *.so
+	rm -rf *.o *.so stats/*.o superpixel/*.o
 	rm ../../libs/cv*.so
 

@@ -14,15 +14,31 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with Logical Vision 2.  If not, see <http://www.gnu.org/licenses/>.
 ************************************************************************/
-/* Prolog sampling
- *     Sample *continuous movements* on video (*image sequence*)
+/* Test module - 4
  * ============================
  * Version: 2.0
  * Author: Wang-Zhou Dai <dai.wzero@gmail.com>
  */
 
-/* movement(+Ellipse, +Frame, -Direction)
- */
-movement(Elps, Frm, Dir):-
-    Elps = [[_, _, Frm0], _], % current frame
-    
+:- ensure_loaded(['test3.pl']).
+
+test_load_img_4(A):-
+    test_write_start('load image'),
+    %load_img('../../data/MobileRobotAndBall1/raw_images/1485.jpg', A),
+    load_img('../../data/MobileRobotAndBall1/raw_images/65.jpg', A),
+    size_2d(A, X, Y),
+    write('W x H: '),
+    write(X), write(' x '), write(Y), nl,
+    test_write_done.
+
+test_sp_lsc(Img):-
+    test_write_start('test super pixel LSC'),
+    time(create_superpixels(Img, [0, 10, 10, 2, 25], SP)),
+    show_superpixels(Img, SP),
+    release_sp(SP),
+    test_write_done.
+
+test_main_4:-
+    test_load_img_4(Img),
+    test_sp_lsc(Img),
+    test_rel_img(Img).

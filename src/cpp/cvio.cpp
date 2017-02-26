@@ -12,7 +12,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+along with Logical Vision 2.  If not, see <http://www.gnu.org/licenses/>.
 ************************************************************************/
 /* IO library for prolog
  * ============================
@@ -24,6 +24,7 @@ along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 #include "io.hpp"
 #include "memread.hpp"
 #include "errors.hpp"
+#include "superpixel/super_pixel.hpp"
 
 //#include <opencv2/core/core.hpp>
 #include <opencv2/imgproc.hpp>
@@ -69,8 +70,8 @@ PREDICATE(load_img, 2) {
             int row = img->rows;
             PlTermv size_2d_args(3);
             size_2d_args[0] = A2;
-            size_2d_args[1] = col;
-            size_2d_args[2] = row;
+            size_2d_args[1] = col; // width
+            size_2d_args[2] = row; // height
             PlTermv size_2d_atom(1);
             size_2d_atom[0] = PlCompound("size_2d", size_2d_args);
             PlCall("assertz", size_2d_atom);
@@ -650,5 +651,86 @@ PREDICATE(resize_img_2d, 3) {
     PlTermv size_2d_atom(1);
     size_2d_atom[0] = PlCompound("size_2d", size_2d_args);
     PlCall("assertz", size_2d_atom);
+    return TRUE;
+}
+
+/* gaussian_blur(ImgIn, Param, ImgOut)
+ * Gaussian blur of given image
+ * @ImgIn/Out: input/output image
+ * @Param = [SizeX, SizeY, SigmaX, SigmaY]: SizeX/Y - gaussian kernel size,
+ *          SigmaX/Y - gaussian sigma in X/Y direction
+ */
+PREDICATE(gaussian_blur, 3) {
+    // source image
+    char *p1 = (char*) A1;
+    const string add_img(p1);
+    Mat *img = str2ptr<Mat>(add_img);
+    // parameter
+    vector<int> vec = list2vec<int>(A2, 4);
+    Mat *newimg = new Mat();
+    GaussianBlur(*img, *newimg, Size(vec[0], vec[1]), vec[2], vec[3]);
+    // convert returning
+    string add = ptr2str(newimg);
+    A3 = PlTerm(add.c_str());
+    // assert size_2d
+    int col = newimg->cols;
+    int row = newimg->rows;
+    PlTermv size_2d_args(3);
+    size_2d_args[0] = A3;
+    size_2d_args[1] = col;
+    size_2d_args[2] = row;
+    PlTermv size_2d_atom(1);
+    size_2d_atom[0] = PlCompound("size_2d", size_2d_args);
+    PlCall("assertz", size_2d_atom);
+    return TRUE;
+}
+
+/* create_superpixels(Img, Param, SP)
+ *  create superpixels for image
+ * @Img: input image
+ * @SP: memory address of output superpixel
+ * @Param = [Algorithm, RegionSize, Ruler, IterNum, Connect]: Parameters for LSC superpixel
+ */
+PREDICATE(create_superpixels, 3) {
+    // source image
+    char *p1 = (char*) A1;
+    const string add_img(p1);
+    Mat *img = str2ptr<Mat>(add_img);
+    // parameter
+    vector<double> vec = list2vec<double>(A2, 5);
+    SuperPixels *sp = new SuperPixels(img, (int) vec[0], (int) vec[1], (float) vec[2], (int) vec[3], (int) vec[4]);
+    string add_sp = ptr2str(sp);
+    return A3 = add_sp.c_str();
+}
+
+
+/* show_superpixels(Img, SP)
+ *  create superpixels for image
+ * @Img: input image
+ * @SP: memory address of output superpixel
+ */
+PREDICATE(show_superpixels, 2) {
+    // source image
+    char *p1 = (char*) A1;
+    const string add_img(p1);    
+    Mat *img = str2ptr<Mat>(add_img);
+    // address of super pixels
+    char *p2 = (char*) A2;
+    const string add_sp(p2);
+    SuperPixels *sp = str2ptr<SuperPixels>(add_sp);
+    show_super_pixels(img, sp);
+    return TRUE;
+}
+
+/* release_sp(SP)
+ *  release super pixel LSC
+ * @SP: memory address of output superpixel
+ */
+PREDICATE(release_sp, 1) {
+    // source image
+    char *p1 = (char*) A1;
+    const string add_sp(p1);
+    SuperPixels *sp = str2ptr<SuperPixels>(add_sp);
+    delete sp;
     return TRUE;
 }

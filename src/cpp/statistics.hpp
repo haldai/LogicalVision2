@@ -12,7 +12,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+along with Logical Vision 2.  If not, see <http://www.gnu.org/licenses/>.
 ************************************************************************/
 /* statistical feature extractor module
  * =========================================
@@ -38,8 +38,8 @@ along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "utils.hpp"
 #include "memread.hpp"
-#include "svm.h"
-#include "fn_dense_to_sparse.hpp"
+#include "stats/svm.h"
+#include "stats/fn_dense_to_sparse.hpp"
 
 typedef mlpack::adaboost::AdaBoost<mlpack::decision_stump::DecisionStump<>> ADABOOST_DS;
 typedef mlpack::adaboost::AdaBoost<mlpack::perceptron::Perceptron<>> ADABOOST_P;

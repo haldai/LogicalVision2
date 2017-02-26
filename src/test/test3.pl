@@ -12,7 +12,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+along with Logical Vision 2.  If not, see <http://www.gnu.org/licenses/>.
 ************************************************************************/
 /* Test module - 3
  * ============================
@@ -221,10 +221,10 @@ test_draw_turning_lines(Img, Deg):-
 test_train_model:-
     test_write_start('test trainning, saving and loading stat model'),
     %train_stat_model_protist(Model1),
-    %train_stat_model_moon(Model2),
+    train_stat_model_moon(Model2),
     train_stat_model_crater(Model3),
     %release_model_svm(Model1),
-    %release_model_svm(Model2),
+    release_model_svm(Model2),
     release_model_svm(Model3),
     test_write_done.
     
@@ -311,8 +311,8 @@ test_main_3:-
     %test_draw_turning_lines(Img, -450.798),
     %test_train_stat_pts(Img),
     %test_L_hist_change_2d(Img, [500, 500], [1, -2], 0.05),
-    %test_train_model,
-    test_sample_obj_protist(Img),
+    test_train_model,
+    %test_sample_obj_protist(Img),
     %test_sample_obj_moon(Img),
     %test_split_ellipse(Img, [100, 100], [30, 50, -45], 11),
     %test_split_circle(Img, [100, 100], 30, 11),

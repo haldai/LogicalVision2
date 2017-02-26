@@ -12,15 +12,14 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+along with Logical Vision 2.  If not, see <http://www.gnu.org/licenses/>.
 ************************************************************************/
 /* Statistical models module
  * ============================
  * Version: 2.0
  * Author: Wang-Zhou Dai <dai.wzero@gmail.com>
  */
-:- load_foreign_library(foreign('../../libs/cvstats.so')),
-   load_foreign_library(foreign('../../libs/cvcluster.so')).
+:- load_foreign_library(foreign('../../libs/cvstats.so')).
 
 /*
  * Labeled data are represented by a list of key-value maps

@@ -12,7 +12,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+along with Logical Vision 2.  If not, see <http://www.gnu.org/licenses/>.
 ************************************************************************/
 /* IO for media type
  *     Store all contents in stack
@@ -77,7 +77,7 @@ vector<Mat> *cv_video2imgseq(VideoCapture *vid) {
     Mat frame;
     vector<Mat> *seq = new vector<Mat>;
     long frame_current = 0;
-
+    
     while(!stop && frame_current < frame_total) {
         if(!vid->read(frame)) {
             cout << "Reading frame " << frame_current
@@ -87,7 +87,7 @@ vector<Mat> *cv_video2imgseq(VideoCapture *vid) {
         // medianBlur(frame, frame, 5);
         // convert to LAB space (comparing to
         //     RGB color space, Lab is closer to human cognition)
-        cvtColor(frame, frame, COLOR_BGR2Lab); 
+        cvtColor(frame, frame, COLOR_BGR2Lab);
         seq->push_back(frame.clone());
         ++frame_current;
     }
@@ -101,17 +101,17 @@ vector<Mat> *cv_video2greyseq(VideoCapture *vid) {
     Mat frame;
     vector<Mat> *seq = new vector<Mat>;
     long frame_current = 0;
-
+    
     while(!stop && frame_current < frame_total) {
         if(!vid->read(frame)) {
             cout << "Reading frame " << frame_current
                  << " failed" << endl;
             return FALSE;
         }
-        medianBlur(frame, frame, 5);
-        // convert to LAB space (comparing to
+
+          // convert to LAB space (comparing to
         //     RGB color space, Lab is closer to human cognition)
-        cvtColor(frame, frame, COLOR_BGR2GRAY); 
+        cvtColor(frame, frame, COLOR_BGR2GRAY);
         seq->push_back(frame.clone());
         ++frame_current;
     }
