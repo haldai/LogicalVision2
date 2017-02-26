@@ -6,7 +6,7 @@ Symbolic computer vision tool with SWI-Prolog and OpenCV.
 
 1. SWI-Prolog (>=7.0) compiled with `EXTRA_PKGS=clib` and multi-threading enabled.
 
-2. OpenCV (>=3.0).
+2. [OpenCV](https://github.com/opencv/opencv) compiled with [OpenCV-contrib](https://github.com/opencv/opencv_contrib) ximproc module.
 
 3. Armadillo library for matrix handling.
 
@@ -67,7 +67,7 @@ Wang-Zhou Dai, Stephen H. Muggleton, and Zhi-Hua Zhou. Logical Vision: Meta-inte
 Wang-Zhou Dai and Zhi-Hua Zhou. Combining logic abduction and statistical induction: Discovering written primitives with human knowledge. In _Proceedings of the 31st AAAI Conference on Artificial Intelligence (AAAI'17)_, San Francisco, CA, 2017.
 
 
-## Contact ##
+## Copyright & Contact ##
 
 Wang-Zhou Dai
 
