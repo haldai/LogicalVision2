@@ -12,7 +12,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+along with Logical Vision 2.  If not, see <http://www.gnu.org/licenses/>.
 ************************************************************************/
 % background knowledge for abducing objects
 %============================================================================
@@ -447,14 +447,8 @@ train_stat_model_moon(Model):-
     time(gen_pts_train_data('../../data/Moon4.jpg',
                             '../../data/Moon4_fg.bmp',
                             100, Data_Label_5)),
-    time(gen_pts_train_data('../../data/Moon5.jpg',
-                            '../../data/Moon5_fg.bmp',
-                            100, Data_Label_6)),
-    time(gen_pts_train_data('../../data/Moon6.jpg',
-                            '../../data/Moon6_fg.bmp',
-                            200, Data_Label_7)),
     %print_list_ln(Data_Label),
-    append([Data_Label_1, Data_Label_2, Data_Label_3, Data_Label_4, Data_Label_5, Data_Label_6, Data_Label_7], Data_Labels),
+    append([Data_Label_1, Data_Label_2, Data_Label_3, Data_Label_4, Data_Label_5], Data_Labels),
     subsample(1.0, 0.7, Data_Labels, Data_Label),
     write("Training SVM: "),
     time(train_svm(Data_Label, '-g 0.0039 -c 100000 -h 0', Model)),
