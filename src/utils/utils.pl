@@ -609,6 +609,21 @@ my_collect(L):-
      ;
      L = [X | Rest], my_collect(Rest)).
 
+%==========================
+% remove file extentions
+%+=========================
+remove_file_extension(F, N):-
+    split_string(F, '.', '', [N, _]).
+
+remove_files_extension([], []):-
+    !.
+remove_files_extension(['.' | Files], Names):-
+    remove_files_extension(Files, Names), !.
+remove_files_extension(['..' | Files], Names):-
+    remove_files_extension(Files, Names), !.
+remove_files_extension([F | Files], [N | Names]):-
+    remove_file_extension(F, N),    
+    remove_files_extension(Files, Names).
 
 %==========================================================================
 % varnumbers is a partial inverse to numbervars/3

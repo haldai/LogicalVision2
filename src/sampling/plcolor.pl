@@ -31,7 +31,7 @@ color([L_, A_, B_], white):-
     A is A_ - 128, B is B_ - 128,
     R is sqrt(A**2 + B**2),
     R =< 45,
-    L >= 60.
+    L >= 70.
 color([L_, A_, B_], black):-
     L is L_*100/255,
     A is A_ - 128, B is B_ - 128,
@@ -44,7 +44,7 @@ color([L_, A_, B_], gray):-
     R is sqrt(A**2 + B**2),
     R =< 45,
     L > 40,
-    L < 60.
+    L < 70.
 color(C, not(Color)):-
     ground(Color),
     not(color(C, Color)), !.

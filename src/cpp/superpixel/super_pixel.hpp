@@ -42,10 +42,25 @@ public:
     int getNumberOfSuperpixels() const;
     int getWidth() const;
     int getHeight() const;
+
+    // get pixels of label, use <long> for swipl api
+    vector<vector<long>> getLabelPoints(int label) const;
+    vector<vector<long>> getLabelsPoints(vector<int> label) const;
+
+    // get label position
+    vector<long> getLabelPosition(int label) const;
+
+    // get adjacentcy pairs, use <long> for swipl api
+    vector<vector<long>> getAdjPairs() const;
     
+    // get mask of label
+    void getLabelMask(int label, OutputArray labels_out) const;
+    void getLabelsMask(vector<int> labels, OutputArray labels_out) const;
+
     // get image with labels
     void getLabels(OutputArray labels_out) const;
-
+    void saveLabels(string file_path); // todo
+    
     // get mask image with contour
     void getLabelContourMask(OutputArray image, bool thick_line = true) const;
 
@@ -62,7 +77,9 @@ private:
     // superpixels
     vector<Point2i> sp_centers;
     vector<vector<Point2i>> sp_ranges;
+
     arma::sp_umat sp_adj_mat;
+    vector<pair<int, int>> sp_adj_pairs;
 
     // private functions
     void init_superpixels();
@@ -107,6 +124,37 @@ int SuperPixels::getHeight() const {
 
 void SuperPixels::getLabels(OutputArray labels_out) const {
     labels_out.assign(m_klabels);
+}
+
+void SuperPixels::saveLabels(string file_path) {
+    ofstream fout(file_path);
+    if(!fout) {
+        cout<<"File Not Opened"<<endl;  return;
+    }
+
+    for(int i = 0; i < m_klabels.rows; i++) {
+        for(int j = 0; j < m_klabels.cols; j++) {
+            fout << m_klabels.at<int>(i,j) << ",";
+        }
+        fout << endl;
+    }
+    fout.close();
+}
+
+vector<vector<long>> SuperPixels::getAdjPairs() const {
+    vector<vector<long>> re(sp_adj_pairs.size());
+    for (unsigned i = 0; i < sp_adj_pairs.size(); i++) {
+        vector<long> pr_v = { sp_adj_pairs[i].first, sp_adj_pairs[i].second };
+        re[i] = pr_v;
+    }
+    return re;
+}
+
+vector<long> SuperPixels::getLabelPosition(int label) const {
+    vector<long> re(2);
+    re[0] = (long) sp_centers[label].x;
+    re[1] = (long) sp_centers[label].y;
+    return re;
 }
 
 void SuperPixels::getLabelContourMask(OutputArray _mask, bool _thick_line) const
@@ -159,6 +207,60 @@ void SuperPixels::getLabelContourMask(OutputArray _mask, bool _thick_line) const
     }
 }
 
+void SuperPixels::getLabelMask(int label, OutputArray _mask) const {
+    _mask.create(m_height, m_width, CV_8UC1);
+    Mat mask = _mask.getMat();
+    mask.setTo(0);
+    for (auto it = sp_ranges[label].begin();
+         it != sp_ranges[label].end(); ++it) {
+        Point2i pt = (Point2i) *it;
+        mask.at<char>(pt.x, pt.y) = (uchar) 255;
+    }
+}
+
+void SuperPixels::getLabelsMask(vector<int> labels, OutputArray _mask) const {
+    _mask.create(m_height, m_width, CV_8UC1);
+    Mat mask = _mask.getMat();
+    mask.setTo(0);
+    for (unsigned i = 0; i < labels.size(); i++)
+        for (auto it = sp_ranges[labels[i]].begin();
+             it != sp_ranges[labels[i]].end(); ++it) {
+            Point2i pt = (Point2i) *it;
+            mask.at<char>(pt.x, pt.y) = (uchar) 255;
+        }    
+}
+
+vector<vector<long>> SuperPixels::getLabelPoints(int label) const {
+    vector<vector<long>> re(sp_ranges[label].size());
+    for (unsigned i = 0; i < sp_ranges[label].size(); i++) {
+        Point2i pt = sp_ranges[label][i];
+        vector<long> p_vec(2);
+        p_vec[0] = (long) pt.x;
+        p_vec[1] = (long) pt.y;
+        re[i] = p_vec;
+    }
+    return re;
+}
+
+vector<vector<long>> SuperPixels::getLabelsPoints(vector<int> labels) const {
+    int tot = 0;
+    for (unsigned i = 0; i < labels.size(); i++)
+        tot += sp_ranges[labels[i]].size();
+    vector<vector<long>> re(tot);
+    int count = 0;
+    for (unsigned j = 0; j < labels.size(); j++) {
+        for (unsigned i = 0; i < sp_ranges[labels[j]].size(); i++) {
+            Point2i pt = (Point2i) sp_ranges[labels[j]][i];
+            vector<long> p_vec(2);
+            p_vec[0] = (long) pt.x;
+            p_vec[1] = (long) pt.y;
+            re[count] = p_vec;
+            count++;
+        }
+    }
+    return re;
+}
+
 void SuperPixels::init_superpixels() {
     // pixels in superpixels
     sp_ranges = vector<vector<Point2i>>(m_numlabels);
@@ -166,11 +268,10 @@ void SuperPixels::init_superpixels() {
         for (int j = 0; j < m_width; j++) {
             sp_ranges[m_klabels.at<int>(i, j)].push_back(Point2i(j, i));
         }
-
     }
     
     // center of superpixel
-    sp_centers = vector<Point2i>(m_numlabels);    
+    sp_centers = vector<Point2i>(m_numlabels);
     for (auto i = 0; i < m_numlabels; i++) {
         int x = 0, y = 0;
         for (unsigned j = 0; j < sp_ranges[i].size(); j++) {
@@ -204,6 +305,8 @@ void SuperPixels::init_superpixels() {
                         if ((a != b) && sp_adj_mat(a, b) == 0) {
                             sp_adj_mat(a, b) = 1;
                             sp_adj_mat(b, a) = 1;
+                            sp_adj_pairs.push_back(pair<int, int>(a, b));
+                            sp_adj_pairs.push_back(pair<int, int>(b, a));
                         }
                     }
                 }

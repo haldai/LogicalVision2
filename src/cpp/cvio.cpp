@@ -48,12 +48,12 @@ PREDICATE(load_img, 2) {
     if (PL_get_atom_chars(t1, &p1)) {
         const string path(p1);
         Mat* img = cv_load_img(path);
-        if (img->cols > 320 || img->rows > 320) {
+        if (img->cols > 360 || img->rows > 360) {
             double t = 0;
             if (img->cols > img->rows)
-                t = 320.0/img->cols;
+                t = 360.0/img->cols;
             else
-                t = 320.0/img->rows;
+                t = 360.0/img->rows;
             Mat* rsz = cv_resize_image(img,
                                        round(t*(img->cols)),
                                        round(t*(img->rows)));
@@ -700,9 +700,17 @@ PREDICATE(create_superpixels, 3) {
     vector<double> vec = list2vec<double>(A2, 5);
     SuperPixels *sp = new SuperPixels(img, (int) vec[0], (int) vec[1], (float) vec[2], (int) vec[3], (int) vec[4]);
     string add_sp = ptr2str(sp);
-    return A3 = add_sp.c_str();
+    A3 = add_sp.c_str();
+    // assert size_2d
+    int num_sp = sp->getNumberOfSuperpixels();
+    PlTermv num_sp_args(2);
+    num_sp_args[0] = A3;
+    num_sp_args[1] = num_sp;
+    PlTermv num_sp_atom(1);
+    num_sp_atom[0] = PlCompound("num_superpixels", num_sp_args);
+    PlCall("assertz", num_sp_atom);
+    return TRUE;
 }
-
 
 /* show_superpixels(Img, SP)
  *  create superpixels for image
@@ -722,8 +730,89 @@ PREDICATE(show_superpixels, 2) {
     return TRUE;
 }
 
+/* get_sp_pixels(+SP, +Label, -Points)
+ *  get pixels in superpixel map
+ * @SP: memory address of output superpixel
+ * @Label: the id of superpixel
+ * @Points: list of pixels
+ */
+PREDICATE(get_sp_pixels, 3) {
+    // source image
+    char *p1 = (char*) A1;
+    const string add_sp(p1);
+    SuperPixels *sp = str2ptr<SuperPixels>(add_sp);
+    // address of super pixels
+    int id = (int) A2;
+    vector<vector<long>> pts = sp->getLabelPoints(id);
+    return A3 = vecvec2list<long>(pts, -1, 2);
+}
+
+/* get_sps_pixels(+SP, +[Labels], -Points)
+ *  get pixels in superpixel map
+ * @SP: memory address of output superpixel
+ * @[Labels]: the list of ids of superpixels
+ * @Points: list of pixels
+ */
+PREDICATE(get_sps_pixels, 3) {
+    // source image
+    char *p1 = (char*) A1;
+    const string add_sp(p1);
+    SuperPixels *sp = str2ptr<SuperPixels>(add_sp);
+    // address of super pixels
+    vector<int> ids = list2vec<int>(A2);
+    vector<vector<long>> pts = sp->getLabelsPoints(ids);
+    return A3 = vecvec2list<long>(pts, -1, 2);
+}
+
+/* get_sp_all_adj_pairs(+SP, -[List-of-Pairs])
+ *  get adjacent superpixel pairs
+ * @SP: memory address of output superpixel
+ * @[List-of-Pairs]: the list of adjacent superpixel pairs
+ */
+PREDICATE(get_sp_all_adj_pairs, 2) {
+    // source image
+    char *p1 = (char*) A1;
+    const string add_sp(p1);
+    SuperPixels *sp = str2ptr<SuperPixels>(add_sp);
+    // call getAdjPairs
+    vector<vector<long>> pairs = sp->getAdjPairs();
+    return A2 = vecvec2list<long>(pairs, -1, 2);
+}
+
+/* get_sp_position(+SP, +Label, -Position)
+ *  get adjacent superpixel pairs
+ * @SP: memory address of output superpixel
+ * @Label: ID of superpixel
+ * @Position: [X, Y], position of superpixel center
+ */
+PREDICATE(get_sp_position, 3) {
+    // source image
+    char *p1 = (char*) A1;
+    const string add_sp(p1);
+    SuperPixels *sp = str2ptr<SuperPixels>(add_sp);
+    // call getAdjPairs
+    int id = (int) A2;
+    vector<long> pos = sp->getLabelPosition(id);
+    return A3 = vec2list<long>(pos, 2);
+}
+
+/* save_superpixels(SP, FilePath)
+ *  save superpixel map
+ * @SP: memory address of output superpixel
+ */
+PREDICATE(save_superpixels, 2) {
+    // source image
+    char *p1 = (char*) A1;
+    const string add_sp(p1);
+    SuperPixels *sp = str2ptr<SuperPixels>(add_sp);
+    char *p2 = (char*) A2;
+    const string filepath(p2);
+    sp->saveLabels(filepath);
+    return TRUE;
+}
+
 /* release_sp(SP)
- *  release super pixel LSC
+ *  release super pixel SLIC
  * @SP: memory address of output superpixel
  */
 PREDICATE(release_sp, 1) {
@@ -731,6 +820,11 @@ PREDICATE(release_sp, 1) {
     char *p1 = (char*) A1;
     const string add_sp(p1);
     SuperPixels *sp = str2ptr<SuperPixels>(add_sp);
+    PlTermv num_sp_args(2);
+    num_sp_args[0] = A1;
+    PlTermv num_sp_atom(1);
+    num_sp_atom[0] = PlCompound("num_superpixels", num_sp_args);
+    PlCall("retractall", num_sp_atom);
     delete sp;
     return TRUE;
 }

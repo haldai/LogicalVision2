@@ -228,7 +228,7 @@ PlTerm vecvec2list(const vector<vector<Type>> & vec,
     PlTail re_tail(re_term);
 
     try {
-        size_outer = (size_outer < 0 || size_outer > vec.size()) ?
+        size_outer = (size_outer < 0 || size_outer > int(vec.size())) ?
             vec.size() : size_outer;
         for (int o_idx = 0; o_idx < size_outer; o_idx++) {
             size_inner = (size_inner < 0) ? vec[o_idx].size() : size_inner;
