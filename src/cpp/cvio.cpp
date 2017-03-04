@@ -712,6 +712,30 @@ PREDICATE(create_superpixels, 3) {
     return TRUE;
 }
 
+/* load_superpixels(Path, SP)
+ *  load superpixels from file
+ * @Path: path of input file
+ * @SP: memory address of output superpixel
+ */
+PREDICATE(load_superpixels, 2) {
+    // source image
+    char *p1 = (char*) A1;
+    const string file_path(p1);
+    // load from file
+    SuperPixels *sp = new SuperPixels(file_path);
+    string add_sp = ptr2str(sp);
+    A2 = add_sp.c_str();
+    // assert size_2d
+    int num_sp = sp->getNumberOfSuperpixels();
+    PlTermv num_sp_args(2);
+    num_sp_args[0] = A2;
+    num_sp_args[1] = num_sp;
+    PlTermv num_sp_atom(1);
+    num_sp_atom[0] = PlCompound("num_superpixels", num_sp_args);
+    PlCall("assertz", num_sp_atom);
+    return TRUE;
+}
+
 /* show_superpixels(Img, SP)
  *  create superpixels for image
  * @Img: input image

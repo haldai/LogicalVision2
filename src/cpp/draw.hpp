@@ -54,6 +54,9 @@ void cv_draw_ellipse(Mat img, Point center, Scalar Param, Scalar color, int thic
 // draw a rectangle on img
 void cv_draw_rect(Mat img, Scalar center, Scalar radius, Scalar color, int thickness = 1);
 
+// draw a rectangle on img
+void cv_draw_rect(Mat img, Point2i TopLeft, Point2i BottomRight, Scalar color, int thickness = 1);
+
 /********* implementation *********/
 void cv_draw_line(Mat img, Point start, Point end, Scalar color) {
     int thickness = 2;
@@ -84,4 +87,13 @@ void cv_draw_rect(Mat img, Scalar center, Scalar radius, Scalar color, int thick
     Rect rec(x, y, lx, ly);
     rectangle(img, rec,	color, thickness, lineType);
 }
+
+void cv_draw_rect(Mat img, Point2i TL, Point2i BR, Scalar color, int thickness) {
+    int lineType = 8;
+    int lx = BR.x - TL.x + 1;
+    int ly = BR.y - TL.y + 1;
+    Rect rec(TL.x, TL.y, lx, ly);
+    rectangle(img, rec,	color, thickness, lineType);
+}
+
 #endif

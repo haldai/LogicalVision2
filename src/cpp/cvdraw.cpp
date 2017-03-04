@@ -149,6 +149,25 @@ PREDICATE(draw_rect_2d, 4) {
     return TRUE;
 }
 
+/* draw_rect_2d(+IMG, +BOX, +COLOR)
+ * @SEQ: img sequence
+ * @BOX: rectangle [TopLeft, BottomRight], TL & BR are [X, Y] coordinates
+ * @COLOR: rectangle color 
+ */
+PREDICATE(draw_rect_2d, 3) {
+    // parsing arguments
+    char *p1 = (char*) A1;
+    const string add_img(p1); // address
+    Mat *img = str2ptr<Mat>(add_img);
+    vector<vector<int>> box_vec = list2vecvec<int>(A2, 2, 2);
+    Point2i TL(box_vec[0][0], box_vec[0][1]);
+    Point2i BR(box_vec[1][0], box_vec[1][1]);
+    Scalar color = term2color(A3); // color
+    // draw
+    cv_draw_rect(*img, TL, BR, color);
+    return TRUE;
+}
+
 /* draw_points(+SEQ, +PTS, +COLOR)
  * @SEQ: address of image sequence
  * @PTS = [[P1X, P1Y, P1Z], ...]: list of points

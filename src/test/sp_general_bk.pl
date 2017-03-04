@@ -21,8 +21,7 @@ down_next_to(L1, L2):-
     sp_location(L2, [_, Y2]),
     Y1 > Y2.
 
+% all superpixels surrounds L
 surround(L, S):-
     findall(X, next_to(L, X), S).
 
-%% background knowledge about colors
-% TBD

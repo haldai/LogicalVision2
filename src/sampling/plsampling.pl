@@ -23,10 +23,10 @@ along with Logical Vision 2.  If not, see <http://www.gnu.org/licenses/>.
    
 
 :- ensure_loaded(['../utils/utils.pl',
-                  %'../sampling/plregion.pl',
                   '../sampling/plsegment.pl',
                   '../sampling/plspiral.pl',
-                  '../sampling/plline.pl']).
+                  '../sampling/plline.pl',
+                  '../sampling/plsuperpixels.pl']).
 
 pixel_neighbor_size(10).
 
@@ -35,6 +35,10 @@ pixel_neighbor_size(10).
 %============================================
 line_points_2d([X, Y | _], [DX, DY | _], [W, H | _], Pts):-
     line_points([X, Y, 0], [DX, DY, 0], [W, H, 1], Pts1),
+    trim_2d(Pts1, Pts).
+
+line_points_2d([X, Y | _], [DX, DY | _], [TLX, TLY | _], [BRX, BRY | _], Pts):-
+    line_points([X, Y, 0], [DX, DY, 0], [TLX, TLY, 0], [BRX, BRY, 1], Pts1),
     trim_2d(Pts1, Pts).
 
 ray_points_2d([X, Y | _], [DX, DY | _], [W, H | _], Pts):-

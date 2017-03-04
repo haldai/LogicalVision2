@@ -36,6 +36,7 @@ public:
     SuperPixels(Mat *img, int alg = 0, int region_size = 10,
                 float ruler = 10.0, int num_iter = 5,
                 int min_element_size = 25);
+    SuperPixels(string file_path);
     ~SuperPixels();
 
     // get amount of superpixels
@@ -108,6 +109,25 @@ SuperPixels::SuperPixels(Mat *img, int alg, int region_size,
     init_superpixels();
 }
 
+SuperPixels::SuperPixels(string file_path) {
+    // read m_klabels from file
+    arma::mat labels;
+    labels.load(file_path, arma::csv_ascii);
+    m_width = labels.n_cols;
+    m_height = labels.n_rows;
+    m_klabels = Mat(m_height, m_width, CV_32S, Scalar::all(0));
+    int maxVal = -1;
+    for (int i = 0; i < m_height; i++)
+        for (int j = 0; j < m_width; j++) {
+            m_klabels.at<int>(i, j) = (int) labels(i, j);
+            if (maxVal <= (int) labels(i, j))
+                maxVal = (int) labels(i, j);
+        }
+    //Initialize m
+    m_numlabels = maxVal + 1;
+    init_superpixels();
+}
+
 SuperPixels::~SuperPixels() {}
 
 int SuperPixels::getNumberOfSuperpixels() const {
@@ -134,7 +154,9 @@ void SuperPixels::saveLabels(string file_path) {
 
     for(int i = 0; i < m_klabels.rows; i++) {
         for(int j = 0; j < m_klabels.cols; j++) {
-            fout << m_klabels.at<int>(i,j) << ",";
+            fout << m_klabels.at<int>(i,j);
+            if (j != m_klabels.cols - 1)
+                cout << ",";
         }
         fout << endl;
     }
