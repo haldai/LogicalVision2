@@ -156,7 +156,7 @@ void SuperPixels::saveLabels(string file_path) {
         for(int j = 0; j < m_klabels.cols; j++) {
             fout << m_klabels.at<int>(i,j);
             if (j != m_klabels.cols - 1)
-                cout << ",";
+                fout << ",";
         }
         fout << endl;
     }
