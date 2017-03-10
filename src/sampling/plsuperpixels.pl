@@ -48,7 +48,7 @@ sp_sample_line(SP, ID, Pt, Dir, SegsPts):-
     sps_sample_line(SP, [ID], Pt, Dir, SegsPts).
 sps_sample_line(SP, IDs, Pt, Dir, SegsPts):-
     get_sps_pixels(SP, IDs, SPts),
-    member(Pt, SPts), !, % point is in superpixel
+    % member(Pt, SPts), !, % point is in superpixel
     sps_box(SP, IDs, [TL, BR]), % bounding box of superpixel
     line_points_2d(Pt, Dir, TL, BR, LinePts1),
     % filter out points that not in superpixels
@@ -64,6 +64,13 @@ sps_sample_rand_line(SP, IDs, SegsPts):-
     random_select(Pt, SPts, _), rand_2d_angle_vec(Dir),
     sps_sample_line(SP, IDs, Pt, Dir, SegsPts).
 
+sp_sample_vertical_line(SP, ID, SegsPts):-
+    sps_sample_vertical_lines(SP, [ID], SegsPts).
+sps_sample_vertical_line(SP, IDs, SegsPts):-
+    sps_box(SP, IDs, [[X1, Y1 | _], [X2_, Y2 | _]]),
+    X2 is X2_ + 1, random(X1, X2, X), Y is round((Y1 + Y2)/2),
+    sps_sample_line(SP, IDs, [X, Y], [0, 1], SegsPts).
+    
 remove_small_lists([], _, []):-
     !.
 remove_small_lists([S | Segs], Thresh, [S | Re]):-
@@ -72,58 +79,14 @@ remove_small_lists([S | Segs], Thresh, [S | Re]):-
 remove_small_lists([_ | Segs], Thresh, Re):-
     remove_small_lists(Segs, Thresh, Re), !.
 
-%==================================================
-% color transitions on random lines in superpixel
-%==================================================
-sp_rand_line_color_trans(Img, SP, ID, Colors):-
-    sps_rand_line_color_trans(Img, SP, [ID], Colors).
-sps_rand_line_color_trans(Img, SP, IDs, Colors):-
-    sps_sample_rand_line(SP, IDs, SegsPts),
-    ball_segs_transition(Img, SegsPts, Colors).
-
-% multiple times
-sp_rand_lines_color_trans(Img, SP, ID, N, Colors):-
-    sps_rand_lines_color_trans(Img, SP, [ID], N, Colors).
-sps_rand_lines_color_trans(_, _, _, 0, []):-
-    !.
-sps_rand_lines_color_trans(Img, SP, IDs, N, Colors):-
-    sps_rand_line_color_trans(Img, SP, IDs, C1),
-    N1 is N - 1,
-    sps_rand_lines_color_trans(Img, SP, IDs, N1, C2),
-    append(C1, C2, Colors), !.
-
-%% for debug, outputs segment points either
-sps_rand_line_color_trans(Img, SP, IDs, SegsPts, Colors):-
-    sps_sample_rand_line(SP, IDs, SegsPts),
-    ball_segs_transition(Img, SegsPts, Colors).
-
-ball_segs_transition(Img, Segs, Re):-
-    ball_segs_transition(Img, Segs, [], Re).
-ball_segs_transition(_, [], Re, Re):-
-    !.
-ball_segs_transition(Img, [S | Segs], Tmp, Re):-
-    ball_color_transition(Img, S, nothing, Tran),
-    append(Tmp, [Tran], Tmp1),
-    ball_segs_transition(Img, Segs, Tmp1, Re).
-
-ball_color_transition(_, [], _, []):-
-    !.
-ball_color_transition(Img, [P | Pts], green, Re):-
-    point_color_2d(Img, P, Lab),
-    color(Lab, green), !,
-    ball_color_transition(Img, Pts, green, Re), !.
-ball_color_transition(Img, [P | Pts], Last_Color, [green | Re]):-
-    point_color_2d(Img, P, Lab),
-    color(Lab, green), !,
-    Last_Color \= green,
-    ball_color_transition(Img, Pts, green, Re), !.
-ball_color_transition(Img, [P | Pts], Last_Color, Re):-
-    point_color_2d(Img, P, Lab),
-    color(Lab, Last_Color), !,
-    ball_color_transition(Img, Pts, Last_Color, Re), !.
-ball_color_transition(Img, [P | Pts], Last_Color, [Color | Re]):-
-    point_color_2d(Img, P, Lab),
-    color(Lab, Color), !, Color \= Last_Color,
-    ball_color_transition(Img, Pts, Color, Re), !.
-ball_color_transition(Img, [_ | Pts], Last_Color, Re):-
-    ball_color_transition(Img, Pts, Last_Color, Re), !.
+%=========================================
+% line sampling and get superpixel labels
+%=========================================
+sp_line_pts_labels(SP, Start, Direct, Labels):-
+    size_2d(SP, W, H),
+    line_points_2d(Start, Direct, [W, H], Points),
+    get_sp_pixels_labels(SP, Points, Labels).
+sp_line_seg_pts_labels_2d(SP, Start, End, Labels):-
+    size_2d(SP, W, H),
+    line_seg_points_2d(Start, End, [W, H], Points),
+    get_sp_pixels_labels(SP, Points, Labels).

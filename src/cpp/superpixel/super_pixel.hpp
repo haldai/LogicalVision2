@@ -18,6 +18,7 @@ along with Logical Vision 2.  If not, see <http://www.gnu.org/licenses/>.
 #define SUPER_PIXEL_HPP
 
 #include <array>
+#include <map>
 #include <armadillo>
 #include <opencv2/opencv.hpp>
 #include <opencv2/ximgproc.hpp>
@@ -60,7 +61,8 @@ public:
 
     // get image with labels
     void getLabels(OutputArray labels_out) const;
-    void saveLabels(string file_path); // todo
+    vector<long> getPointsLabels(vector<Scalar> points) const;
+    void saveLabels(string file_path);
     
     // get mask image with contour
     void getLabelContourMask(OutputArray image, bool thick_line = true) const;
@@ -144,6 +146,16 @@ int SuperPixels::getHeight() const {
 
 void SuperPixels::getLabels(OutputArray labels_out) const {
     labels_out.assign(m_klabels);
+}
+
+vector<long> SuperPixels::getPointsLabels(vector<Scalar> points) const {
+    vector<long> re(points.size());
+    for (unsigned i = 0; i < points.size(); i++) {
+        int x = (int) points[i][0];
+        int y = (int) points[i][1];
+        re[i] = (long) m_klabels.at<int>(x, y);
+    }
+    return re;
 }
 
 void SuperPixels::saveLabels(string file_path) {

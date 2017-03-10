@@ -25,6 +25,19 @@ mid_point([X | Xs], [Y | Ys], [Z | Zs]):-
     Z is round((X + Y)/2),
     mid_point(Xs, Ys, Zs), !.
 
+% centroid of a set of vectors
+centroid_int(Vecs, Cen):-
+    centroid(Vecs, Cen1),
+    vec_round(Cen1, Cen).
+centroid(Vecs, Cen):-
+    length(Vecs, Len), Len > 0,
+    centroid_(Vecs, Sum),
+    vec_divide(Sum, Len, Cen).
+centroid_([V], V):-!.
+centroid_([V | Vecs], Sum):-
+    centroid_(Vecs, Sum1),
+    vec_sum(V, Sum1, Sum).
+
 % cross/3: Cross product of two 3d vectors
 cross([A1, A2, A3], [B1, B2, B3], [X, Y, Z]):-
     X is A2*B3 - A3*B2,
@@ -223,6 +236,32 @@ intersect_det(P1, P2, P3, D):-
     P2 = [X2, Y2],
     P3 = [X3, Y3],
     D is (X3 - X1)*(Y2 - Y1) - (Y3 - Y1)*(X2 - X1).
+
+%=================
+% adjacent points
+%=================
+point_adjacent([X1, Y1], [X2, Y2]):-
+    X1 >= 0, X2 >= 0, Y1 >= 0, Y2 >= 0,
+    abs(X1 + Y1 - X2 - Y2) =< 2, !.
+point_adjacent([X1, Y1, Z1], [X2, Y2, Z2]):-
+    X1 >= 0, X2 >= 0, Y1 >= 0, Y2 >= 0, Z1 >= 0, Z2 >= 0,
+    abs(X1 + Y1 - X2 - Y2) =< 2,
+    abs(Z1 - Z2) =< 1, !.
+
+%======================
+% connected components
+%======================
+connected_components(Pts, Re):-
+    connected_components(Pts, [], [], Re), !.
+connected_components([], Tmp, TmpRe, Re):-
+    append(TmpRe, [Tmp], Re), !.
+connected_components([P | Pts], Tmp, TmpRe, Re):-
+    (Tmp = []; (last(Tmp, P0), point_adjacent(P, P0))), !,
+    append(Tmp, [P], Tmp1),
+    connected_components(Pts, Tmp1, TmpRe, Re), !.
+connected_components([P | Pts], Tmp, TmpRe, Re):-
+    append(TmpRe, [Tmp], TmpRe1),
+    connected_components([P | Pts], [], TmpRe1, Re), !.
 
 %====================================
 % 2d direction turning (clockwise)

@@ -19,46 +19,45 @@ along with Logical Vision 2.  If not, see <http://www.gnu.org/licenses/>.
  * Version: 2.0
  * Author: Wang-Zhou Dai <dai.wzero@gmail.com>
  */
+:- ensure_loaded(['test3.pl',
+                  '../abduce/bk_football.pl']).
 
-:- ensure_loaded(['test3.pl']).
 
-labeling_proportion(1/5).
+test_sp(Img):-
+    test_write_start('test super pixel'),
+    time(create_superpixels(Img, [0, 20, 10, 5, 25], SP)),
+    % save_superpixels(SP, '../../out/SP/20/tmp.csv'),
+    num_superpixels(SP, Num), write('Num superpixels: '), write(Num), nl,    
+    show_superpixels(Img, SP),
+    get_sps_pixels(SP, [], Pts),
+    clone_img(Img, Img2),
+    draw_points_2d(Img2, Pts, red),
+    showimg_win(Img2, 'debug'),
+    %save_img(Img2, '../../tmp/tmp.png'),
+    release_img(Img2),
+    release_sp(SP),
+    test_write_done.
 
 test_load_img_4(A):-
     test_write_start('load image'),
-    %load_img('../../data/MobileRobotAndBall1/raw_images/1485.jpg', A),
-    load_img('../../data/MobileRobotAndBall1/raw_images/65.jpg', A),
+    %load_img('../../data/MobileRobotAndBall1/raw_images/6010.jpg', A),
+    load_img('../../data/MobileRobotAndBall1/raw_images/320.jpg', A),
     size_2d(A, X, Y),
     write('W x H: '),
     write(X), write(' x '), write(Y), nl,
     test_write_done.
 
-test_sp_lsc(Img):-
-    test_write_start('test super pixel'),
-    time(create_superpixels(Img, [0, 20, 10, 3, 25], SP)),
-    save_superpixels(SP, '../../out/SP/20/tmp.csv'),
-    num_superpixels(SP, Num), write('Num superpixels: '), write(Num), nl,    
-    show_superpixels(Img, SP),
-    get_sps_pixels(SP, [0, 27], Pts),
-    clone_img(Img, Img2),
-    draw_points_2d(Img2, Pts, red),
-    showimg_win(Img2, 'debug'),
-    release_img(Img2),
-    release_sp(SP),
-    test_write_done.
-
 test_sample_in_sp(Img):-
     test_write_start('test line sampling inside of super pixel'),
     % time(create_superpixels(Img, [1, 20, 10, 5, 25], _)),
-    time(load_superpixels('../../out/SP/20/Statistical/65.csv', SP)), 
-    IDs = [146, 144, 134], length(IDs, L),
-    init_vec(L, 10, Sample_times),
-    time(concurrent_maplist(sp_rand_lines_color_trans(Img, SP), IDs, Sample_times, Colors)),
+    load_superpixels('../../out/SP/Statistical/320.csv', SP),
+    IDs = [66, 69],
+
+    sps_ball_vertical_line_color_trans(Img, SP, IDs, SegsPts, Colors),
     print_list_ln(Colors),
-    time(maplist(sp_rand_lines_color_trans(Img, SP), IDs, Sample_times, Colors1)),
-    print_list_ln(Colors1),
-    /*
-    append(SegsPts, Pts),    
+    append(SegsPts, Pts),
+    print_list(Pts),
+
     show_superpixels(Img, SP),
     clone_img(Img, Img2),
     get_sps_pixels(SP, IDs, SPts),
@@ -66,86 +65,57 @@ test_sample_in_sp(Img):-
     draw_points_2d(Img2, Pts, blue),
     showimg_win(Img2, 'debug'),
     release_img(Img2),
-    */
+
     release_sp(SP),
     test_write_done.
 
-test_gen_sp_extra_data(ID, SPSize):-
-    Dir = '../../data/MobileRobotAndBall1/raw_images/',
-    atomic_concat('../../out/SP/', SPSize, ODir0),
-    atomic_concat(ODir0, '/', ODirX), atomic_concat(ODirX, ID, PathX),
-    atomic_concat(ODir0, '/Statistical/', ODir),
-    atomic_concat(Dir, ID, Path1), atomic_concat(Path1, '.jpg', ImgPath),
-    atomic_concat(ODir, ID, Path2), atomic_concat(Path2, '.csv', CSVPath),
-    load_img(ImgPath, Img),
-    time(load_superpixels(CSVPath, SP)),
-    num_superpixels(SP, SPNum), SPNum1 is SPNum - 1,
-    findall(I, between(0, SPNum1, I), Is),
-    length(Is, Len), init_vec(Len, 10, Repeat),
-    writeln("Sampling: "),
-    time(concurrent_maplist(sp_rand_lines_color_trans(Img, SP), Is, Repeat, Colors)),
-
-    atomic_concat(PathX, '_extra_bk.pl', PlPath),
-    tell(PlPath),
-    forall(between(0, SPNum1, X),
-           (nth0(X, Is, SP_ID),
-            nth0(X, Colors, SP_Color),
-            write(sp_sampled_color_trans(SP_ID, SP_Color)), write(".\n")
-           )
-          ),
-    told,
+test_sp_line_pts_labels(Img):-
+    test_write_start('sample line superpixel labels'),
+    time(create_superpixels(Img, [0, 20, 10, 3, 25], SP)),
+    sp_line_pts_labels(SP, [100, 100], [1, 1], Labels1),
+    list_to_set(Labels1, Labels),
+    print_list(Labels),
     release_sp(SP),
-    release_img(Img).
+    test_write_done.
 
-gen_sp_label(ID, SP, Pos_fb, Neg_fb, Pos_nao, Neg_nao, Pos_gp, Neg_gp):-
-    ensure_loaded(['../../data/MobileRobotAndBall1/football.pl',
-                   '../../data/MobileRobotAndBall1/nao.pl',
-                   '../../data/MobileRobotAndBall1/goal_post.pl']),
-    num_superpixels(SP, SPNum), N is SPNum - 1,
-    ((football(ID, Box_fb) ->
-          sp_labeling(SP, Box_fb, N, Pos_fb, Neg_fb);
-      (Pos_fb = [], findall(X, between(0, N, X), Neg_fb)))),
-    ((nao(ID, Box_nao) ->
-          sp_labeling(SP, Box_nao, N, Pos_nao, Neg_nao);
-      (Pos_nao = [], findall(X, between(0, N, X), Neg_nao)))),
-    ((goal_post(ID, Box_gp) ->
-          sp_labeling(SP, Box_gp, N, Pos_gp, Neg_gp);
-      (Pos_gp = [], findall(X, between(0, N, X), Neg_gp)))).
-
-sp_labeling(_, _, -1, [], []):-
-    !.
-sp_labeling(SP, Box, N, [N | Pos], Neg):-
-    get_sp_pixels(SP, N, Pts),
-    length(Pts, Total),
-    points_in_box(Box, Pts, Num),
-    rect_area(Box, Area),
-    %write(N), write(': '), write(Num), write(','), write(Total), write(','), write(Area),
-    labeling_proportion(P),
-    (Num/Total > P; Num/Area > P), !,
-    %write(' -- *'), nl,
-    N1 is N - 1,
-    sp_labeling(SP, Box, N1, Pos, Neg), !.
-sp_labeling(SP, Box, N, Pos, [N | Neg]):-
-    %nl,
-    N1 is N - 1,
-    sp_labeling(SP, Box, N1, Pos, Neg).
-
-process_directory_2:-
+test_view_directory:-
     Dir = '../../data/MobileRobotAndBall1/raw_images/',
     directory_files(Dir, Files),
     remove_files_extension(Files, Names),
     forall(member(Name, Names),
-           (number_string(ID, Name),
-            write("Processing "), writeln(ID),
-            gen_sp_extra_data(ID, 10),
-            gen_sp_extra_data(ID, 20),
-            gen_sp_extra_data(ID, 30).
-           )
+           (writeln(Name),
+            number_string(ID, Name),
+            atomic_list_concat(['../../out/SP/final', 'Relational'], '/', Path),
+            atomic_list_concat(['../../out/SP/final', 'Statistical'],
+                               '/', SPath),
+            atomic_concat(ID, '.csv', SPFile),
+            atomic_concat(ID, '.txt', SLFile),
+            atomic_list_concat([SPath, SPFile], '/', SPPath),
+            atomic_concat(ID, '_labels.pl', LFile),
+            atomic_concat(ID, '_bk.pl', BFile),
+            atomic_list_concat([Path, LFile], '/', LPath),
+            load_superpixels(SPPath, SP),
+            consult(LPath),
+            ball_sp(ID, SPs),
+            atomic_list_concat([Dir, ID], '/', ImgName),
+            atomic_concat(ImgName, '.jpg', ImgPath),
+            load_img(ImgPath, Img),
+            show_superpixels(Img, SP),
+            get_sps_pixels(SP, SPs, Pts),            
+            clone_img(Img, Img2),
+            draw_points_2d(Img2, Pts, red),
+            showimg_win(Img2, 'debug'),
+            unload_file(LPath),
+            release_sp(SP),
+            release_img(Img),
+            release_img(Img2),
+            nl)
           ).
 
 test_main_4:-
     test_load_img_4(Img),
-    %test_sp_lsc(Img),
-    %test_sample_in_sp(Img),
-    test_gen_sp_extra_data(4555, 10),
+    %test_sp(Img),
+    test_sample_in_sp(Img),
+    %test_sp_line_pts_labels(Img),
+    %test_view_directory,
     test_rel_img(Img).

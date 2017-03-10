@@ -20,46 +20,71 @@ along with Logical Vision 2.  If not, see <http://www.gnu.org/licenses/>.
  * Author: Wang-Zhou Dai <dai.wzero@gmail.com>
  */
 
-:- ensure_loaded(['test3.pl']).
+:- ensure_loaded(['test3.pl',
+                  '../abduce/bk_football.pl']).
 
-labeling_proportion(1/5).
-
-gen_sp_extra_data(ID, SPSize):-
-    Dir = '../../data/MobileRobotAndBall1/raw_images/',
-    atomic_concat('../../out/SP/', SPSize, ODir0),
-    atomic_concat(ODir0, '/', ODirX), atomic_concat(ODirX, ID, PathX),
-    atomic_concat(ODir0, '/Statistical/', ODir),
-    atomic_concat(Dir, ID, Path1), atomic_concat(Path1, '.jpg', ImgPath),
-    atomic_concat(ODir, ID, Path2), atomic_concat(Path2, '.csv', CSVPath),
+gen_sp_extra_data(ID):-
+    Dir = '../../data/MobileRobotAndBall1/raw_images',
+    ODir = '../../out/SP',
+    atomic_list_concat([Dir, ID], '/', ImgName),
+    atomic_concat(ImgName, '.jpg', ImgPath),
+    atomic_list_concat([ODir, 'Statistical', ID], '/', CSVName),
+    atomic_concat(CSVName, '.csv', CSVPath),
     load_img(ImgPath, Img),
     time(load_superpixels(CSVPath, SP)),
     num_superpixels(SP, SPNum), SPNum1 is SPNum - 1,
     findall(I, between(0, SPNum1, I), Is),
     length(Is, Len), init_vec(Len, 10, Repeat),
     writeln("Sampling: "),
-    time(concurrent_maplist(sp_rand_lines_color_trans(Img, SP), Is, Repeat, Colors)),
-
-    atomic_concat(PathX, '_extra_bk.pl', PlPath),
+    time(concurrent_maplist(sp_ball_rand_lines_color_trans(Img, SP), Is, Repeat, Colors)),
+    atomic_list_concat([ODir, 'bk_color_trans', ID], '/', PlName),
+    atomic_concat(PlName, '_bk_color_trans.pl', PlPath),
     tell(PlPath),
     forall(between(0, SPNum1, X),
            (nth0(X, Is, SP_ID),
             nth0(X, Colors, SP_Color),
-            write(sp_sampled_color_trans(SP_ID, SP_Color)), write(".\n")
+            write(sp_color_trans(SP_ID, SP_Color)), write(".\n")
            )
           ),
     told,
     release_sp(SP),
     release_img(Img).
 
-process_directory_2:-
+gen_sp_extra_data_2(ID):-
+    Dir = '../../data/MobileRobotAndBall1/raw_images',
+    ODir = '../../out/SP',
+    atomic_list_concat([Dir, ID], '/', ImgName),
+    atomic_concat(ImgName, '.jpg', ImgPath),
+    atomic_list_concat([ODir, 'Statistical', ID], '/', CSVName),
+    atomic_concat(CSVName, '.csv', CSVPath),
+    load_img(ImgPath, Img),
+    time(load_superpixels(CSVPath, SP)),
+    num_superpixels(SP, SPNum), SPNum1 is SPNum - 1,
+    findall(I, between(0, SPNum1, I), Is),
+    length(Is, Len), init_vec(Len, 10, Repeat),
+    writeln("Sampling: "),
+    time(concurrent_maplist(sp_ball_vertical_lines_color_trans(Img, SP), Is, Repeat, Colors)),
+    atomic_list_concat([ODir, 'bk_color_trans_vertical', ID], '/', PlName),
+    atomic_concat(PlName, '_bk_color_trans_vertical.pl', PlPath),
+    tell(PlPath),
+    forall(between(0, SPNum1, X),
+           (nth0(X, Is, SP_ID),
+            nth0(X, Colors, SP_Color),
+            write(sp_color_trans_vertical(SP_ID, SP_Color)), write(".\n")
+           )
+          ),
+    told,
+    release_sp(SP),
+    release_img(Img).
+
+process_directory:-
     Dir = '../../data/MobileRobotAndBall1/raw_images/',
     directory_files(Dir, Files),
     remove_files_extension(Files, Names),
     forall(member(Name, Names),
            (number_string(ID, Name),
             write("Processing "), writeln(ID),
-            gen_sp_extra_data(ID, 10),
-            gen_sp_extra_data(ID, 20),
-            gen_sp_extra_data(ID, 30)
+            gen_sp_extra_data(ID),
+            gen_sp_extra_data_2(ID)
            )
           ).

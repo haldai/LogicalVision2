@@ -14,52 +14,34 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with Logical Vision 2.  If not, see <http://www.gnu.org/licenses/>.
 ************************************************************************/
-/* Test module - 4
- * ============================
+/* Generate superpixel data for football experiment
+ * ===================================================
  * Version: 2.0
  * Author: Wang-Zhou Dai <dai.wzero@gmail.com>
  */
 
 :- ensure_loaded(['test3.pl']).
 
-labeling_proportion(1/4).
-
-test_load_img_4(A):-
-    test_write_start('load image'),
-    load_img('../../data/MobileRobotAndBall1/raw_images/1485.jpg', A),
-    %load_img('../../data/MobileRobotAndBall1/raw_images/65.jpg', A),
-    size_2d(A, X, Y),
-    write('W x H: '),
-    write(X), write(' x '), write(Y), nl,
-    test_write_done.
-
-test_sp_lsc(Img):-
-    test_write_start('test super pixel LSC'),
-    time(create_superpixels(Img, [0, 20, 10, 3, 25], SP)),
-    save_superpixels(SP, '../../out/SP/20/tmp.csv'),
-    num_superpixels(SP, Num), write('Num superpixels: '), write(Num), nl,    
-    show_superpixels(Img, SP),
-    get_sps_pixels(SP, [0, 27], Pts),
-    clone_img(Img, Img2),
-    draw_points_2d(Img2, Pts, red),
-    showimg_win(Img2, 'debug'),
-    release_img(Img2),
-    release_sp(SP),
-    test_write_done.
+labeling_proportion(0.95).
 
 gen_sp_data(ID, Type, SPSize):-
     Dir = '../../data/MobileRobotAndBall1/raw_images/',
-    atomic_concat('../../out/SP/', SPSize, ODir0),
-    atomic_concat(ODir0, '/', ODir),
+    atomic_concat('../../out/SP/', Type, ODir0),
+    atomic_concat(ODir0, '/', ODir0_),
+    atomic_concat(ODir0_, SPSize, ODir0__),
+    atomic_concat(ODir0__, '/', ODir),
     atomic_concat(Dir, ID, Path1), atomic_concat(Path1, '.jpg', ImgPath),
-    atomic_concat(ODir, ID, Path2), atomic_concat(Path2, '.csv', CSVPath),
+    atomic_concat(ODir, 'Statistical/', ODirS),  
+    atomic_concat(ODirS, ID, Path2), atomic_concat(Path2, '.csv', CSVPath),
     load_img(ImgPath, Img),
-    time(create_superpixels(Img, [Type, SPSize, 10, 5, 25], SP)),
+    create_superpixels(Img, [Type, SPSize, 10, 5, 25], SP),
     num_superpixels(SP, SPNum),
+    write('Size = '), write(SPSize), write(' ----- '),
     write('Num superpixels: '), write(SPNum), nl,
     save_superpixels(SP, CSVPath),
     % labeling of superpixels
-    gen_sp_label(ID, SP, Pos_fb, Neg_fb, Pos_nao, Neg_nao, Pos_gp, Neg_gp),
+    % gen_sp_label(ID, SP, Pos_fb, Neg_fb, Pos_nao, Neg_nao, Pos_gp, Neg_gp),
+    gen_sp_label(ID, SP, Pos_fb, _, _, _, _, _),
     writeln('ball Pos:'),
     print_list(Pos_fb),
     /*%% debug
@@ -68,10 +50,12 @@ gen_sp_data(ID, Type, SPSize):-
     clone_img(Img, Img2),
     draw_points_2d(Img2, Pts, red),
     showimg_win(Img2, 'debug'),
+    save_img(Img2, 'tmp.png'),
     release_img(Img2),
-    %% debug end*/    
-    atomic_concat(ODir, ID, Path2), atomic_concat(Path2, '_labels', Path3),
-    atomic_concat(Path3, '.txt', CSVPath2), atomic_concat(Path3, '.pl', PlPath),
+    %% debug end*/
+    atomic_concat(ODirS, ID, Path2_), atomic_concat(Path2_, '.txt', CSVPath2),
+    atomic_concat(ODir, 'Relational/', ODirR), atomic_concat(ODirR, ID, Path3_),
+    atomic_concat(Path3_, '_labels', Path3), atomic_concat(Path3, '.pl', PlPath),
     Pl_SP_Term = num_superpixels(ID, SPNum),
     Pl_Ball_Term = ball_sp(ID, Pos_fb),
     Pl_Nao_Term = nao_sp(ID, Pos_nao),
@@ -81,7 +65,7 @@ gen_sp_data(ID, Type, SPSize):-
     write(Pl_Nao_Term), writeln('.'),
     write(Pl_GP_Term), writeln('.'),
     told,
-    tell(CSVPath2),    
+    tell(CSVPath2),
     write('num_superpixels :'), write('\t'), writeln(SPNum),
     write('ball_superpixels:'),write('\t'), writeln(Pos_fb),
     write('nao_superpixels :'),write('\t'), writeln(Pos_nao),
@@ -90,7 +74,7 @@ gen_sp_data(ID, Type, SPSize):-
 
     %% Background knowledge for prolog
     %% write background file
-    atomic_concat(Path2, '_bk', Path4), atomic_concat(Path4, '.pl', PlPath2),
+    atomic_concat(Path3_, '_bk', Path4), atomic_concat(Path4, '.pl', PlPath2),
     tell(PlPath2),
     writeln('%% num_superpixels(ImgID,Num): Number of all superpixels. They are named from 0 to N-1.'), nl,
     write(Pl_SP_Term), writeln('.'),
@@ -161,11 +145,13 @@ sp_labeling(SP, Box, N, [N | Pos], Neg):-
     get_sp_pixels(SP, N, Pts),
     length(Pts, Total),
     points_in_box(Box, Pts, Num),
-    rect_area(Box, Area),
     %write(N), write(': '), write(Num), write(','), write(Total), write(','), write(Area),
     labeling_proportion(P),
-    (Num/Total > P; Num/Area > P), !,
+    % (Num/Total > P; Num/Area > P), !,
+    Num/Total > P,
     %write(' -- *'), nl,
+    centroid_int(Pts, Cen),
+    in_box(Box, Cen),
     N1 is N - 1,
     sp_labeling(SP, Box, N1, Pos, Neg), !.
 sp_labeling(SP, Box, N, Pos, [N | Neg]):-
@@ -192,10 +178,21 @@ process_directory:-
     remove_files_extension(Files, Names),
     forall(member(Name, Names),
            (number_string(ID, Name),
-            write("Processing "), writeln(ID),
-            gen_sp_data(ID, 1, 30),
-            gen_sp_data(ID, 1, 20),
-            gen_sp_data(ID, 1, 10)
+            write("============= "), write(ID), writeln(" ============="),
+            /*
+            gen_sp_data(ID, 2, 30),
+            gen_sp_data(ID, 2, 25),
+            gen_sp_data(ID, 2, 20),
+            gen_sp_data(ID, 2, 15),
+            gen_sp_data(ID, 2, 10),
+            */
+            writeln('***** SLIC ******'),
+            concurrent_maplist(gen_sp_data(ID, 0), [30, 25, 20, 15, 10]),
+            writeln('***** SLICO ******'),
+            concurrent_maplist(gen_sp_data(ID, 1), [30, 25, 20, 15, 10]),
+            writeln('***** MSLIC ******'),
+            concurrent_maplist(gen_sp_data(ID, 2), [30, 25, 20, 15, 10]),
+            nl
            )
           ).
 

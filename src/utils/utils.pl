@@ -45,6 +45,9 @@ predecessor(N, M):-
     M is N - 1.
 successor(N, M):-
     M is N + 1.
+round(A, B):-
+    B is round(A).
+
 % for labeling
 greater_than_zero(A, 1):-
     A > 0, !.
@@ -114,6 +117,9 @@ vec_divide(A, V, B):-
     init_vec(L, V, V1),
     maplist(divide, A, V1, B).
 
+vec_round(A, B):-
+    maplist(round, A, B).
+
 % vector absolute value B = |A|
 vec_abs([], []).
 vec_abs([A | As], [B | Bs]):-
@@ -134,7 +140,7 @@ sum_vec_list([V | Vs], Temp, Sum):-
     vec_sum(V, Temp, Temp1),
     sum_vec_list(Vs, Temp1, Sum).
 
-% initialize a list of zeros
+% initialize a list of same values
 init_vec(0, _, []):-
     !.
 init_vec(Length, Value, [Value | Vecs]):-

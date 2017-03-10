@@ -701,14 +701,24 @@ PREDICATE(create_superpixels, 3) {
     SuperPixels *sp = new SuperPixels(img, (int) vec[0], (int) vec[1], (float) vec[2], (int) vec[3], (int) vec[4]);
     string add_sp = ptr2str(sp);
     A3 = add_sp.c_str();
-    // assert size_2d
-    int num_sp = sp->getNumberOfSuperpixels();
+    // assert size_2d & num_superpixels
+    int num_sp = sp->getNumberOfSuperpixels();    
     PlTermv num_sp_args(2);
     num_sp_args[0] = A3;
     num_sp_args[1] = num_sp;
     PlTermv num_sp_atom(1);
     num_sp_atom[0] = PlCompound("num_superpixels", num_sp_args);
     PlCall("assertz", num_sp_atom);
+    
+    int col = sp->getWidth();
+    int row = sp->getHeight();
+    PlTermv size_2d_args(3);
+    size_2d_args[0] = A3;
+    size_2d_args[1] = col;
+    size_2d_args[2] = row;
+    PlTermv size_2d_atom(1);
+    size_2d_atom[0] = PlCompound("size_2d", size_2d_args);
+    PlCall("assertz", size_2d_atom);
     return TRUE;
 }
 
@@ -733,11 +743,21 @@ PREDICATE(load_superpixels, 2) {
     PlTermv num_sp_atom(1);
     num_sp_atom[0] = PlCompound("num_superpixels", num_sp_args);
     PlCall("assertz", num_sp_atom);
+
+    int col = sp->getWidth();
+    int row = sp->getHeight();
+    PlTermv size_2d_args(3);
+    size_2d_args[0] = A2;
+    size_2d_args[1] = col;
+    size_2d_args[2] = row;
+    PlTermv size_2d_atom(1);
+    size_2d_atom[0] = PlCompound("size_2d", size_2d_args);
+    PlCall("assertz", size_2d_atom);
     return TRUE;
 }
 
 /* show_superpixels(Img, SP)
- *  create superpixels for image
+ *  show superpixels for image
  * @Img: input image
  * @SP: memory address of output superpixel
  */
@@ -820,6 +840,23 @@ PREDICATE(get_sp_position, 3) {
     return A3 = vec2list<long>(pos, 2);
 }
 
+/* get_sp_pixels_labels(+SP, +Pts, -Labels)
+ * @SP: memory address of output superpixel
+ * @Pts: Points on image
+ * @Labels: ID of superpixel
+ */
+PREDICATE(get_sp_pixels_labels, 3) {
+    // source image
+    char *p1 = (char*) A1;
+    const string add_sp(p1);
+    SuperPixels *sp = str2ptr<SuperPixels>(add_sp);
+    // point list
+    vector<Scalar> pts = point_list2vec(A2);
+    // get labels
+    const vector<long> labels = sp->getPointsLabels(pts);
+    return A3 = vec2list<long>(labels);
+}
+
 /* save_superpixels(SP, FilePath)
  *  save superpixel map
  * @SP: memory address of output superpixel
@@ -849,6 +886,12 @@ PREDICATE(release_sp, 1) {
     PlTermv num_sp_atom(1);
     num_sp_atom[0] = PlCompound("num_superpixels", num_sp_args);
     PlCall("retractall", num_sp_atom);
+    // retract size_2d
+    PlTermv size_2d_args(3);
+    size_2d_args[0] = A1;
+    PlTermv size_2d_atom(1);
+    size_2d_atom[0] = PlCompound("size_2d", size_2d_args);
+    PlCall("retractall", size_2d_atom);
     delete sp;
     return TRUE;
 }
