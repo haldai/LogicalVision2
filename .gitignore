@@ -54,3 +54,4 @@ data/football.mp4
 
 # do not ignore
 !libs/
+!data/Football_data.tar.bz2
