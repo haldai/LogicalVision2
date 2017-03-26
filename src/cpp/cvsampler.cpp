@@ -749,6 +749,14 @@ PREDICATE(fit_elps, 3) {
     if (!fit_ellipse_2d(pts, cen, param))
         return FALSE;
     
+    for (int i = 0; i < 3; i++)
+        if (isnan(param[i]))
+            return FALSE;
+    
+    for (int i = 0; i < 3; i++)
+        if (isnan(cen[i]))
+            return FALSE;
+
     // bind variables
     vector<long> cen_vec = {(long) cen[0],
                             (long) cen[1],
@@ -787,6 +795,10 @@ PREDICATE(fit_circle, 3) {
     Scalar param;
     fit_circle_2d(pts, param);
 
+    for (int i = 0; i < 3; i++)
+        if (isnan(param[i]))
+            return FALSE;
+    
     // bind variables
     vector<long> center_vec = {(long) param[0],
                                (long) param[1],

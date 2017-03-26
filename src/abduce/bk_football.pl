@@ -16,6 +16,77 @@ along with Logical Vision 2.  If not, see <http://www.gnu.org/licenses/>.
 ************************************************************************/
 :- ensure_loaded(['../sampling/plsuperpixels.pl']).
 
+%============
+% fit circle
+%============
+find_ball(_, _, 0):-
+    writeln("***no fit***"), !.
+find_ball(ImgID, SP_IDs, N):-
+    N > 0,
+    fit_football(ImgID, SP_IDs, circle(Cen, _)),
+    Dir = '../../data/MobileRobotAndBall1/raw_images',
+    atomic_list_concat([Dir, ImgID], '/', ImgName),
+    atomic_concat(ImgName, '.jpg', ImgPath),
+    load_img(ImgPath, Img),
+    size_2d(Img, W, H),
+    (not(ground(Cen)) ->
+         (release_img(Img), fail, !);
+     true), !,
+    Cen = [X, Y],
+    (((X < 0; X >= W; Y < 0; Y >= H);
+      (point_color_2d(Img, Cen, LAB),
+       color(LAB, not(green)))) ->
+         (writeln("***found***"),
+          release_img(Img), !);
+     (release_img(Img), fail, !)).
+find_ball(ImgID, SP_IDs, N):-
+    N1 is N - 1,
+    find_ball(ImgID, SP_IDs, N1), !.
+
+fit_football(ImgID, SP_IDs, circle(Cen, Rad)):-
+    Dir = '../../data/MobileRobotAndBall1/raw_images',
+    ODir = '../../out/SP',
+    atomic_list_concat([Dir, ImgID], '/', ImgName),
+    atomic_concat(ImgName, '.jpg', ImgPath),
+    atomic_list_concat([ODir, 'Statistical', ImgID], '/', CSVName),
+    atomic_concat(CSVName, '.csv', CSVPath),
+    load_img(ImgPath, Img),
+    time(load_superpixels(CSVPath, SP)),
+    %% get "green -> non-green" and "non-green -> green" points
+    findall(EP_List,
+            (between(1, 20, _),
+             sps_box_gng_pts(Img, SP, SP_IDs,EP_List)),
+            EP_Lists),
+    append(EP_Lists, Pts_),
+    list_to_set(Pts_, Pts),
+    (fit_circle_2d(Pts, Cen, Rad) ->
+         (
+             %% debug
+             clone_img(Img, Img2),
+             size_2d(Img2, W, H),
+             circle_points_2d(Cen, Rad, [W, H], C_pts),
+             draw_points_2d(Img2, C_pts, red),
+             draw_points_2d(Img2, Pts, blue),
+             atom_number(Name, ImgID),
+             %showimg_win(Img2, Name),
+             atomic_concat('../../tmp/pics/', Name, PicName),
+             atomic_concat(PicName, '.png', PicPath),
+             save_img(Img2, PicPath),
+             release_img(Img2)
+         );
+     true
+    ), !,
+    %% debug end
+    release_img(Img),
+    release_sp(SP).
+
+sps_box_gng_pts(Img, SP, IDs, Return):-
+    sps_box_sample_rand_line(SP, IDs, Pts),
+    pts_color_2d(Img, Pts, LABs),
+    color_change_points(green, not(green), Pts, LABs, R1),
+    color_change_points(not(green), green, Pts, LABs, R2),
+    append(R1, R2, Return).
+
 %===========================================================
 % [football] color transitions on random lines in superpixel
 %===========================================================

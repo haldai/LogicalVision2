@@ -89,14 +89,15 @@ test_view_directory:-
             atomic_list_concat(['../../out/SP/final', 'Statistical'],
                                '/', SPath),
             atomic_concat(ID, '.csv', SPFile),
-            atomic_concat(ID, '.txt', SLFile),
+            % atomic_concat(ID, '.txt', SLFile),
             atomic_list_concat([SPath, SPFile], '/', SPPath),
             atomic_concat(ID, '_labels.pl', LFile),
-            atomic_concat(ID, '_bk.pl', BFile),
+            % atomic_concat(ID, '_bk.pl', BFile),
             atomic_list_concat([Path, LFile], '/', LPath),
             load_superpixels(SPPath, SP),
             consult(LPath),
             ball_sp(ID, SPs),
+            unload_file(LPath),            
             atomic_list_concat([Dir, ID], '/', ImgName),
             atomic_concat(ImgName, '.jpg', ImgPath),
             load_img(ImgPath, Img),
@@ -104,18 +105,51 @@ test_view_directory:-
             get_sps_pixels(SP, SPs, Pts),            
             clone_img(Img, Img2),
             draw_points_2d(Img2, Pts, red),
-            showimg_win(Img2, 'debug'),
-            unload_file(LPath),
+            showimg_win(Img2, Name),
             release_sp(SP),
             release_img(Img),
             release_img(Img2),
             nl)
           ).
 
+test_fit_ball(ImgID, SP_IDs):-
+    test_write_start('test fit ball'),
+    %fit_football(ImgID, SP_IDs, Circle),
+    %writeln(Circle),
+    find_ball(ImgID, SP_IDs, 5),
+    test_write_done.
+
+test_fit_ball_directory:-
+    Dir = '../../data/MobileRobotAndBall1/raw_images/',
+    directory_files(Dir, Files),
+    remove_files_extension(Files, Names),
+    forall(member(Name, Names),
+           (writeln('~~~~~~~~~~~~~'),
+            writeln(Name),
+            number_string(ID, Name),
+            atomic_list_concat(['../../out/SP', 'Relational'], '/', Path),
+            atomic_concat(ID, '_labels.pl', LFile),
+            atomic_list_concat([Path, LFile], '/', LPath),
+            consult(LPath),
+            ball_sp(ID, SP_Strings),
+            (SP_Strings \= [],
+             unload_file(LPath),
+             findall(SPID,
+                     (member(SP, SP_Strings), split_string(SP, "_", "", SP_L),
+                      last(SP_L, SP_LE), number_string(SPID, SP_LE)),
+                     SPs),
+             (find_ball(ID, SPs, 5) -> true; write('+++')), !);
+            (writeln('No ball')),
+            !,
+            writeln('~~~~~~~~~~~~~'))
+          ).
+
 test_main_4:-
     test_load_img_4(Img),
     %test_sp(Img),
-    test_sample_in_sp(Img),
+    %test_sample_in_sp(Img),
     %test_sp_line_pts_labels(Img),
     %test_view_directory,
+    %test_fit_ball(1480, [364, 355]),
+    test_fit_ball_directory,
     test_rel_img(Img).

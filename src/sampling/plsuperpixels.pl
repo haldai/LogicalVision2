@@ -79,6 +79,34 @@ remove_small_lists([S | Segs], Thresh, [S | Re]):-
 remove_small_lists([_ | Segs], Thresh, Re):-
     remove_small_lists(Segs, Thresh, Re), !.
 
+%====================================================
+% line sampling inside of superpixels' bounding box
+%====================================================
+% +Img: image; +SP: superpixels; +[IDs]: list of superpixel IDs;
+% +Pt: Point-of-Line; +Dir: direction of line;
+% -SegsPts: [[Seg1],[Seg2],...] Line points of segments in superpixels
+sp_box_sample_line(SP, ID, Pt, Dir, LinePts):-
+    sps_sample_line(SP, [ID], Pt, Dir, LinePts).
+sps_box_sample_line(SP, IDs, Pt, Dir, LinePts):-
+    sps_box(SP, IDs, [TL, BR]), % bounding box of superpixel
+    line_points_2d(Pt, Dir, TL, BR, LinePts1),
+    length(LinePts1, Len),
+    (Len =< 5 -> LinePts = []; LinePts = LinePts1), !.
+
+sp_box_sample_rand_line(SP, ID, LinePts):-
+    sps_box_sample_rand_line(SP, [ID], LinePts).
+sps_box_sample_rand_line(SP, IDs, LinePts):-
+    get_sps_pixels(SP, IDs, SPts),
+    random_select(Pt, SPts, _), rand_2d_angle_vec(Dir),
+    sps_box_sample_line(SP, IDs, Pt, Dir, LinePts).
+
+sp_box_sample_vertical_line(SP, ID, LinePts):-
+    sps_box_sample_vertical_lines(SP, [ID], LinePts).
+sps_box_sample_vertical_line(SP, IDs, LinePts):-
+    sps_box(SP, IDs, [[X1, Y1 | _], [X2_, Y2 | _]]),
+    X2 is X2_ + 1, random(X1, X2, X), Y is round((Y1 + Y2)/2),
+    sps_box_sample_line(SP, IDs, [X, Y], [0, 1], LinePts).
+    
 %=========================================
 % line sampling and get superpixel labels
 %=========================================
