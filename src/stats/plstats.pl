@@ -12,16 +12,15 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+along with Logical Vision 2.  If not, see <http://www.gnu.org/licenses/>.
 ************************************************************************/
 /* Statistical models module
  * ============================
  * Version: 2.0
  * Author: Wang-Zhou Dai <dai.wzero@gmail.com>
  */
-:- load_foreign_library(foreign('../../libs/cvstats.so')),
-   load_foreign_library(foreign('../../libs/cvcluster.so')).
-
+:- load_foreign_library(foreign('../../libs/cvstats.so')).
+:- ensure_loaded('../utils/utils.pl').
 /*
  * Labeled data are represented by a list of key-value maps
  * i.e., [X1-Y1, X2-Y2, ...], where Xi = [Xi1, Xi2, ...] is the feature vector,
@@ -29,6 +28,11 @@ along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 %%%%%%%%%%%%%%%%%% evaluate binary labels %%%%%%%%%%%%%%%%%%%
+/* Labels/Predicted: list of 0 and 1 as labels. 0 is negative, 1 is positive.
+ * e.g. calculate F1-score:
+ *     ?- eval_bin_fscore([1,1,1,1,0,0,0,0], [0,1,1,0,1,0,0,0], 1, F).
+ *     F = 0.5714285714285714.
+ */
 eval_bin_acc(Labels, Predicted, Acc):-
     length(Labels, N),
     eval_bin_labels(Labels, Predicted, TP, _, TN, _),
@@ -39,6 +43,12 @@ eval_bin_precision(Labels, Predicted, Precision):-
 eval_bin_recall(Labels, Predicted, Recall):-
     eval_bin_labels(Labels, Predicted, TP, _, _, FN),
     Sum is TP + FN, divide(TP, Sum, Recall).
+% Beta is the parameter in F measure
+eval_bin_fscore(Labels, Predicted, Beta, F):-
+    eval_bin_labels(Labels, Predicted, TP, FP, _, FN),
+    A is (1 + Beta*Beta)*TP,
+    B is (1 + Beta*Beta)*TP + Beta*Beta*FP + FN,
+    divide(A, B, F).
 
 eval_bin_labels([], [], 0, 0, 0, 0):-
     !.
