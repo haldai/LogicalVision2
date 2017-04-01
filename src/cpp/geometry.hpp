@@ -12,7 +12,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+along with Logical Vision 2.  If not, see <http://www.gnu.org/licenses/>.
 ************************************************************************/
 #ifndef _GEOMETRY_HPP
 #define _GEOMETRY_HPP
@@ -48,6 +48,8 @@ enum { XY_SHIFT = 16,
  * @return: all points on the line
  */
 vector<Scalar> get_line_points(Scalar point, Scalar direction, Scalar bound);
+vector<Scalar> get_line_points(Scalar point, Scalar direction,
+                               Scalar topleft, Scalar bottomright);
 vector<Scalar> get_ray_points(Scalar point, Scalar direction, Scalar bound);
 
 /* get all points on a line segment
@@ -123,6 +125,8 @@ double DistancePointEllipse(cv::Point point,
  */
 void bresenham(Scalar current, Scalar direction, Scalar inc,
                Scalar bound, vector<Scalar> *points);
+void bresenham(Scalar current, Scalar direction, Scalar inc,
+               Scalar topleft, Scalar bottomright, vector<Scalar> *points);
 
 /* determines whether a 3D point is out of a 3D space (positive)
  * @point: input point
@@ -140,6 +144,20 @@ bool out_of_canvas(Scalar point, Scalar bound) {
     else
         return true;
 }
+
+bool out_of_box(Scalar point, Scalar topleft, Scalar bottomright) {
+    int x = point[0];
+    int y = point[1];
+    int z = point[2];
+    
+    if (x >= topleft[0] && x <= bottomright[0] &&
+        y >= topleft[1] && y <= bottomright[1] &&
+        z >= topleft[2] && z <= bottomright[2]) 
+        return false;
+    else
+        return true;
+}
+
 /* determines whether two points are continuous
  * @p1, p2: input points
  */
@@ -478,6 +496,122 @@ void bresenham(Scalar current, Scalar direction, Scalar inc,
         bresenham(point, direction, inc, bound, points);
 }
 
+void bresenham(Scalar current, Scalar direction, Scalar inc,
+               Scalar topleft, Scalar bottomright, vector<Scalar> *points) {
+    // magnitude
+    double ddx = abs(direction[0]);
+    double ddy = abs(direction[1]);
+    double ddz = abs(direction[2]);
+
+    // robustness for double input
+    double min = ddx;
+    if (min == 0 && ddy != 0)
+        min = ddy;
+    if (min == 0 && ddz != 0)
+        min = ddz;
+    if (ddy != 0 && min > ddy)
+        SWAP(min, ddy);
+    if (ddz != 0 && min > ddz)
+        SWAP(min, ddz);
+    
+    // direction
+    int dx = round(direction[0]*1000/min);
+    int dy = round(direction[1]*1000/min);
+    int dz = round(direction[2]*1000/min);
+    
+    int x_inc = inc[0];
+    int y_inc = inc[1];
+    int z_inc = inc[2];
+    
+    int Adx = abs(dx);
+    int Ady = abs(dy);
+    int Adz = abs(dz);
+    
+    int dx2 = Adx*2;
+    int dy2 = Ady*2;
+    int dz2 = Adz*2;
+    
+    int x = current[0];
+    int y = current[1];
+    int z = current[2];
+
+    int err_1, err_2;
+    
+    if (Adx >= Ady && Adx >= Adz) { 
+        err_1 = dy2 - Adx;
+        err_2 = dz2 - Adx;
+        for (int cont = 0; cont < Adx; cont++) {
+            if (err_1 > 0) { 
+                y += y_inc;
+                err_1 -= dx2;
+            }
+            if (err_2 > 0) {
+                z += z_inc;
+                err_2 -= dx2;
+            }
+            err_1 += dy2;
+            err_2 += dz2;
+            x += x_inc;
+            Scalar point(x, y, z);
+            if (!out_of_box(point, topleft, bottomright))
+                points->push_back(point);
+            else
+                break;
+        }
+    }
+    
+    if (Ady > Adx && Ady >= Adz) {
+        err_1 = dx2 - Ady;
+        err_2 = dz2 - Ady;
+        for (int cont = 0; cont < Ady; cont++) {
+            if (err_1 > 0) {
+                x += x_inc;
+                err_1 -= dy2;
+            }
+            if (err_2 > 0) { 
+                z += z_inc;
+                err_2 -= dy2;
+            }
+            err_1 += dx2;
+            err_2 += dz2;
+            y += y_inc;
+            Scalar point(x, y, z);
+            if (!out_of_box(point, topleft, bottomright))
+                points->push_back(point);
+            else
+                break;
+            
+        }
+    }
+   
+    if (Adz > Adx && Adz > Ady) {
+        err_1 = dy2 - Adz;
+        err_2 = dx2 - Adz;
+        for (int cont = 0; cont < Adz; cont++) {
+            if (err_1 > 0) {
+                y += y_inc;
+                err_1 -= dz2;
+            }
+            if (err_2 > 0) {
+                x += x_inc;
+                err_2 -= dz2;
+            }
+            err_1 += dy2;
+            err_2 += dx2;
+            z += z_inc;
+            Scalar point(x, y, z);
+            if (!out_of_box(point, topleft, bottomright))
+                points->push_back(point);
+            else
+                break;
+        }
+    }
+    
+    Scalar point(x, y, z);
+    if (!out_of_box(point, topleft, bottomright))
+        bresenham(point, direction, inc, topleft, bottomright, points);
+}
+
 // 3D Bresenham's line generation
 vector<Scalar> get_line_points(Scalar point,
                                Scalar direction,
@@ -514,6 +648,42 @@ vector<Scalar> get_line_points(Scalar point,
     reverse(re.begin(), re.end());
 
     return re;
+}
+
+vector<Scalar> get_line_points(Scalar point, Scalar direction,
+                               Scalar topleft, Scalar bottomright) {
+    // REMARK: all coordinate oders as "column, row, duration"
+    vector<Scalar> re; // returned point list
+
+    if (direction[0] == 0 &&
+        direction[1] == 0 &&
+        direction[2] == 0)
+        return re;
+    
+    // increment in each direction
+    int c_inc = direction[0] > 0 ? 1 : -1;
+    int r_inc = direction[1] > 0 ? 1 : -1;
+    int d_inc = direction[2] > 0 ? 1 : -1;
+    Scalar inc;
+    inc[0] = c_inc;
+    inc[1] = r_inc;
+    inc[2] = d_inc;
+    bresenham(point, direction, inc, topleft, bottomright, &re);
+
+    reverse(re.begin(), re.end());
+    if (!out_of_box(point, topleft, bottomright))
+        re.push_back(point); // insert itself
+    // grow in another direction
+    c_inc = -1 * c_inc;
+    r_inc = -1 * r_inc;
+    d_inc = -1 * d_inc;
+    inc[0] = c_inc;
+    inc[1] = r_inc;
+    inc[2] = d_inc;
+    bresenham(point, direction, inc, topleft, bottomright, &re);
+    reverse(re.begin(), re.end());
+
+    return re;    
 }
 
 vector<Scalar> get_ray_points(Scalar point, Scalar direction, Scalar bound) {

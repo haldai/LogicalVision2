@@ -12,7 +12,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+along with Logical Vision 2.  If not, see <http://www.gnu.org/licenses/>.
 ************************************************************************/
 /* Utils module
  * ================================
@@ -228,7 +228,7 @@ PlTerm vecvec2list(const vector<vector<Type>> & vec,
     PlTail re_tail(re_term);
 
     try {
-        size_outer = (size_outer < 0 || size_outer > vec.size()) ?
+        size_outer = (size_outer < 0 || size_outer > int(vec.size())) ?
             vec.size() : size_outer;
         for (int o_idx = 0; o_idx < size_outer; o_idx++) {
             size_inner = (size_inner < 0) ? vec[o_idx].size() : size_inner;

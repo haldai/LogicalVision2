@@ -12,7 +12,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+along with Logical Vision 2.  If not, see <http://www.gnu.org/licenses/>.
 ************************************************************************/
 /* Drawing library for prolog
  * ============================
@@ -146,6 +146,25 @@ PREDICATE(draw_rect_2d, 4) {
     Scalar color = term2color(A4); // color
     // draw
     cv_draw_rect(*img, c, r, color);
+    return TRUE;
+}
+
+/* draw_rect_2d(+IMG, +BOX, +COLOR)
+ * @SEQ: img sequence
+ * @BOX: rectangle [TopLeft, BottomRight], TL & BR are [X, Y] coordinates
+ * @COLOR: rectangle color 
+ */
+PREDICATE(draw_rect_2d, 3) {
+    // parsing arguments
+    char *p1 = (char*) A1;
+    const string add_img(p1); // address
+    Mat *img = str2ptr<Mat>(add_img);
+    vector<vector<int>> box_vec = list2vecvec<int>(A2, 2, 2);
+    Point2i TL(box_vec[0][0], box_vec[0][1]);
+    Point2i BR(box_vec[1][0], box_vec[1][1]);
+    Scalar color = term2color(A3); // color
+    // draw
+    cv_draw_rect(*img, TL, BR, color);
     return TRUE;
 }
 

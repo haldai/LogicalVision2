@@ -12,7 +12,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+along with Logical Vision 2.  If not, see <http://www.gnu.org/licenses/>.
 ************************************************************************/
 /* Sampling library for prolog
  * ============================
@@ -145,7 +145,7 @@ PREDICATE(point_color, 4) {
 }
 
 /* point_color_2d(IMG, [X, Y], COLOR)
- * get LAB color of local area of point [X, Y, Z] in an image IMG
+ * get LAB color of local area of point [X, Y] in an image IMG
  */
 PREDICATE(point_color_2d, 3) {
     char *p1 = (char*) A1;
@@ -183,6 +183,31 @@ PREDICATE(line_points, 4) {
     // get points
     vector<Scalar> pts = get_line_points(pt, dir, bound);
     return A4 = point_vec2list(pts);
+}
+
+/* line_points(+POINT, +DIR, +TOPLEFT, +BOTTOMRIGHT, -PTS)
+ * get a list of points that on line
+ * @POINT = [X, Y, Z]: a point that the line crosses
+ * @DIR = [DX, DY, DZ]: direction of the line
+ * @TOPLEFT/BOTTOMRIGHT = [W, H, D]: size limit of the range (width,
+ *                     height and duration)
+ * @PTS: returned point list
+ */
+PREDICATE(line_points, 5) {
+    // coordinates scalar
+    vector<int> pt_vec = list2vec<int>(A1, 3);
+    Scalar pt(pt_vec[0], pt_vec[1], pt_vec[2]);
+    // direction scalar
+    vector<double> dr_vec = list2vec<double>(A2, 3);
+    Scalar dir(dr_vec[0], dr_vec[1], dr_vec[2]);
+    // boundary scalar
+    vector<int> bd1_vec = list2vec<int>(A3, 3);
+    Scalar tl(bd1_vec[0], bd1_vec[1], bd1_vec[2]);
+    vector<int> bd2_vec = list2vec<int>(A4, 3);
+    Scalar br(bd2_vec[0], bd2_vec[1], bd2_vec[2]);
+    // get points
+    vector<Scalar> pts = get_line_points(pt, dir, tl, br);
+    return A5 = point_vec2list(pts);
 }
 
 /* ray_points(+POINT, +DIR, +BOUND, -PTS)
@@ -724,6 +749,14 @@ PREDICATE(fit_elps, 3) {
     if (!fit_ellipse_2d(pts, cen, param))
         return FALSE;
     
+    for (int i = 0; i < 3; i++)
+        if (isnan(param[i]))
+            return FALSE;
+    
+    for (int i = 0; i < 3; i++)
+        if (isnan(cen[i]))
+            return FALSE;
+
     // bind variables
     vector<long> cen_vec = {(long) cen[0],
                             (long) cen[1],
@@ -762,6 +795,10 @@ PREDICATE(fit_circle, 3) {
     Scalar param;
     fit_circle_2d(pts, param);
 
+    for (int i = 0; i < 3; i++)
+        if (isnan(param[i]))
+            return FALSE;
+    
     // bind variables
     vector<long> center_vec = {(long) param[0],
                                (long) param[1],

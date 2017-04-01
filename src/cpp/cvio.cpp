@@ -12,7 +12,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+along with Logical Vision 2.  If not, see <http://www.gnu.org/licenses/>.
 ************************************************************************/
 /* IO library for prolog
  * ============================
@@ -47,12 +47,12 @@ PREDICATE(load_img, 2) {
     if (PL_get_atom_chars(t1, &p1)) {
         const string path(p1);
         Mat* img = cv_load_img(path);
-        if (img->cols > 320 || img->rows > 320) {
+        if (img->cols > 360 || img->rows > 360) {
             double t = 0;
             if (img->cols > img->rows)
-                t = 320.0/img->cols;
+                t = 360.0/img->cols;
             else
-                t = 320.0/img->rows;
+                t = 360.0/img->rows;
             Mat* rsz = cv_resize_image(img,
                                        round(t*(img->cols)),
                                        round(t*(img->rows)));
@@ -69,8 +69,8 @@ PREDICATE(load_img, 2) {
             int row = img->rows;
             PlTermv size_2d_args(3);
             size_2d_args[0] = A2;
-            size_2d_args[1] = col;
-            size_2d_args[2] = row;
+            size_2d_args[1] = col; // width
+            size_2d_args[2] = row; // height
             PlTermv size_2d_atom(1);
             size_2d_atom[0] = PlCompound("size_2d", size_2d_args);
             PlCall("assertz", size_2d_atom);
@@ -637,6 +637,37 @@ PREDICATE(resize_img_2d, 3) {
     vector<int> vec = list2vec<int>(A2, 2);
     // get subimage
     Mat *newimg = cv_resize_image(img, vec[0], vec[1]);
+    // convert returning
+    string add = ptr2str(newimg);
+    A3 = PlTerm(add.c_str());
+    // assert size_2d
+    int col = newimg->cols;
+    int row = newimg->rows;
+    PlTermv size_2d_args(3);
+    size_2d_args[0] = A3;
+    size_2d_args[1] = col;
+    size_2d_args[2] = row;
+    PlTermv size_2d_atom(1);
+    size_2d_atom[0] = PlCompound("size_2d", size_2d_args);
+    PlCall("assertz", size_2d_atom);
+    return TRUE;
+}
+
+/* gaussian_blur(ImgIn, Param, ImgOut)
+ * Gaussian blur of given image
+ * @ImgIn/Out: input/output image
+ * @Param = [SizeX, SizeY, SigmaX, SigmaY]: SizeX/Y - gaussian kernel size,
+ *          SigmaX/Y - gaussian sigma in X/Y direction
+ */
+PREDICATE(gaussian_blur, 3) {
+    // source image
+    char *p1 = (char*) A1;
+    const string add_img(p1);
+    Mat *img = str2ptr<Mat>(add_img);
+    // parameter
+    vector<int> vec = list2vec<int>(A2, 4);
+    Mat *newimg = new Mat();
+    GaussianBlur(*img, *newimg, Size(vec[0], vec[1]), vec[2], vec[3]);
     // convert returning
     string add = ptr2str(newimg);
     A3 = PlTerm(add.c_str());
