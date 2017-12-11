@@ -25,10 +25,12 @@ along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
                   '../abduce/bk_ellipse.pl',
                   '../io/plio.pl',
                   '../sampling/plsampling.pl',
+		  '../sampling/plellipse.pl',
                   '../drawing/pldraw.pl',
                   '../utils/utils.pl',
                   '../learning/pllearning.pl']).
 
+ 
 % test utilities
 test_write_start(Name):-
     write('[TEST] '), write(Name), write('.'), nl.
@@ -167,13 +169,13 @@ test_fit_circle(IMGSEQ, [X, Y, R], COLOR):-
     seq_img(IMGSEQ, 0, IMG1),
     clone_img(IMG1, IMG2),
     size_3d(IMGSEQ, W, H, D),
-    circle_points([X, Y, 0, R], [W, H, D], PTS),
+    circle_points([X, Y, 0], R, [W, H, D], PTS),
     %index_select([1, 30, 50, 70, 90, 110, 130, 150, 170, 190], PTS, PTS2),
     index_select([1, 30, 50], PTS, PTS2),
     %PTS2 = PTS,
-    fit_circle(PTS2, Para2),
+    fit_circle(PTS2, Para2, R),
     write('fit parameters: '), write(Para2), nl,
-    circle_points(Para2, [W, H, D], PTS3),
+    circle_points(Para2, R, [W, H, D], PTS3),
     draw_points_2d(IMG2, PTS3, COLOR),
     draw_points_2d(IMG2, PTS2, green),
     showimg_win(IMG2, 'debug'),
@@ -675,13 +677,13 @@ test_extrema(Imgseq, Point, Dir):-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 test_main:-
     test_load_imgseq(Imgseq),
-    %test_show2imgs(Imgseq),
-    %test_draw_elps(Imgseq, [[353, 143, 0], [37, 18, 110]], red),
-    %test_fit_elps(Imgseq, [353, 143, 0], [37, 18, 20], red),
-    %test_draw_line_2d(Imgseq, [100, 100, 0], [2, 7, 0], red),
-    %test_draw_line_(Imgseq, [100, 100, 0], [2, 7, 0], red),
-    %test_ellipse(Imgseq),
-    %test_fit_circle(Imgseq, [100, 100, 30], blue),
+    test_show2imgs(Imgseq),
+    test_draw_elps(Imgseq, [[353, 143, 0], [37, 18, 110]], red),
+    test_fit_elps(Imgseq, [353, 143, 0], [37, 18, 20], red),
+    test_draw_line_2d(Imgseq, [100, 100, 0], [2, 7, 0], red),
+    test_draw_line_(Imgseq, [100, 100, 0], [2, 7, 0], red),
+    test_ellipse(Imgseq),
+    test_fit_circle(Imgseq, [100, 100, 30], blue),
     %showseq_win(Imgseq, debug),
     %test_sample_line_L_grad(Imgseq, [351, 147, 2000], [1, 1, 0]),
     %test_sample_line_L_grad(Imgseq, [120, 0, 2000], [1, 1, 0]),
