@@ -2,7 +2,6 @@ import cv2
 import imutils
 import argparse
 import numpy as np
-import sys
 
 def getShape(contour):
     p = cv2.arcLength(contour, True)
@@ -43,8 +42,11 @@ ap.add_argument("-i", "--image", required=True,	help="Input Image")
 args = vars(ap.parse_args())
 
 try:
-    inImage = cv2.imread(args['image']) #'tr.png')#('shapes_and_colors.png')
+    inImage = cv2.imread(args['image'])
     imgray = cv2.cvtColor(inImage,cv2.COLOR_BGR2GRAY)
+    # Note that Logical-Vision has image dataset with BlackImage and White Background
+    # So, Let's invert the image and then Detect Polygon
+    # If you are using normal image. Make sure you comment following line
     imgray = cv2.bitwise_not(imgray)
     ret,thresh = cv2.threshold(imgray,127,255,0)
     im2, contours, hierarchy = cv2.findContours(thresh,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
@@ -61,4 +63,3 @@ try:
     cv2.waitKey(0)
 except:
     print '!!! Could\'t find Image file. Make sure you provide correct Path and Filename-SPECIALLY EXTENSIONS !!!'
-    sys.exit(0)
