@@ -445,8 +445,6 @@ test_compare_hist(Imgseq):-
     line_seg_points(P1, P2, [W, H, D], Pts1),
     line_seg_points(P2, P3, [W, H, D], Pts2),
     line_seg_points(P5, P6, [W, H, D], Pts3),
-    writeln(Pts1),
-    writeln(Pts2),
     compare_hist(Pts1, Pts2, Dist1),
     compare_hist(Pts1, Pts3, Dist2),
     write("histogram KL divergence ([P1, P2], [P2, P3]): "), write(Dist1), nl,
@@ -697,7 +695,7 @@ test_main:-
     test_points_hist(Imgseq),
     test_rand_sample_lines_scharrs(Imgseq, 1000),
     test_sample_line_seg_hists(Imgseq),
-    %test_cluster_rand_segs(Imgseq).
+    test_cluster_rand_segs(Imgseq),
     %test_sample_cube_var_hist(Imgseq),
     %test_draw_cubes(Imgseq),
     %test_color_bg_nonbg(Imgseq, _),
