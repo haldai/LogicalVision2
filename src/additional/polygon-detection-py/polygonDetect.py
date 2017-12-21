@@ -15,7 +15,9 @@ def getShape(contour):
         contourArea = cv2.contourArea(contour)
         fittedArea = rect[1][0] * rect[1][1]
         #print "Countor Area:", contourArea , " Fiited A:", fittedArea
-        if .95 * fittedArea <= contourArea:
+        (x, y, w, h) = cv2.boundingRect(aV)
+        ar = w / float(h)
+        if .95 * fittedArea <= contourArea and ar >= 0.95 and ar <= 1.05:
             return 'Square'
         else:
             return 'Rectangle'
@@ -47,7 +49,7 @@ try:
     # Note that Logical-Vision has image dataset with BlackImage and White Background
     # So, Let's invert the image and then Detect Polygon
     # If you are using normal image. Make sure you comment following line
-    imgray = cv2.bitwise_not(imgray)
+    #imgray = cv2.bitwise_not(imgray)
     ret,thresh = cv2.threshold(imgray,127,255,0)
     im2, contours, hierarchy = cv2.findContours(thresh,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
 
@@ -58,7 +60,7 @@ try:
         X = int(cM['m10'] /(cM['m00']+1))
         Y = int(cM['m01'] /(cM['m00']+1))
         cv2.putText(inImage, getShape(cont), (X, Y), cv2.FONT_HERSHEY_SIMPLEX,
-    		0.5, (255, 0, 0), 2)
+    		0.5, (255, 255, 255), 2)
         cv2.imshow("Image", inImage)
     cv2.waitKey(0)
 except:
