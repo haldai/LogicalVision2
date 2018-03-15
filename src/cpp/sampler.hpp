@@ -582,7 +582,8 @@ vector<Scalar> cv_line_pts_scharr_geq_T(vector<Mat> *images,
     Scalar bound((*images)[0].cols, (*images)[0].rows, images->size());
     // get all points on this line
     vector<Scalar> line_points = get_line_points(point, direction, bound);
-    re.push_back((Scalar) *(line_points.begin()));
+    if (line_points.begin() != line_points.end())
+    	re.push_back((Scalar) *(line_points.begin()));
     // evaluate Scharr gradients of all points
     Scalar tmp_max; // max gradient point
     double tmp_g = -10000; // max gradient intensity
@@ -635,7 +636,8 @@ vector<Scalar> cv_line_pts_scharr_geq_T(vector<Mat> *images,
         }
     }
     */
-    re.push_back((Scalar) *line_points.rbegin());
+    if (line_points.rbegin() != line_points.rend())
+        re.push_back((Scalar) *line_points.rbegin());
     return re;
 }
 

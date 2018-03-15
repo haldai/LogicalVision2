@@ -25,12 +25,12 @@ along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
                   '../abduce/bk_ellipse.pl',
                   '../io/plio.pl',
                   '../sampling/plsampling.pl',
+		  '../sampling/plsegment.pl',
 		  '../sampling/plellipse.pl',
                   '../drawing/pldraw.pl',
                   '../utils/utils.pl',
                   '../learning/pllearning.pl']).
 
- 
 % test utilities
 test_write_start(Name):-
     write('[TEST] '), write(Name), write('.'), nl.
@@ -445,8 +445,8 @@ test_compare_hist(Imgseq):-
     line_seg_points(P1, P2, [W, H, D], Pts1),
     line_seg_points(P2, P3, [W, H, D], Pts2),
     line_seg_points(P5, P6, [W, H, D], Pts3),
-    compare_hist(Imgseq, Pts1, Pts2, Dist1),
-    compare_hist(Imgseq, Pts1, Pts3, Dist2),
+    compare_hist(Pts1, Pts2, Dist1),
+    compare_hist(Pts1, Pts3, Dist2),
     write("histogram KL divergence ([P1, P2], [P2, P3]): "), write(Dist1), nl,
     write("histogram KL divergence ([P1, P2], [P5, P6]): "), write(Dist2), nl,
     test_write_done.
@@ -684,18 +684,18 @@ test_main:-
     test_draw_line_(Imgseq, [100, 100, 0], [2, 7, 0], red),
     test_ellipse(Imgseq),
     test_fit_circle(Imgseq, [100, 100, 30], blue),
-    %showseq_win(Imgseq, debug),
+    showseq_win(Imgseq, debug),
     %test_sample_line_L_grad(Imgseq, [351, 147, 2000], [1, 1, 0]),
     %test_sample_line_L_grad(Imgseq, [120, 0, 2000], [1, 1, 0]),
     %test_extrema(Imgseq, [351, 147, 0], [1, 1, 0]),
     %test_sample_parallel_lines_L_grad(Imgseq, 0, [1,1,0]),
-    %test_line_scharr(Imgseq, [353, 133, 0], [1, 1, 0], 2),
-    %test_line_scharr(Imgseq, [335, 133, 0], [1, 1, 0], 2),
-    %test_compare_hist(Imgseq),
-    %test_points_hist(Imgseq),
-    %test_rand_sample_lines_scharrs(Imgseq, 1000),
-    %test_sample_line_seg_hists(Imgseq),
-    %test_cluster_rand_segs(Imgseq),
+    test_line_scharr(Imgseq, [353, 133, 0], [1, 1, 0], 2),
+    test_line_scharr(Imgseq, [335, 133, 0], [1, 1, 0], 2),
+    test_compare_hist(Imgseq),
+    test_points_hist(Imgseq),
+    test_rand_sample_lines_scharrs(Imgseq, 1000),
+    test_sample_line_seg_hists(Imgseq),
+    test_cluster_rand_segs(Imgseq),
     %test_sample_cube_var_hist(Imgseq),
     %test_draw_cubes(Imgseq),
     %test_color_bg_nonbg(Imgseq, _),

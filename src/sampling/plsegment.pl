@@ -44,6 +44,7 @@ sample_seg_hists(Imgseq, [Start, End], Thresh_Scharr, Seg_Hist_Pairs):-
     seg_hists_pairs(Imgseq, Edge_pts, Seg_Hist_Pairs).
 
 % get line segment hists and return Seg-Hist pairs
+seg_hists_pairs(_, [], []) :- !.
 seg_hists_pairs(_, [_], []):-
     !.
 seg_hists_pairs(Imgseq, [P1, P2 | Ps], [Seg-Hist | SHs]):-
