@@ -15,7 +15,7 @@ INCLUDE = -I$(SRCDIR) -I$(INCLUDEDIR)
 LIBS = -lm -L$(SRCDIR) -L$(LIBSDIR)
 
 # Library prefix
-MLPACK_HOME = /home/daiwz/.local
+MLPACK_HOME = /home/daiwz/.local/
 
 # SWI-prolog
 CXXFLAGS_SWI = `pkg-config --cflags swipl`
@@ -34,7 +34,7 @@ LDFLAGS_QT = `pkg-config --libs Qt5Gui`
 
 # mlpack library
 CXXFLAGS_MLPACK = -I$(MLPACK_HOME)/include
-LDFLAGS_MLPACK = -L$(MLPACK_HOME) -L$(LDFLAGS_ARMA) -lmlpack -lboost_serialization
+LDFLAGS_MLPACK = -L$(MLPACK_HOME)/lib -L$(LDFLAGS_ARMA) -lmlpack -lboost_serialization
 
 #all:cvcluster.so
 all:cvio.so cvsampler.so cvdraw.so cvcluster.so cvstats.so
@@ -44,35 +44,35 @@ cvio.so:cvio.o
 	mv cvio.so $(LIBSDIR)/
 
 cvio.o:
-	$(CXX) $(CXXFLAGS) $(CXXFLAGS_CV) $(CXXFLAGS_SWI) $(CXXFLAGS_QT) -c cvio.cpp
+	$(CXX) $(CXXFLAGS) $(CXXFLAGS_CV) $(CXXFLAGS_SWI) $(CXXFLAGS_QT) $(CXXFLAGS_MLPACK) -c cvio.cpp
 
 cvsampler.so:cvsampler.o
 	$(CXX) -shared $(LIBS) cvsampler.o -o cvsampler.so $(LDFLAGS_CV) $(LDFLAGS_SWI) $(LDFLAGS_QT) $(LDFLAGS_ARMA) $(LDFLAGS_MLPACK)
 	mv cvsampler.so $(LIBSDIR)/
 
 cvsampler.o:
-	$(CXX) $(CXXFLAGS) $(CXXFLAGS_CV) $(CXXFLAGS_SWI) $(CXXFLAGS_QT) -c cvsampler.cpp
+	$(CXX) $(CXXFLAGS) $(CXXFLAGS_CV) $(CXXFLAGS_SWI) $(CXXFLAGS_QT) $(CXXFLAGS_MLPACK) -c cvsampler.cpp
 
 cvdraw.so:cvdraw.o
 	$(CXX) -shared $(LIBS) cvdraw.o -o cvdraw.so $(LDFLAGS_CV) $(LDFLAGS_SWI) $(LDFLAGS_QT) $(LDFLAGS_MLPACK)
 	mv cvdraw.so $(LIBSDIR)/
 
 cvdraw.o:
-	$(CXX) $(CXXFLAGS) $(CXXFLAGS_CV) $(CXXFLAGS_SWI) $(CXXFLAGS_QT) -c cvdraw.cpp
+	$(CXX) $(CXXFLAGS) $(CXXFLAGS_CV) $(CXXFLAGS_SWI) $(CXXFLAGS_QT) $(CXXFLAGS_MLPACK) -c cvdraw.cpp
 
 cvcluster.so:cvcluster.o
 	$(CXX) -shared $(LIBS) cvcluster.o -o cvcluster.so $(LDFLAGS_MLPACK) $(LDFLAGS_CV)
 	mv cvcluster.so $(LIBSDIR)/
 
 cvcluster.o:
-	$(CXX) $(CXXFLAGS) $(CXXFLAGS_CV) $(CXXFLAGS_SWI) $(CXXFLAGS_QT) -c cvcluster.cpp
+	$(CXX) $(CXXFLAGS) $(CXXFLAGS_CV) $(CXXFLAGS_SWI) $(CXXFLAGS_QT) $(CXXFLAGS_MLPACK) -c cvcluster.cpp
 
 cvstats.so:cvstats.o svm.o
 	$(CXX) -shared $(LIBS) cvstats.o svm.o -o cvstats.so $(LDFLAGS_MLPACK) $(LDFLAGS_CV)
 	mv cvstats.so $(LIBSDIR)/
 
 cvstats.o:
-	$(CXX) $(CXXFLAGS) $(CXXFLAGS_CV) $(CXXFLAGS_SWI) $(CXXFLAGS_QT) -c cvstats.cpp
+	$(CXX) $(CXXFLAGS) $(CXXFLAGS_CV) $(CXXFLAGS_SWI) $(CXXFLAGS_QT) $(CXXFLAGS_MLPACK) -c cvstats.cpp
 
 svm.o:
 	$(CXX) $(CXXFLAGS) -c svm.cpp

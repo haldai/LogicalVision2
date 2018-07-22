@@ -276,7 +276,7 @@ PlTerm pl_train_adaboost(const arma::mat & data,
                                                num_classes, bucket_size);
     
     // Define parameters for AdaBoost.
-    ADABOOST_DS *model = new ADABOOST_DS(data, labels.row(0),
+    ADABOOST_DS *model = new ADABOOST_DS(data, labels.row(0), num_classes,
                                          ds, iterations, tolerance);
     string model_addr = ptr2str(model);
     return PlTerm(model_addr.c_str());
@@ -299,7 +299,7 @@ PlTerm pl_train_adaboost_perceptron(const arma::mat & data,
                                        perceptron_iter);
     
     // Define parameters for AdaBoost.
-    ADABOOST_P *model = new ADABOOST_P(data, labels.row(0),
+    ADABOOST_P *model = new ADABOOST_P(data, labels.row(0), num_classes,
                                                p, iterations, tolerance);
     string model_addr = ptr2str(model);
     return PlTerm(model_addr.c_str());

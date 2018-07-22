@@ -12,7 +12,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+along with Logical Vision 2.  If not, see <http://www.gnu.org/licenses/>.
 ************************************************************************/
 :- ['metagol_ai'].
 
@@ -38,7 +38,7 @@ prim(light_path/2).
 prim(opposite_angle/2).
 % Abducibles
 % prim(convex/1).
-% prim(convey/1).
+% prim(concave/1).
 % prim(light_source/1).
 % prim(light_source_angle/3).
 
@@ -88,7 +88,7 @@ interpreted(highlight/2).
 background(([clock_angle,O,H,A] :- [[highlight,O,H], [convex,O],
 	                                [light_source,L],
                                     [light_source_angle,O,L,A]])).
-background(([clock_angle,O,H,A] :- [[highlight,O,H], [convey,O],
+background(([clock_angle,O,H,A] :- [[highlight,O,H], [concave,O],
 	                                [light_source,L],
                                     [light_source_angle,O,L,A1],
                                     [opposite_angle,A1,A]])).
