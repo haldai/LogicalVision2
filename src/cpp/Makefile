@@ -37,7 +37,7 @@ CXXFLAGS_MLPACK = -I$(MLPACK_HOME)/include
 LDFLAGS_MLPACK = -L$(MLPACK_HOME)/lib -L$(LDFLAGS_ARMA) -lmlpack -lboost_serialization
 
 #all:cvcluster.so
-all:cvio.so cvsampler.so cvdraw.so cvcluster.so cvstats.so
+all:cvio.so cvsampler.so cvdraw.so cvcluster.so cvstats.so cvknn.so
 
 cvio.so:cvio.o
 	$(CXX) -shared $(LIBS) cvio.o -o cvio.so $(LDFLAGS_CV) $(LDFLAGS_SWI) $(LDFLAGS_QT) $(LDFLAGS_MLPACK)
@@ -76,6 +76,15 @@ cvstats.o:
 
 svm.o:
 	$(CXX) $(CXXFLAGS) -c svm.cpp
+
+cvknn.so:cvknn.o
+	$(CXX) -shared $(LIBS) cvknn.o -o cvknn.so $(LDFLAGS_MLPACK) $(LDFLAGS_CV)
+	mv cvknn.so $(LIBSDIR)/
+
+cvknn.o:
+	$(CXX) $(CXXFLAGS) $(CXXFLAGS_CV) $(CXXFLAGS_SWI) $(CXXFLAGS_QT) -c cvknn.cpp
+
+
 
 clean:
 	rm -rf *.o *.so

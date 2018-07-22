@@ -124,10 +124,10 @@ SVM::SVM(const string path) {
 
     // clean up
     delete [] tmp->SV;
-    
+
     for(auto i = 0; i < tmp->nr_class - 1; i++)
         delete [] tmp->sv_coef[i];
-    
+
     delete [] tmp->sv_coef;
     delete tmp->rho;
     delete [] tmp->label;
@@ -155,10 +155,10 @@ SVM::SVM(const arma::mat & data,
     // clean up
     delete_sparse_matrix(problem.x, problem.l);
     delete [] m->SV;
-    
+
     for(auto i = 0; i < m->nr_class - 1; i++)
         delete [] m->sv_coef[i];
-    
+
     delete [] m->sv_coef;
     delete m->rho;
     delete [] m->label;
@@ -170,7 +170,7 @@ SVM::SVM(const arma::mat & data,
 
 SVM::~SVM() {
     delete_sparse_matrix(model.SV, model.l);
-    
+
     for(auto i = 0; i < model.nr_class - 1; i++)
         delete [] model.sv_coef[i];
     //delete [] model.SV;
@@ -203,20 +203,20 @@ double SVM::predict(const arma::colvec & instance) const {
     double prediction = 0.0;
 
     // --- convert Armadillo row vector to LIBSVM type format --- //
-    
+
     // indices of non zero elements
     arma::ucolvec ind = find(instance);
-    
+
     // number of non zero elements
     const arma::size_t n_elem = ind.n_elem;
-    
+
     // allocate space for sparse row
     struct svm_node* x_space = new svm_node[n_elem + 1];
-    
+
     // set last row element of sparse representation
     x_space[n_elem].index = -1;
     x_space[n_elem].value = 0;
-    
+
     // fill in the rest of the elements
     for(arma::size_t i = 0; i < n_elem; i++) {
         x_space[i].index = ind[i];
@@ -269,12 +269,12 @@ bool pl_term_2_data_labels(const PlTerm & pldata,
 PlTerm pl_train_adaboost(const arma::mat & data,
                          const arma::Row<size_t> & labels,
                          const size_t num_classes,
-                         const size_t bucket_size,                         
+                         const size_t bucket_size,
                          const size_t iterations,
                          const double tolerance) {
     mlpack::decision_stump::DecisionStump<> ds(data, labels.row(0),
                                                num_classes, bucket_size);
-    
+
     // Define parameters for AdaBoost.
     ADABOOST_DS *model = new ADABOOST_DS(data, labels.row(0), num_classes,
                                          ds, iterations, tolerance);
@@ -297,7 +297,7 @@ PlTerm pl_train_adaboost_perceptron(const arma::mat & data,
                                     const double tolerance) {
     mlpack::perceptron::Perceptron<> p(data, labels, num_classes,
                                        perceptron_iter);
-    
+
     // Define parameters for AdaBoost.
     ADABOOST_P *model = new ADABOOST_P(data, labels.row(0), num_classes,
                                                p, iterations, tolerance);
@@ -356,7 +356,7 @@ struct svm_parameter pl_parse_svm_parameter(PlTerm term) {
 	param.weight = NULL;
 
     char *args = (char*) term;
-    
+
     enum { kMaxArgs = 64 };
     int argc = 0;
     char *argv[kMaxArgs];
@@ -422,11 +422,17 @@ struct svm_parameter pl_parse_svm_parameter(PlTerm term) {
 
 double compare_hist(const vector<double> & hist1,
                     const vector<double> & hist2) {
-    vector<float> h1(hist1.size()), h2(hist1.size());
-    for (uint i = 0; i < hist1.size(); i++) {
+    if (hist1.size() == 0 || hist2.size() == 0)
+        return 0;
+    vector<float> h1(hist1.size()), h2(hist2.size());
+  
+    for (uint i= 0; i < hist1.size(); i++) {
         h1[i] = static_cast<float>(hist1[i]);
+    }
+    for (uint i = 0; i < hist2.size(); i++) {
         h2[i] = static_cast<float>(hist2[i]);
     }
+    
     return compareHist(h1, h2, CV_COMP_KL_DIV);
 }
 
