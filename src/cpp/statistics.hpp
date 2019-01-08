@@ -425,15 +425,15 @@ double compare_hist(const vector<double> & hist1,
     if (hist1.size() == 0 || hist2.size() == 0)
         return 0;
     vector<float> h1(hist1.size()), h2(hist2.size());
-  
+
     for (uint i= 0; i < hist1.size(); i++) {
         h1[i] = static_cast<float>(hist1[i]);
     }
     for (uint i = 0; i < hist2.size(); i++) {
         h2[i] = static_cast<float>(hist2[i]);
     }
-    
-    return compareHist(h1, h2, CV_COMP_KL_DIV);
+
+    return compareHist(h1, h2, HISTCMP_KL_DIV);
 }
 
 #endif

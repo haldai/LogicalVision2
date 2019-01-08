@@ -6,11 +6,13 @@ Symbolic computer vision tool with SWI-Prolog and OpenCV.
 
 1. SWI-Prolog (>=7.0) compiled with `EXTRA_PKGS=clib` and multi-threading enabled.
 
-2. OpenCV (>=3.0).
+2. OpenCV4. If you installed it with `pacman -S opencv` under Archlinux, please also install `vtk` package.
 
 3. Armadillo library for matrix handling.
 
-4. [Optional] Qt5 if you want a moderner OpenCV displaying, complile your OpenCV with Qt option on.
+4. Machine learning library [mlpack](https://github.com/mlpack/mlpack).
+
+5. [Optional] Qt5 if you want a moderner OpenCV displaying, complile your OpenCV with Qt option on.
 
 ## Compile ##
 

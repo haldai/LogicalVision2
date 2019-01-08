@@ -71,7 +71,7 @@ VideoCapture *cv_load_video(string path) {
 }
 
 vector<Mat> *cv_video2imgseq(VideoCapture *vid) {
-    long frame_total = vid->get(CV_CAP_PROP_FRAME_COUNT);
+    long frame_total = vid->get(CAP_PROP_FRAME_COUNT);
     vid->set(CAP_PROP_POS_FRAMES, 0); // set the read point to the beginning
     bool stop = false;
     Mat frame;
@@ -95,7 +95,7 @@ vector<Mat> *cv_video2imgseq(VideoCapture *vid) {
 }
 
 vector<Mat> *cv_video2greyseq(VideoCapture *vid) {
-    long frame_total = vid->get(CV_CAP_PROP_FRAME_COUNT);
+    long frame_total = vid->get(CAP_PROP_FRAME_COUNT);
     vid->set(CAP_PROP_POS_FRAMES, 0); // set the read point to the beginning
     bool stop = false;
     Mat frame;
@@ -123,12 +123,12 @@ Mat* cv_get_subimage(Mat *img, Scalar roi) {
     int y = roi[1];
     int rx = roi[2];
     int ry = roi[3];
-    
+
     x = (x - rx >= 0) ? (x - rx) : 0;
     y = (x - ry >= 0) ? (x - ry) : 0;
     int lx = 2*rx + 1;
     int ly = 2*ry + 1;
-    
+
     Rect r(x, y, lx, ly);
     Mat *re = new Mat((*img)(r).clone());
     return re;

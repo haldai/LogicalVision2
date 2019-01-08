@@ -8,22 +8,19 @@ OBJFILES = $(patsubst %.cpp,%.o,$(SRCFILES))
 
 CXX = g++
 MAKE = make
-CXXFLAGS = -Wall -std=c++11 -fPIC $(INCLUDE) $(COFLAGS)
+CXXFLAGS = -Wall -std=c++11 -fPIC -fopenmp $(INCLUDE) $(COFLAGS)
 COFLAGS = -gdwarf-2 -g3 -O0
 LDFLAGS = -Wall -fPIC $(LIBS) $(COFLAGS)
 INCLUDE = -I$(SRCDIR) -I$(INCLUDEDIR)
 LIBS = -lm -L$(SRCDIR) -L$(LIBSDIR)
-
-# Library prefix
-MLPACK_HOME = /home/daiwz/.local/
 
 # SWI-prolog
 CXXFLAGS_SWI = `pkg-config --cflags swipl`
 LDFLAGS_SWI = `pkg-config --libs swipl`
 
 # Opencv
-CXXFLAGS_CV = `pkg-config --cflags opencv`
-LDFLAGS_CV = `pkg-config --libs opencv`
+CXXFLAGS_CV = `pkg-config --cflags opencv4`
+LDFLAGS_CV = `pkg-config --libs opencv4`
 
 # Armadillo
 LDFLAGS_ARMA = -larmadillo
@@ -33,8 +30,8 @@ CXXFLAGS_QT = `pkg-config --cflags Qt5Gui`
 LDFLAGS_QT = `pkg-config --libs Qt5Gui`
 
 # mlpack library
-CXXFLAGS_MLPACK = -I$(MLPACK_HOME)/include
-LDFLAGS_MLPACK = -L$(MLPACK_HOME)/lib -L$(LDFLAGS_ARMA) -lmlpack -lboost_serialization
+CXXFLAGS_MLPACK = `pkg-config --cflags mlpack`
+LDFLAGS_MLPACK = `pkg-config --libs mlpack`
 
 #all:cvcluster.so
 all:cvio.so cvsampler.so cvdraw.so cvcluster.so cvstats.so cvknn.so
@@ -82,7 +79,7 @@ cvknn.so:cvknn.o
 	mv cvknn.so $(LIBSDIR)/
 
 cvknn.o:
-	$(CXX) $(CXXFLAGS) $(CXXFLAGS_CV) $(CXXFLAGS_SWI) $(CXXFLAGS_QT) -c cvknn.cpp
+	$(CXX) $(CXXFLAGS) $(CXXFLAGS_CV) $(CXXFLAGS_SWI) $(CXXFLAGS_MLPACK) $(CXXFLAGS_QT) -c cvknn.cpp
 
 
 
